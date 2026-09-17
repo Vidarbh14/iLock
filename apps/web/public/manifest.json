@@ -1,0 +1,40 @@
+{
+  "name": "iLock Security Remote Control",
+  "short_name": "iLock",
+  "description": "Secure remote PC temporary access and authorization system",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Grant Access",
+      "short_name": "Grant",
+      "description": "Grant temporary access to a PC",
+      "url": "/access",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Lock PCs",
+      "short_name": "Lock",
+      "description": "Lock all registered computers",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

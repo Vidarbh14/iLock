@@ -1,0 +1,27 @@
+{
+  "name": "ilock-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "iLock — Full-Stack Remote PC Access & Temporary Authorization System",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present"
+  },
+  "keywords": [
+    "remote-access",
+    "authorization",
+    "windows-agent",
+    "nextjs",
+    "pwa",
+    "supabase"
+  ],
+  "author": "iLock Security Engineering",
+  "license": "MIT"
+}
