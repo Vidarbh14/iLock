@@ -21,9 +21,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 );
 
 -- ==============================================================================
--- 2. Devices Table
--- ==============================================================================
-CREATE TYPE device_status_type AS ENUM ('online', 'offline', 'connecting', 'auth_failed', 'outdated', 'revoked');
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'device_status_type') THEN
+        CREATE TYPE device_status_type AS ENUM ('online', 'offline', 'connecting', 'auth_failed', 'outdated', 'revoked');
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.devices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -81,17 +83,19 @@ CREATE INDEX IF NOT EXISTS idx_pairing_requests_code_hash ON public.pairing_requ
 CREATE INDEX IF NOT EXISTS idx_pairing_requests_owner_id ON public.pairing_requests(owner_id);
 
 -- ==============================================================================
--- 5. Access Sessions Table (Temporary Authorization State Machine)
--- ==============================================================================
-CREATE TYPE access_session_status AS ENUM (
-    'PENDING',
-    'AUTHORIZED',
-    'ACTIVE',
-    'EXPIRING',
-    'EXPIRED',
-    'REVOKED',
-    'FAILED'
-);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'access_session_status') THEN
+        CREATE TYPE access_session_status AS ENUM (
+            'PENDING',
+            'AUTHORIZED',
+            'ACTIVE',
+            'EXPIRING',
+            'EXPIRED',
+            'REVOKED',
+            'FAILED'
+        );
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.access_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -119,16 +123,19 @@ CREATE INDEX IF NOT EXISTS idx_access_sessions_expires_at ON public.access_sessi
 
 -- ==============================================================================
 -- 6. Authorization Requests Table (Outbound command queue & tracking)
--- ==============================================================================
-CREATE TYPE authorization_command_type AS ENUM (
-    'DEVICE_PING',
-    'GET_DEVICE_STATUS',
-    'CREATE_ACCESS_SESSION',
-    'REVOKE_ACCESS_SESSION',
-    'GET_ACTIVE_SESSIONS',
-    'LOCK_REQUEST',
-    'HEARTBEAT'
-);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'authorization_command_type') THEN
+        CREATE TYPE authorization_command_type AS ENUM (
+            'DEVICE_PING',
+            'GET_DEVICE_STATUS',
+            'CREATE_ACCESS_SESSION',
+            'REVOKE_ACCESS_SESSION',
+            'GET_ACTIVE_SESSIONS',
+            'LOCK_REQUEST',
+            'HEARTBEAT'
+        );
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.authorization_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -215,9 +222,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS update_devices_updated_at ON public.devices;
 CREATE TRIGGER update_devices_updated_at BEFORE UPDATE ON public.devices FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS update_access_sessions_updated_at ON public.access_sessions;
 CREATE TRIGGER update_access_sessions_updated_at BEFORE UPDATE ON public.access_sessions FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS update_device_status_updated_at ON public.device_status;
 CREATE TRIGGER update_device_status_updated_at BEFORE UPDATE ON public.device_status FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- ==============================================================================
@@ -298,43 +312,61 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_events ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: Users view/update their own profile
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Devices: Users view, update, delete their own devices
+DROP POLICY IF EXISTS "Users can view own devices" ON public.devices;
 CREATE POLICY "Users can view own devices" ON public.devices FOR SELECT USING (auth.uid() = owner_id);
+DROP POLICY IF EXISTS "Users can insert own devices" ON public.devices;
 CREATE POLICY "Users can insert own devices" ON public.devices FOR INSERT WITH CHECK (auth.uid() = owner_id);
+DROP POLICY IF EXISTS "Users can update own devices" ON public.devices;
 CREATE POLICY "Users can update own devices" ON public.devices FOR UPDATE USING (auth.uid() = owner_id);
+DROP POLICY IF EXISTS "Users can delete own devices" ON public.devices;
 CREATE POLICY "Users can delete own devices" ON public.devices FOR DELETE USING (auth.uid() = owner_id);
 
 -- Device Credentials: Users cannot view raw credentials directly; server-side functions only
+DROP POLICY IF EXISTS "Device credentials restricted to service role" ON public.device_credentials;
 CREATE POLICY "Device credentials restricted to service role" ON public.device_credentials FOR ALL USING (false);
 
 -- Pairing Requests: Users manage their own pairing requests
+DROP POLICY IF EXISTS "Users can view own pairing requests" ON public.pairing_requests;
 CREATE POLICY "Users can view own pairing requests" ON public.pairing_requests FOR SELECT USING (auth.uid() = owner_id);
+DROP POLICY IF EXISTS "Users can create own pairing requests" ON public.pairing_requests;
 CREATE POLICY "Users can create own pairing requests" ON public.pairing_requests FOR INSERT WITH CHECK (auth.uid() = owner_id);
+DROP POLICY IF EXISTS "Users can update own pairing requests" ON public.pairing_requests;
 CREATE POLICY "Users can update own pairing requests" ON public.pairing_requests FOR UPDATE USING (auth.uid() = owner_id);
 
 -- Access Sessions: Users manage access sessions for their own devices
+DROP POLICY IF EXISTS "Users can view own access sessions" ON public.access_sessions;
 CREATE POLICY "Users can view own access sessions" ON public.access_sessions FOR SELECT USING (auth.uid() = owner_id);
+DROP POLICY IF EXISTS "Users can create own access sessions" ON public.access_sessions;
 CREATE POLICY "Users can create own access sessions" ON public.access_sessions FOR INSERT WITH CHECK (auth.uid() = owner_id);
+DROP POLICY IF EXISTS "Users can update own access sessions" ON public.access_sessions;
 CREATE POLICY "Users can update own access sessions" ON public.access_sessions FOR UPDATE USING (auth.uid() = owner_id);
 
 -- Authorization Requests: Owners can view command history for their devices
+DROP POLICY IF EXISTS "Users can view commands for their devices" ON public.authorization_requests;
 CREATE POLICY "Users can view commands for their devices" ON public.authorization_requests FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.devices WHERE id = device_id AND owner_id = auth.uid())
 );
 
 -- Device Status: Users can view status of their own devices
+DROP POLICY IF EXISTS "Users can view own device status" ON public.device_status;
 CREATE POLICY "Users can view own device status" ON public.device_status FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.devices WHERE id = device_id AND owner_id = auth.uid())
 );
 
 -- Audit Logs: Users can view their own audit logs
+DROP POLICY IF EXISTS "Users can view own audit logs" ON public.audit_logs;
 CREATE POLICY "Users can view own audit logs" ON public.audit_logs FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "System can insert audit logs" ON public.audit_logs;
 CREATE POLICY "System can insert audit logs" ON public.audit_logs FOR INSERT WITH CHECK (true);
 
 -- Security Events: Users can view security events for their devices
+DROP POLICY IF EXISTS "Users can view own security events" ON public.security_events;
 CREATE POLICY "Users can view own security events" ON public.security_events FOR SELECT USING (
     auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.devices WHERE id = device_id AND owner_id = auth.uid())
 );

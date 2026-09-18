@@ -38,3 +38,8 @@ Thumbs.db
 device_keys.json
 agent_config.json
 service_credentials.json
+
+# Supabase temp
+.temp/
+supabase/.temp/
+
