@@ -20,8 +20,10 @@ import { ConfirmRevokeModal } from '@/components/ConfirmRevokeModal';
 import { SessionCountdown } from '@/components/SessionCountdown';
 import { BiometricUnlockModal } from '@/components/BiometricUnlockModal';
 
+type DeviceWithStatus = Device & { device_status?: any[] };
+
 export default function DashboardPage() {
-  const [devices, setDevices] = useState<Device[]>([]);
+  const [devices, setDevices] = useState<DeviceWithStatus[]>([]);
   const [activeSessions, setActiveSessions] = useState<AccessSession[]>([]);
   const [recentLogs, setRecentLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +32,7 @@ export default function DashboardPage() {
 
   // Modals state
   const [selectedDeviceForGrant, setSelectedDeviceForGrant] = useState<Device | null>(null);
-  const [selectedDeviceForUnlock, setSelectedDeviceForUnlock] = useState<Device | null>(null);
+  const [selectedDeviceForUnlock, setSelectedDeviceForUnlock] = useState<DeviceWithStatus | null>(null);
   const [selectedSessionForRevoke, setSelectedSessionForRevoke] = useState<AccessSession | null>(null);
   const [isPairModalOpen, setIsPairModalOpen] = useState(false);
   const [lockingDeviceId, setLockingDeviceId] = useState<string | null>(null);
@@ -61,10 +63,20 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // Fast polling helper to capture instant agent responses
+  const triggerFastPolling = useCallback(() => {
+    const timers = [
+      setTimeout(loadData, 600),
+      setTimeout(loadData, 1500),
+      setTimeout(loadData, 3000),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [loadData]);
+
   useEffect(() => {
     loadData();
-    // Auto-refresh telemetry every 10 seconds
-    const interval = setInterval(loadData, 10000);
+    // Auto-refresh telemetry every 3 seconds for near real-time status
+    const interval = setInterval(loadData, 3000);
     return () => clearInterval(interval);
   }, [loadData]);
 
@@ -75,16 +87,53 @@ export default function DashboardPage() {
 
   const handleLock = async (deviceId: string) => {
     setLockingDeviceId(deviceId);
+
+    // Optimistic UI update: immediately mark as locked
+    setDevices((prev) =>
+      prev.map((d) =>
+        d.id === deviceId
+          ? {
+              ...d,
+              device_status:
+                d.device_status && d.device_status.length > 0
+                  ? [{ ...d.device_status[0], workstation_locked: true }]
+                  : [{ workstation_locked: true }],
+            }
+          : d
+      )
+    );
+
     try {
       const res = await fetch(`/api/devices/${deviceId}/lock`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || 'Lock failed');
-      await loadData();
+      triggerFastPolling();
     } catch (err: any) {
       alert(`Lock command failed: ${err.message}`);
+      loadData();
     } finally {
       setLockingDeviceId(null);
     }
+  };
+
+  const handleUnlockSuccess = (unlockedDevice: Device | null) => {
+    if (unlockedDevice) {
+      // Optimistic UI update: immediately mark as unlocked
+      setDevices((prev) =>
+        prev.map((d) =>
+          d.id === unlockedDevice.id
+            ? {
+                ...d,
+                device_status:
+                  d.device_status && d.device_status.length > 0
+                    ? [{ ...d.device_status[0], workstation_locked: false }]
+                    : [{ workstation_locked: false }],
+              }
+            : d
+        )
+      );
+    }
+    triggerFastPolling();
   };
 
   const handleLockAll = async () => {
@@ -98,7 +147,7 @@ export default function DashboardPage() {
       await Promise.all(
         onlineDevices.map((d) => fetch(`/api/devices/${d.id}/lock`, { method: 'POST' }))
       );
-      await loadData();
+      triggerFastPolling();
     }
   };
 
@@ -332,7 +381,7 @@ export default function DashboardPage() {
         device={selectedDeviceForUnlock}
         isOpen={!!selectedDeviceForUnlock}
         onClose={() => setSelectedDeviceForUnlock(null)}
-        onSuccess={loadData}
+        onSuccess={() => handleUnlockSuccess(selectedDeviceForUnlock)}
       />
     </div>
   );

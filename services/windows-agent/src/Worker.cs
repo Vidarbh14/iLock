@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using ILock.WindowsAgent.Access;
@@ -14,6 +15,13 @@ namespace ILock.WindowsAgent
 {
     public class Worker : BackgroundService
     {
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern uint SetThreadExecutionState(uint esFlags);
+
+        private const uint ES_CONTINUOUS = 0x80000000;
+        private const uint ES_SYSTEM_REQUIRED = 0x00000001;
+        private const uint ES_AWAYMODE_REQUIRED = 0x00000040;
+
         private readonly ILogger<Worker> _logger;
         private readonly ConfigManager _configManager;
         private readonly DeviceIdentity _deviceIdentity;
@@ -47,6 +55,18 @@ namespace ILock.WindowsAgent
             _logger.LogInformation("   Hostname:    {Host}", _config.Hostname);
             _logger.LogInformation("   Mode:        {Mode}", _config.DemoMode ? "DEMO/SANDBOX" : "PRODUCTION");
             _logger.LogInformation("==================================================================");
+
+            try
+            {
+                // Prevent system sleep and keep network active while agent is running on power
+                SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_AWAYMODE_REQUIRED);
+                _logger.LogInformation("System sleep prevention and continuous network state active.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not set thread execution state.");
+            }
+
             return base.StartAsync(cancellationToken);
         }
 
@@ -57,6 +77,7 @@ namespace ILock.WindowsAgent
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                bool processedCommand = false;
                 try
                 {
                     // 1. Check local session expiration
@@ -107,6 +128,7 @@ namespace ILock.WindowsAgent
                         // 4. Process Any Pending Commands
                         if (response.PendingCommands != null && response.PendingCommands.Count > 0)
                         {
+                            processedCommand = true;
                             _logger.LogInformation("Received {Count} pending cloud command(s).", response.PendingCommands.Count);
                             foreach (var command in response.PendingCommands)
                             {
@@ -126,11 +148,17 @@ namespace ILock.WindowsAgent
                     _logger.LogWarning("Network or telemetry exception during heartbeat cycle: {Message}", ex.Message);
                 }
 
-                // 5. Backoff calculation with jitter
-                int baseIntervalSeconds = _config.HeartbeatIntervalSeconds;
+                // If a command was processed, immediately run next cycle to report result and check queue
+                if (processedCommand)
+                {
+                    await Task.Delay(250, stoppingToken);
+                    continue;
+                }
+
+                // 5. Normal polling interval (sub-second or config-based) with backoff on failure
+                int baseIntervalSeconds = Math.Max(1, _config.HeartbeatIntervalSeconds);
                 if (consecutiveFailures > 3)
                 {
-                    // Exponential backoff up to 60 seconds with jitter
                     int backoff = Math.Min(60, (int)Math.Pow(2, Math.Min(consecutiveFailures, 6)));
                     int jitter = random.Next(1, 5);
                     baseIntervalSeconds = backoff + jitter;

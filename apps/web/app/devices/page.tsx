@@ -8,13 +8,15 @@ import { GrantAccessModal } from '@/components/GrantAccessModal';
 import { PairDeviceModal } from '@/components/PairDeviceModal';
 import { BiometricUnlockModal } from '@/components/BiometricUnlockModal';
 
+type DeviceWithStatus = Device & { device_status?: any[] };
+
 export default function DevicesPage() {
-  const [devices, setDevices] = useState<Device[]>([]);
+  const [devices, setDevices] = useState<DeviceWithStatus[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDeviceForGrant, setSelectedDeviceForGrant] = useState<Device | null>(null);
-  const [selectedDeviceForUnlock, setSelectedDeviceForUnlock] = useState<Device | null>(null);
+  const [selectedDeviceForUnlock, setSelectedDeviceForUnlock] = useState<DeviceWithStatus | null>(null);
   const [isPairModalOpen, setIsPairModalOpen] = useState(false);
 
   const fetchDevices = async () => {
@@ -28,17 +30,63 @@ export default function DevicesPage() {
     }
   };
 
+  const triggerFastPolling = () => {
+    const timers = [
+      setTimeout(fetchDevices, 600),
+      setTimeout(fetchDevices, 1500),
+      setTimeout(fetchDevices, 3000),
+    ];
+    return () => timers.forEach(clearTimeout);
+  };
+
   useEffect(() => {
     fetchDevices();
+    // Auto-refresh devices telemetry every 3 seconds
+    const interval = setInterval(fetchDevices, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLock = async (deviceId: string) => {
+    // Optimistic UI update
+    setDevices((prev) =>
+      prev.map((d) =>
+        d.id === deviceId
+          ? {
+              ...d,
+              device_status:
+                d.device_status && d.device_status.length > 0
+                  ? [{ ...d.device_status[0], workstation_locked: true }]
+                  : [{ workstation_locked: true }],
+            }
+          : d
+      )
+    );
+
     try {
       await fetch(`/api/devices/${deviceId}/lock`, { method: 'POST' });
-      await fetchDevices();
+      triggerFastPolling();
     } catch {
-      // Handled
+      fetchDevices();
     }
+  };
+
+  const handleUnlockSuccess = (unlockedDevice: Device | null) => {
+    if (unlockedDevice) {
+      setDevices((prev) =>
+        prev.map((d) =>
+          d.id === unlockedDevice.id
+            ? {
+                ...d,
+                device_status:
+                  d.device_status && d.device_status.length > 0
+                    ? [{ ...d.device_status[0], workstation_locked: false }]
+                    : [{ workstation_locked: false }],
+              }
+            : d
+        )
+      );
+    }
+    triggerFastPolling();
   };
 
   const filteredDevices = devices.filter(
@@ -133,7 +181,7 @@ export default function DevicesPage() {
         device={selectedDeviceForUnlock}
         isOpen={!!selectedDeviceForUnlock}
         onClose={() => setSelectedDeviceForUnlock(null)}
-        onSuccess={fetchDevices}
+        onSuccess={() => handleUnlockSuccess(selectedDeviceForUnlock)}
       />
     </div>
   );

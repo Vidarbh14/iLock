@@ -44,7 +44,30 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
               </p>
             </div>
           </div>
-          <DeviceStatusBadge status={device.status} />
+          <div className="flex items-center gap-1.5">
+            <DeviceStatusBadge status={device.status} />
+            {isOnline && telemetry && (
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                  telemetry.workstation_locked
+                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                    : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                }`}
+              >
+                {telemetry.workstation_locked ? (
+                  <>
+                    <Lock className="w-2.5 h-2.5" />
+                    Locked
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-2.5 h-2.5" />
+                    Unlocked
+                  </>
+                )}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Telemetry info */}
@@ -77,38 +100,39 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
         <button
           onClick={() => onGrantAccess(device)}
           disabled={!isOnline}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
             isOnline
               ? 'bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/25 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
               : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border border-slate-800'
           }`}
         >
           <KeyRound className="w-3.5 h-3.5" />
-          Grant Access
+          Grant
         </button>
 
         {onUnlock && (
           <button
             onClick={() => onUnlock(device)}
             disabled={!isOnline}
-            title="Unlock PC via Mobile Biometrics"
-            className={`p-2 rounded-xl border transition-all ${
+            title="Unlock PC via Mobile Face ID / Fingerprint"
+            className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 ${
               isOnline
                 ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
                 : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border-slate-800'
             }`}
           >
-            <Fingerprint className="w-4 h-4" />
+            <Fingerprint className="w-4 h-4 text-emerald-400" />
+            <span>Unlock</span>
           </button>
         )}
 
         <button
           onClick={() => onLock(device.id)}
-          disabled={isLocking}
+          disabled={isLocking || !isOnline}
           title="Instant Workstation Lock"
-          className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+          className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors disabled:opacity-50"
         >
-          <Lock className={`w-4 h-4 ${isLocking ? 'animate-spin' : ''}`} />
+          <Lock className={`w-4 h-4 ${isLocking ? 'animate-spin text-cyan-400' : ''}`} />
         </button>
 
         <Link

@@ -616,9 +616,28 @@ namespace ILock.WindowsAgent.Access
             thread.Join();
         }
 
+        public static bool CheckIfScreenIsLocked()
+        {
+            try
+            {
+                IntPtr hDesktop = OpenInputDesktop(0, false, 0x0100);
+                if (hDesktop == IntPtr.Zero)
+                {
+                    // Access Denied or null handle indicates Winsta0\Winlogon secure desktop is active
+                    return true;
+                }
+                CloseDesktop(hDesktop);
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public Task<(bool isLocked, string? activeUser)> GetStatusAsync(CancellationToken ct = default)
         {
-            bool isLocked = GetAccessState() != AccessState.Active;
+            bool isLocked = CheckIfScreenIsLocked() || GetAccessState() != AccessState.Active;
             string? activeUser = Environment.UserName;
             return Task.FromResult<(bool isLocked, string? activeUser)>((isLocked, activeUser));
         }

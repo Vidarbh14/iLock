@@ -54,18 +54,52 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
     }
   };
 
+  const triggerFastPolling = () => {
+    const timers = [
+      setTimeout(fetchDevice, 600),
+      setTimeout(fetchDevice, 1500),
+      setTimeout(fetchDevice, 3000),
+    ];
+    return () => timers.forEach(clearTimeout);
+  };
+
   useEffect(() => {
     fetchDevice();
+    // Auto-refresh device telemetry every 3 seconds
+    const interval = setInterval(fetchDevice, 3000);
+    return () => clearInterval(interval);
   }, [deviceId]);
 
   const handleLock = async () => {
     setIsLocking(true);
+
+    // Optimistic UI update
+    setDevice((prev) => {
+      if (!prev) return prev;
+      const statusList = prev.device_status && prev.device_status.length > 0
+        ? [{ ...prev.device_status[0], workstation_locked: true }]
+        : [{ workstation_locked: true }];
+      return { ...prev, device_status: statusList };
+    });
+
     try {
       await fetch(`/api/devices/${deviceId}/lock`, { method: 'POST' });
-      await fetchDevice();
+      triggerFastPolling();
     } finally {
       setIsLocking(false);
     }
+  };
+
+  const handleUnlockSuccess = () => {
+    // Optimistic UI update
+    setDevice((prev) => {
+      if (!prev) return prev;
+      const statusList = prev.device_status && prev.device_status.length > 0
+        ? [{ ...prev.device_status[0], workstation_locked: false }]
+        : [{ workstation_locked: false }];
+      return { ...prev, device_status: statusList };
+    });
+    triggerFastPolling();
   };
 
   const handleDelete = async () => {
@@ -118,9 +152,30 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-2xl font-extrabold text-white">{device.deviceName}</h1>
               <DeviceStatusBadge status={device.status} />
+              {device.status === 'online' && telemetry && (
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                    telemetry.workstation_locked
+                      ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                      : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                  }`}
+                >
+                  {telemetry.workstation_locked ? (
+                    <>
+                      <Lock className="w-3 h-3" />
+                      Locked
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-3 h-3" />
+                      Unlocked
+                    </>
+                  )}
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-400 font-mono">
               Hostname: {device.hostname || 'Unknown'} • UUID: {device.deviceUuid}
@@ -157,7 +212,7 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
       </div>
 
       {/* Telemetry Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
           <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
             <Cpu className="w-3.5 h-3.5 text-cyan-400" /> CPU Usage
@@ -187,10 +242,23 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
 
         <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
           <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 text-purple-400" /> Active Console User
+            <User className="w-3.5 h-3.5 text-purple-400" /> Console User
           </span>
           <p className="text-lg font-bold font-mono text-white truncate">
             {telemetry?.active_user || 'None'}
+          </p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
+          <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5 text-amber-400" /> Security State
+          </span>
+          <p
+            className={`text-lg font-bold font-mono ${
+              telemetry?.workstation_locked ? 'text-amber-400' : 'text-emerald-400'
+            }`}
+          >
+            {telemetry?.workstation_locked ? 'Locked' : 'Unlocked'}
           </p>
         </div>
       </div>
@@ -293,7 +361,7 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
         device={device}
         isOpen={isUnlockOpen}
         onClose={() => setIsUnlockOpen(false)}
-        onSuccess={fetchDevice}
+        onSuccess={handleUnlockSuccess}
       />
     </div>
   );
