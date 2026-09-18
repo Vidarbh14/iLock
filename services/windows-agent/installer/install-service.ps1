@@ -31,6 +31,17 @@ if (-not (Test-Path $BinPath)) {
     $BinPath = (Resolve-Path $BinPath).Path
 }
 
+# Kill any running user-mode agent processes first
+Get-Process *ILock.WindowsAgent* -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 1
+
+# Remove any old user-level startup shortcut to prevent duplicate polling
+$StartupShortcut = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\iLockAgent.lnk"
+if (Test-Path $StartupShortcut) {
+    Write-Host "Removing user-mode startup shortcut at '$StartupShortcut'..." -ForegroundColor Yellow
+    Remove-Item -Path $StartupShortcut -Force -ErrorAction SilentlyContinue
+}
+
 # Stop and remove existing service if present
 $ExistingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if ($ExistingService) {
@@ -43,7 +54,7 @@ if ($ExistingService) {
 }
 
 # Create Windows Service
-Write-Host "Creating Windows Service '$ServiceName'..." -ForegroundColor Green
+Write-Host "Creating Windows Service '$ServiceName' under LocalSystem..." -ForegroundColor Green
 New-Service -Name $ServiceName `
             -BinaryPathName "`"$BinPath`"" `
             -DisplayName $DisplayName `
@@ -56,7 +67,8 @@ sc.exe failure $ServiceName reset= 86400 actions= restart/60000/restart/60000/re
 # Start Service
 Write-Host "Starting '$ServiceName'..." -ForegroundColor Green
 Start-Service -Name $ServiceName
+Start-Sleep -Seconds 2
 
 $Status = (Get-Service -Name $ServiceName).Status
 Write-Host "Service '$ServiceName' is now: $Status" -ForegroundColor Cyan
-Write-Host "Installation completed successfully!" -ForegroundColor Green
+Write-Host "Installation completed successfully! The agent now runs with SYSTEM privileges capable of unlocking the Windows lock screen." -ForegroundColor Green

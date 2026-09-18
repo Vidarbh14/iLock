@@ -133,6 +133,23 @@ namespace ILock.WindowsAgent
             {
                 if (args[i] == "--test-unlock" || args[i] == "--unlock-helper")
                 {
+                    string logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "iLock");
+                    if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
+                    string logFile = Path.Combine(logDir, "unlock_helper.log");
+
+                    void HelperLog(string msg)
+                    {
+                        try
+                        {
+                            string entry = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] {msg}{Environment.NewLine}";
+                            File.AppendAllText(logFile, entry);
+                            Console.WriteLine(msg);
+                        }
+                        catch { }
+                    }
+
+                    HelperLog($"--unlock-helper started. PID={Environment.ProcessId}, User={Environment.UserName}");
+
                     using var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
                     var vaultLogger = loggerFactory.CreateLogger<SecureCredentialVault>();
                     var configLogger = loggerFactory.CreateLogger<ConfigManager>();
@@ -141,14 +158,13 @@ namespace ILock.WindowsAgent
                     var pin = vault.RetrievePin();
                     if (string.IsNullOrEmpty(pin))
                     {
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        Console.WriteLine("No PIN configured. Run: ILock.WindowsAgent.exe --set-pin <pin>");
-                        Console.ResetColor();
+                        HelperLog("ERROR: No PIN configured in vault. Run: ILock.WindowsAgent.exe --set-pin <pin>");
                         return;
                     }
-                    Console.WriteLine("Executing unlock keystrokes...");
-                    WindowsAccessProvider.SimulateUnlock(pin);
-                    Console.WriteLine("Done.");
+
+                    HelperLog($"PIN retrieved successfully (length={pin.Length}). Simulating unlock keystrokes...");
+                    WindowsAccessProvider.SimulateUnlock(pin, HelperLog);
+                    HelperLog("--unlock-helper finished successfully.");
                     return;
                 }
             }
