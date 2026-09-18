@@ -40,6 +40,13 @@ namespace ILock.WindowsAgent
                 return new DeviceIdentity(logger, configManager.ConfigDirectory);
             });
 
+            builder.Services.AddSingleton<SecureCredentialVault>(sp =>
+            {
+                var logger = sp.GetRequiredService<ILogger<SecureCredentialVault>>();
+                var configManager = sp.GetRequiredService<ConfigManager>();
+                return new SecureCredentialVault(logger, configManager.ConfigDirectory);
+            });
+
             builder.Services.AddSingleton<CloudClient>();
             builder.Services.AddSingleton<NonceValidator>();
 
@@ -88,6 +95,60 @@ namespace ILock.WindowsAgent
                 {
                     string pairingCode = args[i + 1].Trim().ToUpper();
                     await ExecutePairingCommandAsync(pairingCode, isDemo);
+                    return;
+                }
+            }
+
+            // Handle CLI PIN Configuration Command
+            for (int i = 0; i < args.Length; i++)
+            {
+                if ((args[i] == "--set-pin" || args[i] == "-p") && i + 1 < args.Length)
+                {
+                    string pin = args[i + 1].Trim();
+                    using var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
+                    var vaultLogger = loggerFactory.CreateLogger<SecureCredentialVault>();
+                    var configLogger = loggerFactory.CreateLogger<ConfigManager>();
+                    var configManager = new ConfigManager(configLogger);
+                    var vault = new SecureCredentialVault(vaultLogger, configManager.ConfigDirectory);
+                    bool stored = vault.StorePin(pin);
+                    if (stored)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("SUCCESS: Windows login PIN securely encrypted and saved to local DPAPI vault!");
+                        Console.WriteLine("Protected by Windows DPAPI. Zero credentials transmitted to cloud.");
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("ERROR: Failed to save PIN to vault.");
+                        Console.ResetColor();
+                    }
+                    return;
+                }
+            }
+
+            // Handle CLI Unlock Test
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] == "--test-unlock" || args[i] == "--unlock-helper")
+                {
+                    using var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
+                    var vaultLogger = loggerFactory.CreateLogger<SecureCredentialVault>();
+                    var configLogger = loggerFactory.CreateLogger<ConfigManager>();
+                    var configManager = new ConfigManager(configLogger);
+                    var vault = new SecureCredentialVault(vaultLogger, configManager.ConfigDirectory);
+                    var pin = vault.RetrievePin();
+                    if (string.IsNullOrEmpty(pin))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine("No PIN configured. Run: ILock.WindowsAgent.exe --set-pin <pin>");
+                        Console.ResetColor();
+                        return;
+                    }
+                    Console.WriteLine("Executing unlock keystrokes...");
+                    WindowsAccessProvider.SimulateUnlock(pin);
+                    Console.WriteLine("Done.");
                     return;
                 }
             }

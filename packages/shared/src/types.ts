@@ -26,6 +26,7 @@ export type CommandType =
   | 'REVOKE_ACCESS_SESSION'
   | 'GET_ACTIVE_SESSIONS'
   | 'LOCK_REQUEST'
+  | 'UNLOCK_REQUEST'
   | 'HEARTBEAT';
 
 export interface Profile {

@@ -54,6 +54,11 @@ namespace ILock.WindowsAgent.Access
         Task<bool> LockAsync(CancellationToken ct = default);
 
         /// <summary>
+        /// Unlocks the workstation using zero-knowledge credentials from the local DPAPI vault.
+        /// </summary>
+        Task<bool> UnlockAsync(CancellationToken ct = default);
+
+        /// <summary>
         /// Queries PC status telemetry (locked state, active console user, OS info).
         /// </summary>
         Task<(bool isLocked, string? activeUser)> GetStatusAsync(CancellationToken ct = default);

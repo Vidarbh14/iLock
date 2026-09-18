@@ -69,6 +69,14 @@ export const LockDeviceSchema = z.object({
 });
 export type LockDeviceInput = z.infer<typeof LockDeviceSchema>;
 
+// Device Unlock Request Schema (with Biometric Verification)
+export const UnlockDeviceSchema = z.object({
+  deviceId: z.string().uuid('Invalid device ID'),
+  biometricVerified: z.boolean().default(false),
+  authChallenge: z.string().optional(),
+});
+export type UnlockDeviceInput = z.infer<typeof UnlockDeviceSchema>;
+
 // Agent Heartbeat Schema (Windows Agent -> API)
 export const AgentHeartbeatSchema = z.object({
   deviceUuid: z.string().min(8).max(64),

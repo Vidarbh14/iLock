@@ -4,7 +4,7 @@
 // Strict typing for API boundaries & Agent commands
 // ==============================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CommandResultSchema = exports.AgentChallengeRequestSchema = exports.AgentHeartbeatSchema = exports.LockDeviceSchema = exports.RevokeAccessSessionSchema = exports.CreateAccessSessionSchema = exports.RegisterDeviceSchema = exports.CreatePairingRequestSchema = exports.PairingCodeRegex = void 0;
+exports.CommandResultSchema = exports.AgentChallengeRequestSchema = exports.AgentHeartbeatSchema = exports.UnlockDeviceSchema = exports.LockDeviceSchema = exports.RevokeAccessSessionSchema = exports.CreateAccessSessionSchema = exports.RegisterDeviceSchema = exports.CreatePairingRequestSchema = exports.PairingCodeRegex = void 0;
 const zod_1 = require("zod");
 exports.PairingCodeRegex = /^[A-Z0-9]{4}-[A-Z0-9]{4}$|^[A-Z0-9]{8}$/;
 // Device Pairing Initiation Schema (Web Client -> API)
@@ -58,6 +58,12 @@ exports.RevokeAccessSessionSchema = zod_1.z.object({
 // Device Lock Request Schema
 exports.LockDeviceSchema = zod_1.z.object({
     deviceId: zod_1.z.string().uuid('Invalid device ID'),
+});
+// Device Unlock Request Schema (with Biometric Verification)
+exports.UnlockDeviceSchema = zod_1.z.object({
+    deviceId: zod_1.z.string().uuid('Invalid device ID'),
+    biometricVerified: zod_1.z.boolean().default(false),
+    authChallenge: zod_1.z.string().optional(),
 });
 // Agent Heartbeat Schema (Windows Agent -> API)
 exports.AgentHeartbeatSchema = zod_1.z.object({

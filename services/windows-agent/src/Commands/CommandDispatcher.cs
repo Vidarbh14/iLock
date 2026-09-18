@@ -70,6 +70,10 @@ namespace ILock.WindowsAgent.Commands
                         await HandleLockRequestAsync(command, config, ct);
                         break;
 
+                    case "UNLOCK_REQUEST":
+                        await HandleUnlockRequestAsync(command, config, ct);
+                        break;
+
                     case "DEVICE_PING":
                         await ReportResultAsync(command, config, "SUCCESS", "PONG", "Device active and reachable.", ct);
                         break;
@@ -145,6 +149,20 @@ namespace ILock.WindowsAgent.Commands
         {
             bool success = await _accessProvider.LockAsync(ct);
             await ReportResultAsync(command, config, success ? "SUCCESS" : "FAILED", "LOCKED", "Workstation lock requested.", ct);
+        }
+
+        private async Task HandleUnlockRequestAsync(AgentCommand command, AgentConfig config, CancellationToken ct)
+        {
+            _logger.LogInformation("Processing remote UNLOCK_REQUEST...");
+            bool success = await _accessProvider.UnlockAsync(ct);
+            if (success)
+            {
+                await ReportResultAsync(command, config, "SUCCESS", "UNLOCKED", "Workstation unlocked via phone biometric authorization.", ct);
+            }
+            else
+            {
+                await ReportResultAsync(command, config, "FAILED", "UNLOCK_FAILED", "Failed to unlock workstation. Check if PIN is configured in DPAPI vault.", ct);
+            }
         }
 
         private async Task ReportResultAsync(

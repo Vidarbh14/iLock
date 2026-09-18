@@ -47,5 +47,21 @@ namespace ILock.WindowsAgent.Tests
             Assert.True(revoked);
             Assert.Equal(AccessState.Revoked, provider.GetAccessState());
         }
+
+        [Fact]
+        public async Task DemoAccessProvider_UnlockTransitionsToActive()
+        {
+            var logger = NullLogger<DemoAccessProvider>.Instance;
+            var provider = new DemoAccessProvider(logger);
+
+            // Initially locked
+            await provider.LockAsync();
+            Assert.Equal(AccessState.Locked, provider.GetAccessState());
+
+            // Unlock
+            bool unlocked = await provider.UnlockAsync();
+            Assert.True(unlocked);
+            Assert.Equal(AccessState.Active, provider.GetAccessState());
+        }
     }
 }

@@ -1,6 +1,6 @@
 export type DeviceStatus = 'online' | 'offline' | 'connecting' | 'auth_failed' | 'outdated' | 'revoked';
 export type SessionStatus = 'PENDING' | 'AUTHORIZED' | 'ACTIVE' | 'EXPIRING' | 'EXPIRED' | 'REVOKED' | 'FAILED';
-export type CommandType = 'DEVICE_PING' | 'GET_DEVICE_STATUS' | 'CREATE_ACCESS_SESSION' | 'REVOKE_ACCESS_SESSION' | 'GET_ACTIVE_SESSIONS' | 'LOCK_REQUEST' | 'HEARTBEAT';
+export type CommandType = 'DEVICE_PING' | 'GET_DEVICE_STATUS' | 'CREATE_ACCESS_SESSION' | 'REVOKE_ACCESS_SESSION' | 'GET_ACTIVE_SESSIONS' | 'LOCK_REQUEST' | 'UNLOCK_REQUEST' | 'HEARTBEAT';
 export interface Profile {
     id: string;
     email: string;

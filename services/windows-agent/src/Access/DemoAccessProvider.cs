@@ -116,6 +116,20 @@ namespace ILock.WindowsAgent.Access
             return Task.FromResult(true);
         }
 
+        public Task<bool> UnlockAsync(CancellationToken ct = default)
+        {
+            lock (_lock)
+            {
+                _logger.LogInformation("[DEMO-MODE] Workstation unlock simulated.");
+                _isWorkstationLocked = false;
+                if (_currentSession?.State == AccessState.Locked)
+                {
+                    _currentSession = _currentSession with { State = AccessState.Active };
+                }
+            }
+            return Task.FromResult(true);
+        }
+
         public Task<(bool isLocked, string? activeUser)> GetStatusAsync(CancellationToken ct = default)
         {
             lock (_lock)

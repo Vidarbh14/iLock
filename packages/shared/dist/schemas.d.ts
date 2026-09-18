@@ -70,6 +70,20 @@ export declare const LockDeviceSchema: z.ZodObject<{
     deviceId: string;
 }>;
 export type LockDeviceInput = z.infer<typeof LockDeviceSchema>;
+export declare const UnlockDeviceSchema: z.ZodObject<{
+    deviceId: z.ZodString;
+    biometricVerified: z.ZodDefault<z.ZodBoolean>;
+    authChallenge: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    deviceId: string;
+    biometricVerified: boolean;
+    authChallenge?: string | undefined;
+}, {
+    deviceId: string;
+    biometricVerified?: boolean | undefined;
+    authChallenge?: string | undefined;
+}>;
+export type UnlockDeviceInput = z.infer<typeof UnlockDeviceSchema>;
 export declare const AgentHeartbeatSchema: z.ZodObject<{
     deviceUuid: z.ZodString;
     timestamp: z.ZodNumber;
