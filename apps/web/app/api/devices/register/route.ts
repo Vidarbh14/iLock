@@ -40,7 +40,12 @@ export async function POST(request: Request) {
         .single();
 
       if (findError || !pairingReq) {
-        return errorResponse('INVALID_PAIRING_CODE', 'Invalid or expired pairing code.', 400);
+        return errorResponse(
+          'INVALID_PAIRING_CODE',
+          `Invalid or expired pairing code. (${findError?.message || 'No match'})`,
+          400,
+          { pairingHash, dbError: findError }
+        );
       }
 
       // Mark pairing code as used immediately
