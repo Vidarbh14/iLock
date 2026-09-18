@@ -142,14 +142,19 @@ namespace ILock.WindowsAgent
 
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("iLock Windows Agent shutting down gracefully. Locking workstation...");
+            _logger.LogInformation("iLock Windows Agent shutting down gracefully.");
             try
             {
-                await _accessProvider.LockAsync(cancellationToken);
+                var activeSession = _accessProvider.GetCurrentSession();
+                if (activeSession != null && activeSession.State == AccessState.Active)
+                {
+                    _logger.LogInformation("Active session detected on shutdown. Locking workstation...");
+                    await _accessProvider.LockAsync(cancellationToken);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error while locking workstation on shutdown.");
+                _logger.LogWarning(ex, "Error while checking session state on shutdown.");
             }
 
             await base.StopAsync(cancellationToken);

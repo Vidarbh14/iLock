@@ -1,5 +1,5 @@
 import { getAuthenticatedUserId, errorResponse, jsonResponse } from '@/lib/api-helpers';
-import { isSupabaseConfigured, createServerClient } from '@/lib/supabase-server';
+import { isSupabaseConfigured, createServiceClient } from '@/lib/supabase-server';
 import { demoStore, DEMO_USER_ID } from '@/lib/demo-store';
 
 export async function GET() {
@@ -10,7 +10,7 @@ export async function GET() {
     }
 
     if (isSupabaseConfigured()) {
-      const supabase = createServerClient();
+      const supabase = createServiceClient();
       const { data: devices, error } = await supabase
         .from('devices')
         .select(`
@@ -26,14 +26,28 @@ export async function GET() {
             last_heartbeat
           )
         `)
-        .eq('owner_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) {
         return errorResponse('DB_ERROR', 'Failed to retrieve devices', 500, error.message);
       }
 
-      return jsonResponse({ devices: devices || [] });
+      const mappedDevices = (devices || []).map((d: any) => ({
+        ...d,
+        deviceName: d.device_name || d.deviceName || 'Windows PC',
+        deviceUuid: d.device_uuid || d.deviceUuid,
+        ownerId: d.owner_id || d.ownerId,
+        osVersion: d.os_version || d.osVersion,
+        agentVersion: d.agent_version || d.agentVersion,
+        publicKey: d.public_key || d.publicKey,
+        publicKeyAlgorithm: d.public_key_algorithm || d.publicKeyAlgorithm,
+        lastSeen: d.last_seen || d.lastSeen || new Date().toISOString(),
+        isTrusted: d.is_trusted !== undefined ? d.is_trusted : d.isTrusted,
+        createdAt: d.created_at || d.createdAt,
+        updatedAt: d.updated_at || d.updatedAt,
+      }));
+
+      return jsonResponse({ devices: mappedDevices });
     }
 
     // Demo Mode Store

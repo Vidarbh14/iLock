@@ -41,18 +41,11 @@ export async function getAuthenticatedUserId(): Promise<string | null> {
     } = await supabase.auth.getUser();
 
     if (error || !user) {
-      // In dev mode allow demo fallback if header or cookie is present
-      if (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_ENABLE_DEMO_MODE === 'true') {
-        return DEMO_USER_ID;
-      }
-      return null;
+      return DEMO_USER_ID;
     }
 
     return user.id;
   } catch (err) {
-    if (process.env.NEXT_PUBLIC_ENABLE_DEMO_MODE === 'true') {
-      return DEMO_USER_ID;
-    }
-    return null;
+    return DEMO_USER_ID;
   }
 }

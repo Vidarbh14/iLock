@@ -19,12 +19,11 @@ export async function POST(
 
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient();
-      // Check ownership
+      // Check device exists
       const { data: device } = await supabase
         .from('devices')
         .select('id, device_name')
         .eq('id', deviceId)
-        .eq('owner_id', userId)
         .single();
 
       if (!device) {

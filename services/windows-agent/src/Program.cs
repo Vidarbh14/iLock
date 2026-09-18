@@ -43,13 +43,13 @@ namespace ILock.WindowsAgent
             builder.Services.AddSingleton<CloudClient>();
             builder.Services.AddSingleton<NonceValidator>();
 
-            // Determine Access Provider (Demo/Sandbox vs Production Windows API)
-            bool isDemo = true;
+            // Determine Access Provider (Genuine Windows API vs Demo Simulator)
+            bool isDemo = false;
             for (int i = 0; i < args.Length; i++)
             {
-                if (args[i] == "--prod" || args[i] == "--production")
+                if (args[i] == "--demo" || args[i] == "--sandbox")
                 {
-                    isDemo = false;
+                    isDemo = true;
                 }
             }
 
@@ -63,6 +63,23 @@ namespace ILock.WindowsAgent
             }
 
             builder.Services.AddSingleton<CommandDispatcher>();
+
+            // Handle CLI Public Key Display
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] == "--public-key" || args[i] == "-k")
+                {
+                    using var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
+                    var identityLogger = loggerFactory.CreateLogger<DeviceIdentity>();
+                    var configLogger = loggerFactory.CreateLogger<ConfigManager>();
+                    var configManager = new ConfigManager(configLogger);
+                    var deviceIdentity = new DeviceIdentity(identityLogger, configManager.ConfigDirectory);
+                    Console.WriteLine("===BEGIN_PUBLIC_KEY===");
+                    Console.WriteLine(deviceIdentity.PublicKeyPem);
+                    Console.WriteLine("===END_PUBLIC_KEY===");
+                    return;
+                }
+            }
 
             // Handle CLI Pairing/Registration Command
             for (int i = 0; i < args.Length; i++)
