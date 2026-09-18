@@ -77,6 +77,24 @@ export async function POST(request: Request) {
           .eq('id', sessionId);
       }
 
+      // Update workstation_locked telemetry immediately on successful lock/unlock
+      if (status === 'SUCCESS') {
+        if (resultStatus === 'LOCKED' || cmd.command_type === 'LOCK_REQUEST') {
+          await supabase
+            .from('device_status')
+            .update({ workstation_locked: true, last_heartbeat: now.toISOString() })
+            .eq('device_id', cmd.device_id);
+        } else if (
+          resultStatus === 'UNLOCKED' ||
+          (cmd.payload && (cmd.payload.isUnlock || cmd.payload.action === 'UNLOCK'))
+        ) {
+          await supabase
+            .from('device_status')
+            .update({ workstation_locked: false, last_heartbeat: now.toISOString() })
+            .eq('device_id', cmd.device_id);
+        }
+      }
+
       return jsonResponse({ success: true, message: 'Command result acknowledged' });
     }
 

@@ -535,18 +535,26 @@ namespace ILock.WindowsAgent.Access
                 IntPtr hDesktop = IntPtr.Zero;
                 try
                 {
-                    log?.Invoke("SimulateUnlock thread started.");
-
-                    // Attach this clean thread to whatever desktop currently receives input (Default or Winlogon)
+                    // Attach clean thread to current input desktop immediately before ANY console/UI calls
                     hDesktop = OpenInputDesktop(0, false, 0x01FF);
-                    log?.Invoke($"OpenInputDesktop returned: {hDesktop}");
+                    if (hDesktop == IntPtr.Zero)
+                    {
+                        hDesktop = OpenInputDesktop(0, false, 0x0100);
+                    }
+
                     if (hDesktop != IntPtr.Zero)
                     {
                         bool set = SetThreadDesktop(hDesktop);
                         log?.Invoke($"SetThreadDesktop result: {set}");
                     }
+                    else
+                    {
+                        log?.Invoke("OpenInputDesktop returned Zero handle.");
+                    }
 
-                    // 1. Wake display / power management
+                    log?.Invoke("SimulateUnlock execution thread active.");
+
+                    // 1. Wake display / power management with mouse movement
                     log?.Invoke("Waking display with mouse movement...");
                     mouse_event(MOUSEEVENTF_MOVE, 0, 1, 0, UIntPtr.Zero);
                     Thread.Sleep(50);
@@ -559,10 +567,16 @@ namespace ILock.WindowsAgent.Access
                     keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
                     Thread.Sleep(50);
                     keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                    Thread.Sleep(300);
 
-                    // Wait 900ms for Windows 11 lock screen animation to slide up and focus the PIN box
+                    // Second tap ensures dismissal even if first tap only woke a sleeping monitor
+                    keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
+                    Thread.Sleep(50);
+                    keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+
+                    // Wait 1200ms for Windows 11 lock screen animation to slide up and focus the PIN box
                     log?.Invoke("Waiting for lock screen animation to slide up...");
-                    Thread.Sleep(900);
+                    Thread.Sleep(1200);
 
                     // 3. Clear any partial or accidental characters in PIN prompt
                     log?.Invoke("Clearing existing input field with backspaces...");
@@ -570,11 +584,11 @@ namespace ILock.WindowsAgent.Access
                     for (int i = 0; i < 8; i++)
                     {
                         keybd_event(VK_BACK, backScan, 0, UIntPtr.Zero);
-                        Thread.Sleep(25);
+                        Thread.Sleep(30);
                         keybd_event(VK_BACK, backScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                        Thread.Sleep(25);
+                        Thread.Sleep(30);
                     }
-                    Thread.Sleep(100);
+                    Thread.Sleep(150);
 
                     // 4. Type each digit of the PIN with both VK and hardware scan code
                     log?.Invoke($"Typing {pin.Length} PIN digits...");
@@ -583,14 +597,14 @@ namespace ILock.WindowsAgent.Access
                         byte vk = (byte)c;
                         byte scan = (byte)MapVirtualKey(vk, 0);
                         keybd_event(vk, scan, 0, UIntPtr.Zero);
-                        Thread.Sleep(45);
+                        Thread.Sleep(50);
                         keybd_event(vk, scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                        Thread.Sleep(45);
+                        Thread.Sleep(50);
                     }
 
                     // 5. Press Enter to submit
                     log?.Invoke("Submitting PIN with Enter key...");
-                    Thread.Sleep(150);
+                    Thread.Sleep(300);
                     byte enterScan = (byte)MapVirtualKey(VK_RETURN, 0);
                     keybd_event(VK_RETURN, enterScan, 0, UIntPtr.Zero);
                     Thread.Sleep(50);
@@ -611,7 +625,7 @@ namespace ILock.WindowsAgent.Access
                     }
                 }
             });
-            thread.SetApartmentState(ApartmentState.STA);
+            // Keep MTA to prevent OLE/COM hidden message windows from interfering with SetThreadDesktop
             thread.Start();
             thread.Join();
         }

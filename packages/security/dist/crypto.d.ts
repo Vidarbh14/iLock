@@ -25,6 +25,10 @@ export declare function hashIpAddress(ip: string, salt?: string): string;
  */
 export declare function generateChallengeNonce(): string;
 /**
+ * Normalizes PEM string by replacing escaped newlines (e.g. \n or \r\n) with real newlines.
+ */
+export declare function normalizePem(pem: string): string;
+/**
  * Verifies an RSA or ECDSA signature given the public key in PEM format.
  * Signature is expected in Base64 or Hex.
  */

@@ -12,6 +12,7 @@ exports.hashPairingCode = hashPairingCode;
 exports.constantTimeCompare = constantTimeCompare;
 exports.hashIpAddress = hashIpAddress;
 exports.generateChallengeNonce = generateChallengeNonce;
+exports.normalizePem = normalizePem;
 exports.verifyDeviceSignature = verifyDeviceSignature;
 exports.signPayload = signPayload;
 exports.generateDeviceKeyPair = generateDeviceKeyPair;
@@ -69,16 +70,25 @@ function generateChallengeNonce() {
     return node_crypto_1.default.randomBytes(32).toString('hex');
 }
 /**
+ * Normalizes PEM string by replacing escaped newlines (e.g. \n or \r\n) with real newlines.
+ */
+function normalizePem(pem) {
+    if (!pem)
+        return pem;
+    return pem.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+}
+/**
  * Verifies an RSA or ECDSA signature given the public key in PEM format.
  * Signature is expected in Base64 or Hex.
  */
 function verifyDeviceSignature(publicKeyPem, payloadData, signature, algorithm = 'RSA-SHA256') {
     try {
+        const cleanPem = normalizePem(publicKeyPem);
         const verifier = node_crypto_1.default.createVerify(algorithm);
         verifier.update(payloadData);
         verifier.end();
         const sigEncoding = /^[0-9a-fA-F]+$/.test(signature) ? 'hex' : 'base64';
-        return verifier.verify(publicKeyPem, signature, sigEncoding);
+        return verifier.verify(cleanPem, signature, sigEncoding);
     }
     catch (err) {
         // If key format or signature is malformed, fail safely

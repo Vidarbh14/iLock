@@ -1,5 +1,5 @@
 import { RegisterDeviceSchema } from '@ilock/shared';
-import { hashPairingCode, pairingRateLimiter } from '@ilock/security';
+import { hashPairingCode, pairingRateLimiter, normalizePem } from '@ilock/security';
 import { errorResponse, jsonResponse } from '@/lib/api-helpers';
 import { isSupabaseConfigured, createServiceClient } from '@/lib/supabase-server';
 import { demoStore, DEMO_USER_ID } from '@/lib/demo-store';
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
             hostname,
             os_version: osVersion,
             agent_version: agentVersion,
-            public_key: publicKey,
+            public_key: normalizePem(publicKey),
             public_key_algorithm: publicKeyAlgorithm,
             last_seen: now.toISOString(),
             status: 'online',

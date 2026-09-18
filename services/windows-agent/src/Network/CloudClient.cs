@@ -105,11 +105,19 @@ namespace ILock.WindowsAgent.Network
                 }
 
                 var response = await _httpClient.SendAsync(request, ct);
-                return response.IsSuccessStatusCode;
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Command result for {CommandId} ({Status}) acknowledged by cloud (HTTP {Code}).", resultPayload.CommandId, resultPayload.Status, (int)response.StatusCode);
+                    return true;
+                }
+
+                string errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("Command result for {CommandId} rejected by cloud (HTTP {Code}): {Body}", resultPayload.CommandId, (int)response.StatusCode, errorBody);
+                return false;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to report command result to cloud.");
+                _logger.LogError(ex, "Failed to report command result for {CommandId} to cloud.", resultPayload.CommandId);
                 return false;
             }
         }

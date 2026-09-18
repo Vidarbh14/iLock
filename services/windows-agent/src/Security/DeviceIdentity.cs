@@ -58,8 +58,15 @@ namespace ILock.WindowsAgent.Security
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // Encrypt via Windows DPAPI bound to the Local Machine or Current User
-                return ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
+                // Encrypt via Windows DPAPI bound to the Local Machine (enabling both Service and User access)
+                try
+                {
+                    return ProtectedData.Protect(data, null, DataProtectionScope.LocalMachine);
+                }
+                catch
+                {
+                    return ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
+                }
             }
             // Fallback for non-Windows test environments
             return data;
@@ -69,7 +76,14 @@ namespace ILock.WindowsAgent.Security
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                return ProtectedData.Unprotect(encryptedData, null, DataProtectionScope.CurrentUser);
+                try
+                {
+                    return ProtectedData.Unprotect(encryptedData, null, DataProtectionScope.LocalMachine);
+                }
+                catch
+                {
+                    return ProtectedData.Unprotect(encryptedData, null, DataProtectionScope.CurrentUser);
+                }
             }
             return encryptedData;
         }

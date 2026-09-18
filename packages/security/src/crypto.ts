@@ -63,6 +63,14 @@ export function generateChallengeNonce(): string {
 }
 
 /**
+ * Normalizes PEM string by replacing escaped newlines (e.g. \n or \r\n) with real newlines.
+ */
+export function normalizePem(pem: string): string {
+  if (!pem) return pem;
+  return pem.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+}
+
+/**
  * Verifies an RSA or ECDSA signature given the public key in PEM format.
  * Signature is expected in Base64 or Hex.
  */
@@ -73,12 +81,13 @@ export function verifyDeviceSignature(
   algorithm: 'RSA-SHA256' | 'SHA256' = 'RSA-SHA256'
 ): boolean {
   try {
+    const cleanPem = normalizePem(publicKeyPem);
     const verifier = crypto.createVerify(algorithm);
     verifier.update(payloadData);
     verifier.end();
 
     const sigEncoding = /^[0-9a-fA-F]+$/.test(signature) ? 'hex' : 'base64';
-    return verifier.verify(publicKeyPem, signature, sigEncoding);
+    return verifier.verify(cleanPem, signature, sigEncoding);
   } catch (err) {
     // If key format or signature is malformed, fail safely
     return false;
