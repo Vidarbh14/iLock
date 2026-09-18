@@ -34,6 +34,18 @@ namespace ILock.WindowsAgent.Access
         [DllImport("user32.dll")]
         private static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, UIntPtr dwExtraInfo);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr OpenInputDesktop(uint dwFlags, bool fInherit, uint dwDesiredAccess);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetThreadDesktop(IntPtr hDesktop);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool CloseDesktop(IntPtr hDesktop);
+
+        [DllImport("user32.dll")]
+        private static extern uint MapVirtualKey(uint uCode, uint uMapType);
+
         private const uint KEYEVENTF_KEYUP = 0x0002;
         private const uint MOUSEEVENTF_MOVE = 0x0001;
         private const byte VK_SPACE = 0x20;
@@ -189,38 +201,66 @@ namespace ILock.WindowsAgent.Access
         /// <summary>
         /// Simulates hardware input to wake the monitor, dismiss the lock screen overlay,
         /// and type the 6-digit PIN into the Windows logon prompt.
+        /// Uses a clean dedicated thread attached to the active input desktop (including Winlogon).
         /// </summary>
         public static void SimulateUnlock(string pin)
         {
-            // 1. Wake display / power management
-            mouse_event(MOUSEEVENTF_MOVE, 0, 1, 0, UIntPtr.Zero);
-            Thread.Sleep(50);
-            mouse_event(MOUSEEVENTF_MOVE, 0, -1, 0, UIntPtr.Zero);
-            Thread.Sleep(100);
-
-            // 2. Dismiss lock screen wallpaper overlay (Space key)
-            keybd_event(VK_SPACE, 0, 0, UIntPtr.Zero);
-            Thread.Sleep(50);
-            keybd_event(VK_SPACE, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-
-            // Wait for PIN field to slide up and focus
-            Thread.Sleep(450);
-
-            // 3. Type each digit of the PIN
-            foreach (char c in pin)
+            var thread = new Thread(() =>
             {
-                byte vk = (byte)c;
-                keybd_event(vk, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(30);
-                keybd_event(vk, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                Thread.Sleep(30);
-            }
+                IntPtr hDesktop = IntPtr.Zero;
+                try
+                {
+                    // Attach this clean thread to whatever desktop currently receives input (Default or Winlogon)
+                    hDesktop = OpenInputDesktop(0, false, 0x01FF);
+                    if (hDesktop != IntPtr.Zero)
+                    {
+                        SetThreadDesktop(hDesktop);
+                    }
 
-            // 4. Press Enter to submit
-            Thread.Sleep(100);
-            keybd_event(VK_RETURN, 0, 0, UIntPtr.Zero);
-            Thread.Sleep(50);
-            keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                    // 1. Wake display / power management
+                    mouse_event(MOUSEEVENTF_MOVE, 0, 1, 0, UIntPtr.Zero);
+                    Thread.Sleep(50);
+                    mouse_event(MOUSEEVENTF_MOVE, 0, -1, 0, UIntPtr.Zero);
+                    Thread.Sleep(100);
+
+                    // 2. Dismiss lock screen wallpaper overlay (Space key with scan code)
+                    byte spaceScan = (byte)MapVirtualKey(VK_SPACE, 0);
+                    keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
+                    Thread.Sleep(50);
+                    keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+
+                    // Wait 650ms for Windows 11 lock screen animation to slide up and focus the PIN box
+                    Thread.Sleep(650);
+
+                    // 3. Type each digit of the PIN with both VK and hardware scan code
+                    foreach (char c in pin)
+                    {
+                        byte vk = (byte)c;
+                        byte scan = (byte)MapVirtualKey(vk, 0);
+                        keybd_event(vk, scan, 0, UIntPtr.Zero);
+                        Thread.Sleep(45);
+                        keybd_event(vk, scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                        Thread.Sleep(45);
+                    }
+
+                    // 4. Press Enter to submit
+                    Thread.Sleep(150);
+                    byte enterScan = (byte)MapVirtualKey(VK_RETURN, 0);
+                    keybd_event(VK_RETURN, enterScan, 0, UIntPtr.Zero);
+                    Thread.Sleep(50);
+                    keybd_event(VK_RETURN, enterScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                }
+                finally
+                {
+                    if (hDesktop != IntPtr.Zero)
+                    {
+                        CloseDesktop(hDesktop);
+                    }
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
         }
 
         public Task<(bool isLocked, string? activeUser)> GetStatusAsync(CancellationToken ct = default)

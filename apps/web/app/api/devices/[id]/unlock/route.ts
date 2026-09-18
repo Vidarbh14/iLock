@@ -38,18 +38,25 @@ export async function POST(
         return errorResponse('DEVICE_NOT_FOUND', 'Device not found', 404);
       }
 
-      // Enqueue UNLOCK_REQUEST command
-      await supabase.from('authorization_requests').insert({
+      // Enqueue UNLOCK command via CREATE_ACCESS_SESSION for Postgres enum compatibility
+      const { error: insertError } = await supabase.from('authorization_requests').insert({
         device_id: deviceId,
-        command_type: 'UNLOCK_REQUEST',
+        command_type: 'CREATE_ACCESS_SESSION',
         nonce,
         payload: {
+          action: 'UNLOCK',
+          isUnlock: true,
           requestedBy: userId,
           biometricVerified,
           clientTimestamp: new Date().toISOString(),
         },
         expires_at: expiresAt,
       });
+
+      if (insertError) {
+        console.error('Failed to enqueue unlock command:', insertError);
+        return errorResponse('COMMAND_DISPATCH_FAILED', insertError.message, 500);
+      }
 
       // Audit log
       await supabase.from('audit_logs').insert({

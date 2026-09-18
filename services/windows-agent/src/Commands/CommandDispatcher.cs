@@ -59,7 +59,16 @@ namespace ILock.WindowsAgent.Commands
                 switch (command.CommandType)
                 {
                     case "CREATE_ACCESS_SESSION":
-                        await HandleCreateAccessSessionAsync(command, config, ct);
+                        if (command.Payload != null && (
+                            (command.Payload.TryGetValue("action", out var act) && act?.ToString() == "UNLOCK") ||
+                            (command.Payload.TryGetValue("isUnlock", out var unl) && (unl is JsonElement el && (el.ValueKind == JsonValueKind.True || el.ToString() == "true")))))
+                        {
+                            await HandleUnlockRequestAsync(command, config, ct);
+                        }
+                        else
+                        {
+                            await HandleCreateAccessSessionAsync(command, config, ct);
+                        }
                         break;
 
                     case "REVOKE_ACCESS_SESSION":
