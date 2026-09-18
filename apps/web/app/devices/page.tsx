@@ -6,6 +6,7 @@ import type { Device } from '@ilock/shared';
 import { DeviceCard } from '@/components/DeviceCard';
 import { GrantAccessModal } from '@/components/GrantAccessModal';
 import { PairDeviceModal } from '@/components/PairDeviceModal';
+import { BiometricUnlockModal } from '@/components/BiometricUnlockModal';
 
 export default function DevicesPage() {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -13,6 +14,7 @@ export default function DevicesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDeviceForGrant, setSelectedDeviceForGrant] = useState<Device | null>(null);
+  const [selectedDeviceForUnlock, setSelectedDeviceForUnlock] = useState<Device | null>(null);
   const [isPairModalOpen, setIsPairModalOpen] = useState(false);
 
   const fetchDevices = async () => {
@@ -108,6 +110,7 @@ export default function DevicesPage() {
               device={device}
               onGrantAccess={(d) => setSelectedDeviceForGrant(d)}
               onLock={handleLock}
+              onUnlock={(d) => setSelectedDeviceForUnlock(d)}
             />
           ))}
         </div>
@@ -124,6 +127,13 @@ export default function DevicesPage() {
         isOpen={isPairModalOpen}
         onClose={() => setIsPairModalOpen(false)}
         onDeviceRegistered={fetchDevices}
+      />
+
+      <BiometricUnlockModal
+        device={selectedDeviceForUnlock}
+        isOpen={!!selectedDeviceForUnlock}
+        onClose={() => setSelectedDeviceForUnlock(null)}
+        onSuccess={fetchDevices}
       />
     </div>
   );

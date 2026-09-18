@@ -18,6 +18,7 @@ import { GrantAccessModal } from '@/components/GrantAccessModal';
 import { PairDeviceModal } from '@/components/PairDeviceModal';
 import { ConfirmRevokeModal } from '@/components/ConfirmRevokeModal';
 import { SessionCountdown } from '@/components/SessionCountdown';
+import { BiometricUnlockModal } from '@/components/BiometricUnlockModal';
 
 export default function DashboardPage() {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -29,6 +30,7 @@ export default function DashboardPage() {
 
   // Modals state
   const [selectedDeviceForGrant, setSelectedDeviceForGrant] = useState<Device | null>(null);
+  const [selectedDeviceForUnlock, setSelectedDeviceForUnlock] = useState<Device | null>(null);
   const [selectedSessionForRevoke, setSelectedSessionForRevoke] = useState<AccessSession | null>(null);
   const [isPairModalOpen, setIsPairModalOpen] = useState(false);
   const [lockingDeviceId, setLockingDeviceId] = useState<string | null>(null);
@@ -254,6 +256,7 @@ export default function DashboardPage() {
                 device={device}
                 onGrantAccess={(dev) => setSelectedDeviceForGrant(dev)}
                 onLock={handleLock}
+                onUnlock={(dev) => setSelectedDeviceForUnlock(dev)}
                 isLocking={lockingDeviceId === device.id}
               />
             ))}
@@ -323,6 +326,13 @@ export default function DashboardPage() {
         isOpen={isPairModalOpen}
         onClose={() => setIsPairModalOpen(false)}
         onDeviceRegistered={loadData}
+      />
+
+      <BiometricUnlockModal
+        device={selectedDeviceForUnlock}
+        isOpen={!!selectedDeviceForUnlock}
+        onClose={() => setSelectedDeviceForUnlock(null)}
+        onSuccess={loadData}
       />
     </div>
   );

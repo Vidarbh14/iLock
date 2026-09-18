@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Laptop, Lock, Shield, Cpu, HardDrive, Battery, Clock, KeyRound, ChevronRight } from 'lucide-react';
+import { Laptop, Lock, Shield, Cpu, HardDrive, Battery, Clock, KeyRound, ChevronRight, Fingerprint } from 'lucide-react';
 import type { Device } from '@ilock/shared';
 import { DeviceStatusBadge } from './DeviceStatusBadge';
 
@@ -10,10 +10,11 @@ interface Props {
   device: Device & { device_status?: any[] };
   onGrantAccess: (device: Device) => void;
   onLock: (deviceId: string) => void;
+  onUnlock?: (device: Device) => void;
   isLocking?: boolean;
 }
 
-export function DeviceCard({ device, onGrantAccess, onLock, isLocking = false }: Props) {
+export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking = false }: Props) {
   const telemetry = device.device_status?.[0];
   const isOnline = device.status === 'online';
 
@@ -85,6 +86,21 @@ export function DeviceCard({ device, onGrantAccess, onLock, isLocking = false }:
           <KeyRound className="w-3.5 h-3.5" />
           Grant Access
         </button>
+
+        {onUnlock && (
+          <button
+            onClick={() => onUnlock(device)}
+            disabled={!isOnline}
+            title="Unlock PC via Mobile Biometrics"
+            className={`p-2 rounded-xl border transition-all ${
+              isOnline
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border-slate-800'
+            }`}
+          >
+            <Fingerprint className="w-4 h-4" />
+          </button>
+        )}
 
         <button
           onClick={() => onLock(device.id)}

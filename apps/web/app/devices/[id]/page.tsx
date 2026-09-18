@@ -16,11 +16,13 @@ import {
   Battery,
   User,
   AlertTriangle,
+  Fingerprint,
 } from 'lucide-react';
 import type { Device, AccessSession } from '@ilock/shared';
 import { DeviceStatusBadge } from '@/components/DeviceStatusBadge';
 import { GrantAccessModal } from '@/components/GrantAccessModal';
 import { ConfirmRevokeModal } from '@/components/ConfirmRevokeModal';
+import { BiometricUnlockModal } from '@/components/BiometricUnlockModal';
 
 export default function DeviceDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -34,6 +36,7 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
 
   // Modals
   const [isGrantOpen, setIsGrantOpen] = useState(false);
+  const [isUnlockOpen, setIsUnlockOpen] = useState(false);
   const [sessionToRevoke, setSessionToRevoke] = useState<AccessSession | null>(null);
 
   const fetchDevice = async () => {
@@ -126,6 +129,14 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsUnlockOpen(true)}
+            disabled={device.status !== 'online'}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.2)] disabled:opacity-50"
+          >
+            <Fingerprint className="w-4 h-4 text-emerald-400" />
+            Unlock PC
+          </button>
           <button
             onClick={handleLock}
             disabled={isLocking}
@@ -275,6 +286,13 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
         session={sessionToRevoke}
         isOpen={!!sessionToRevoke}
         onClose={() => setSessionToRevoke(null)}
+        onSuccess={fetchDevice}
+      />
+
+      <BiometricUnlockModal
+        device={device}
+        isOpen={isUnlockOpen}
+        onClose={() => setIsUnlockOpen(false)}
         onSuccess={fetchDevice}
       />
     </div>
