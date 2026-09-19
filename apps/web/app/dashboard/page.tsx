@@ -266,7 +266,7 @@ export default function DashboardPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="text-xs font-semibold text-[#f0f3f6]">
-                        {matchedDevice?.deviceName || 'Windows PC'}
+                        {matchedDevice?.deviceName || (matchedDevice as any)?.device_name || 'Windows PC'}
                       </span>
                       <p className="text-[11px] text-[#8b949e]">
                         {String(session.metadata?.purpose || 'Temporary remote authorization')}
@@ -278,8 +278,8 @@ export default function DashboardPage() {
                   </div>
 
                   <SessionCountdown
-                    expiresAt={session.expiresAt}
-                    totalDurationMinutes={session.durationMinutes}
+                    expiresAt={session.expiresAt || (session as any).expires_at}
+                    totalDurationMinutes={session.durationMinutes || (session as any).duration_minutes || 15}
                     onExpire={loadData}
                   />
 
@@ -320,12 +320,12 @@ export default function DashboardPage() {
                   {isPrimaryLocked ? (
                     <>
                       <Lock className="w-2.5 h-2.5" />
-                      WORKSTATION LOCKED
+                      LOCKED
                     </>
                   ) : (
                     <>
-                      <Shield className="w-2.5 h-2.5" />
-                      UNLOCKED & ACTIVE
+                      <Activity className="w-2.5 h-2.5" />
+                      IN USE
                     </>
                   )}
                 </span>

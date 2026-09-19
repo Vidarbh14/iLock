@@ -110,8 +110,8 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
                   </>
                 ) : (
                   <>
-                    <Shield className="w-2.5 h-2.5" />
-                    ACTIVE
+                    <Activity className="w-2.5 h-2.5" />
+                    IN USE
                   </>
                 )}
               </span>

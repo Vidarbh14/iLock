@@ -232,8 +232,8 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
                         </>
                       ) : (
                         <>
-                          <Shield className="w-3 h-3 text-emerald-400" />
-                          Workstation Unlocked
+                          <Activity className="w-3 h-3 text-emerald-400" />
+                          In Use
                         </>
                       )}
                     </span>
@@ -390,10 +390,10 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
               telemetry?.workstation_locked ? 'text-amber-300' : 'text-emerald-300'
             }`}
           >
-            {telemetry?.workstation_locked ? 'Locked' : 'Unlocked'}
+            {telemetry?.workstation_locked ? 'Locked' : 'In Use'}
           </p>
           <p className="text-[10px] text-slate-400 font-mono">
-            DPAPI Protected
+            {telemetry?.workstation_locked ? 'DPAPI Protected' : 'Desktop In Use'}
           </p>
         </div>
       </div>
@@ -575,7 +575,7 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-slate-100">
-                      {sess.durationMinutes} Minutes Session
+                      {sess.durationMinutes || (sess as any).duration_minutes || 15} Minutes Session
                     </span>
                     <span
                       className={`text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full border ${
@@ -590,9 +590,9 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400 mt-1 font-mono">
-                    Created {new Date(sess.createdAt).toLocaleTimeString()} • Expires:{' '}
+                    Created {new Date(sess.createdAt || (sess as any).created_at || Date.now()).toLocaleTimeString()} • Expires:{' '}
                     <span className="text-slate-300">
-                      {new Date(sess.expiresAt).toLocaleTimeString([], {
+                      {new Date(sess.expiresAt || (sess as any).expires_at || Date.now()).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}

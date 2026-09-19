@@ -1,53 +1,82 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 
 interface Props {
-  expiresAt: string;
+  expiresAt?: string | null;
+  expires_at?: string | null;
   totalDurationMinutes?: number;
+  duration_minutes?: number;
   onExpire?: () => void;
   className?: string;
 }
 
-export function SessionCountdown({ expiresAt, totalDurationMinutes = 30, onExpire, className = '' }: Props) {
-  const [timeLeftMs, setTimeLeftMs] = useState<number>(() => {
-    return Math.max(0, new Date(expiresAt).getTime() - Date.now());
-  });
+export function SessionCountdown({
+  expiresAt,
+  expires_at,
+  totalDurationMinutes,
+  duration_minutes,
+  onExpire,
+  className = '',
+}: Props) {
+  const effectiveExpiresAt = expiresAt || expires_at;
+  const effectiveTotalMinutes = Number(totalDurationMinutes ?? duration_minutes ?? 15) || 15;
+
+  const calculateRemainingMs = useCallback((): number => {
+    if (!effectiveExpiresAt) {
+      return effectiveTotalMinutes * 60 * 1000;
+    }
+    const targetTime = new Date(effectiveExpiresAt).getTime();
+    if (isNaN(targetTime) || targetTime <= 0) {
+      return effectiveTotalMinutes * 60 * 1000;
+    }
+    return Math.max(0, targetTime - Date.now());
+  }, [effectiveExpiresAt, effectiveTotalMinutes]);
+
+  const [timeLeftMs, setTimeLeftMs] = useState<number>(calculateRemainingMs);
 
   useEffect(() => {
+    // Immediately synchronize on prop update
+    setTimeLeftMs(calculateRemainingMs());
+
     const timer = setInterval(() => {
-      const remaining = Math.max(0, new Date(expiresAt).getTime() - Date.now());
+      const remaining = calculateRemainingMs();
       setTimeLeftMs(remaining);
-      if (remaining === 0) {
+      if (remaining <= 0) {
         clearInterval(timer);
         onExpire?.();
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [expiresAt, onExpire]);
+  }, [calculateRemainingMs, onExpire]);
 
-  const totalSeconds = Math.floor(timeLeftMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
+  // Safe arithmetic guards against NaN
+  const safeTimeMs = isNaN(timeLeftMs) ? effectiveTotalMinutes * 60 * 1000 : timeLeftMs;
+  const totalSeconds = Math.max(0, Math.floor(safeTimeMs / 1000));
+  const rawMinutes = Math.floor(totalSeconds / 60);
+  const rawSeconds = totalSeconds % 60;
 
-  const totalMs = totalDurationMinutes * 60 * 1000;
-  const progressPct = Math.min(100, Math.max(0, (timeLeftMs / totalMs) * 100));
+  const minutes = isNaN(rawMinutes) ? effectiveTotalMinutes : rawMinutes;
+  const seconds = isNaN(rawSeconds) ? 0 : rawSeconds;
 
-  let colorClass = 'text-[#10b981]';
-  let barColor = 'bg-gradient-to-r from-[#10b981] to-[#00e5ff] shadow-[0_0_12px_rgba(16,185,129,0.5)]';
+  const totalMs = Math.max(1000, effectiveTotalMinutes * 60 * 1000);
+  const progressPct = Math.min(100, Math.max(0, (safeTimeMs / totalMs) * 100));
 
-  if (minutes < 5) {
-    colorClass = 'text-[#fb7185] animate-pulse';
-    barColor = 'bg-[#f43f5e] shadow-[0_0_12px_rgba(244,63,94,0.6)]';
-  } else if (minutes < 15) {
-    colorClass = 'text-[#fbbf24]';
-    barColor = 'bg-[#f59e0b] shadow-[0_0_12px_rgba(245,158,11,0.5)]';
+  let colorClass = 'text-emerald-400';
+  let barColor = 'bg-gradient-to-r from-emerald-500 to-cyan-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]';
+
+  if (minutes < 3) {
+    colorClass = 'text-rose-400 animate-pulse';
+    barColor = 'bg-gradient-to-r from-rose-500 to-pink-500 shadow-[0_0_12px_rgba(244,63,94,0.6)]';
+  } else if (minutes < 10) {
+    colorClass = 'text-amber-400';
+    barColor = 'bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]';
   }
 
-  if (timeLeftMs === 0) {
+  if (safeTimeMs <= 0) {
     return (
-      <div className={`font-mono text-xs font-semibold text-[#8b949e] ${className}`}>
+      <div className={`font-mono text-xs font-semibold text-slate-500 ${className}`}>
         EXPIRED
       </div>
     );
@@ -56,12 +85,12 @@ export function SessionCountdown({ expiresAt, totalDurationMinutes = 30, onExpir
   return (
     <div className={`space-y-1.5 ${className}`}>
       <div className="flex items-center justify-between text-xs font-mono">
-        <span className="text-[#8b949e]">Time Remaining:</span>
+        <span className="text-slate-400">Time Remaining:</span>
         <span className={`font-mono font-bold tracking-widest text-sm ${colorClass}`}>
           {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
         </span>
       </div>
-      <div className="w-full h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-slate-800/80 rounded-full overflow-hidden">
         <div
           className={`h-full ${barColor} transition-all duration-1000 rounded-full`}
           style={{ width: `${progressPct}%` }}

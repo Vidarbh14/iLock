@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, ShieldAlert, Key, Laptop, Lock, RefreshCw, Filter, Fingerprint, Shield } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Key, Laptop, Lock, RefreshCw, Filter, Fingerprint, Shield, AlertTriangle } from 'lucide-react';
 import type { AuditLog } from '@ilock/shared';
 import { CornerOrb } from '@/components/CornerOrb';
 
@@ -10,12 +10,18 @@ export default function SecurityAuditPage() {
   const [filter, setFilter] = useState('ALL');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const fetchLogs = async () => {
     try {
+      setHasError(false);
       const res = await fetch('/api/audit');
       const data = await res.json();
-      if (data.logs) setLogs(data.logs);
+      if (data.logs && Array.isArray(data.logs)) {
+        setLogs(data.logs);
+      }
+    } catch {
+      setHasError(true);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -27,20 +33,22 @@ export default function SecurityAuditPage() {
   }, []);
 
   const filteredLogs = logs.filter((log) => {
-    if (filter === 'ACCESS') return log.eventType.startsWith('ACCESS_');
-    if (filter === 'DEVICE') return log.eventType.startsWith('DEVICE_') || log.eventType.startsWith('PAIRING_');
-    if (filter === 'SECURITY') return log.eventType.includes('REJECTED') || log.eventType.includes('SECURITY') || !log.success;
+    const eventType = String(log.eventType || (log as any).event_type || '');
+    if (filter === 'ACCESS') return eventType.startsWith('ACCESS_');
+    if (filter === 'DEVICE') return eventType.startsWith('DEVICE_') || eventType.startsWith('PAIRING_');
+    if (filter === 'SECURITY') return eventType.includes('REJECTED') || eventType.includes('SECURITY') || !log.success;
     return true;
   });
 
   const getEventBadge = (eventType: string, success: boolean) => {
+    const type = String(eventType || '');
     if (!success) {
       return 'bg-rose-500/15 text-rose-400 border-rose-500/30';
     }
-    if (eventType.includes('REVOKED') || eventType.includes('REMOVED')) {
+    if (type.includes('REVOKED') || type.includes('REMOVED')) {
       return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
     }
-    if (eventType.includes('CREATED') || eventType.includes('REGISTERED')) {
+    if (type.includes('CREATED') || type.includes('REGISTERED')) {
       return 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30';
     }
     return 'bg-slate-800 text-slate-300 border-slate-700';
@@ -140,38 +148,59 @@ export default function SecurityAuditPage() {
               <div key={i} className="h-16 bg-slate-950/40 border border-cyber-border/40 rounded-2xl animate-pulse" />
             ))}
           </div>
+        ) : hasError ? (
+          <div className="text-center py-10 space-y-2">
+            <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto" />
+            <p className="text-xs text-slate-300">Unable to load audit ledger at this moment.</p>
+            <button
+              onClick={fetchLogs}
+              className="text-xs text-cyan-400 hover:underline font-mono"
+            >
+              Try Reconnecting
+            </button>
+          </div>
         ) : filteredLogs.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-10">No audit records found.</p>
+          <p className="text-xs text-slate-400 text-center py-10">No audit records found matching this filter.</p>
         ) : (
           <div className="divide-y divide-cyber-border/60 text-xs">
-            {filteredLogs.map((log) => (
-              <div key={log.id} className="py-3.5 flex items-start justify-between gap-4 hover:bg-slate-900/30 px-2 rounded-xl transition-colors">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className={`font-mono text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getEventBadge(
-                        log.eventType,
-                        log.success
-                      )}`}
-                    >
-                      {log.eventType}
-                    </span>
-                    <span className={`text-[11px] font-mono ${log.success ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {log.success ? '● Verified' : '✕ Rejected'}
-                    </span>
-                  </div>
-                  <p className="text-slate-200 font-medium">{log.reason}</p>
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    IP Hash: <span className="text-slate-400">{log.ipHash || 'Local Agent (127.0.0.1)'}</span>
-                  </p>
-                </div>
+            {filteredLogs.map((log) => {
+              const eventType = String(log.eventType || (log as any).event_type || 'UNKNOWN');
+              const ipHash = log.ipHash || (log as any).ip_hash || 'Local Agent (127.0.0.1)';
+              const rawTimestamp = log.timestamp || (log as any).created_at;
+              const dateObj = rawTimestamp ? new Date(rawTimestamp) : new Date();
+              const isValidDate = !isNaN(dateObj.getTime());
+              const dateStr = isValidDate ? dateObj.toLocaleDateString() : 'Recent';
+              const timeStr = isValidDate ? dateObj.toLocaleTimeString() : '';
 
-                <div className="text-right font-mono text-[11px] text-slate-400 flex-shrink-0">
-                  <div className="text-slate-300">{new Date(log.timestamp).toLocaleDateString()}</div>
-                  <div className="text-cyan-400/80">{new Date(log.timestamp).toLocaleTimeString()}</div>
+              return (
+                <div key={log.id} className="py-3.5 flex items-start justify-between gap-4 hover:bg-slate-900/30 px-2 rounded-xl transition-colors">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className={`font-mono text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getEventBadge(
+                          eventType,
+                          log.success
+                        )}`}
+                      >
+                        {eventType}
+                      </span>
+                      <span className={`text-[11px] font-mono ${log.success ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {log.success ? '● Verified' : '✕ Rejected'}
+                      </span>
+                    </div>
+                    <p className="text-slate-200 font-medium">{log.reason || 'Cryptographic transaction recorded'}</p>
+                    <p className="text-[11px] text-slate-400 font-mono">
+                      IP Hash: <span className="text-slate-400">{ipHash}</span>
+                    </p>
+                  </div>
+
+                  <div className="text-right font-mono text-[11px] text-slate-400 flex-shrink-0">
+                    <div className="text-slate-300">{dateStr}</div>
+                    <div className="text-cyan-400/80">{timeStr}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

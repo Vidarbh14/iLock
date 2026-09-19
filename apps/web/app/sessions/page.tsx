@@ -141,7 +141,7 @@ export default function SessionsPage() {
                   <div>
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="text-sm font-bold text-slate-100">
-                        {dev?.deviceName || 'Windows Workstation'}
+                        {dev?.deviceName || (dev as any)?.device_name || 'Windows Workstation'}
                       </span>
                       <span
                         className={`text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full border ${getStatusBadge(
@@ -151,7 +151,7 @@ export default function SessionsPage() {
                         {session.status}
                       </span>
                       <span className="text-xs font-mono text-cyan-400">
-                        {session.durationMinutes}m Window
+                        {Number(session.durationMinutes ?? (session as any).duration_minutes ?? 15)}m Window
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 mt-1">
@@ -173,19 +173,19 @@ export default function SessionsPage() {
                 {isLive && (
                   <div className="relative z-10">
                     <SessionCountdown
-                      expiresAt={session.expiresAt}
-                      totalDurationMinutes={session.durationMinutes}
+                      expiresAt={session.expiresAt || (session as any).expires_at}
+                      totalDurationMinutes={session.durationMinutes || (session as any).duration_minutes || 15}
                       onExpire={fetchData}
                     />
                   </div>
                 )}
 
                 <div className="pt-2 flex items-center justify-between text-[11px] text-slate-400 font-mono border-t border-cyber-border/60 relative z-10">
-                  <span>Issued: {new Date(session.createdAt).toLocaleTimeString()}</span>
+                  <span>Issued: {new Date(session.createdAt || (session as any).created_at || Date.now()).toLocaleTimeString()}</span>
                   <span>
                     Deterministic Expiry:{' '}
                     <span className="text-slate-200">
-                      {new Date(session.expiresAt).toLocaleTimeString()}
+                      {new Date(session.expiresAt || (session as any).expires_at || Date.now()).toLocaleTimeString()}
                     </span>
                   </span>
                 </div>
