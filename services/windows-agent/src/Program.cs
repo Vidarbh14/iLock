@@ -22,7 +22,7 @@ namespace ILock.WindowsAgent
             Console.WriteLine("       iLock Windows Security Agent v1.0.0       ");
             Console.WriteLine("=================================================");
 
-            WindowsAccessProvider.EnsureNoLockScreenPolicy();
+            WindowsAccessProvider.RestoreDefaultLockScreenPolicy();
 
             var builder = Host.CreateApplicationBuilder(args);
 
@@ -189,6 +189,7 @@ namespace ILock.WindowsAgent
                     }
 
                     HelperLog($"--unlock-helper started. PID={Environment.ProcessId}, User={Environment.UserName}");
+                    WindowsAccessProvider.RestoreDefaultLockScreenPolicy();
 
                     using var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
                     var vaultLogger = loggerFactory.CreateLogger<SecureCredentialVault>();

@@ -333,12 +333,12 @@ namespace ILock.WindowsAgent.Access
             }
         }
 
-        public static void EnsureNoLockScreenPolicy()
+        public static void RestoreDefaultLockScreenPolicy()
         {
             try
             {
-                using var key = Microsoft.Win32.Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows\Personalization");
-                key?.SetValue("NoLockScreen", 1, Microsoft.Win32.RegistryValueKind.DWord);
+                using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Policies\Microsoft\Windows\Personalization", true);
+                key?.DeleteValue("NoLockScreen", false);
             }
             catch { }
         }
@@ -348,7 +348,7 @@ namespace ILock.WindowsAgent.Access
         /// </summary>
         public static bool ExecuteNativeLock()
         {
-            EnsureNoLockScreenPolicy();
+            RestoreDefaultLockScreenPolicy();
             bool locked = LockWorkStation();
             if (!locked)
             {
