@@ -157,7 +157,14 @@ namespace ILock.WindowsAgent.Commands
         private async Task HandleLockRequestAsync(AgentCommand command, AgentConfig config, CancellationToken ct)
         {
             bool success = await _accessProvider.LockAsync(ct);
-            await ReportResultAsync(command, config, success ? "SUCCESS" : "FAILED", "LOCKED", "Workstation lock requested.", ct);
+            if (success)
+            {
+                await ReportResultAsync(command, config, "SUCCESS", "LOCKED", "Workstation locked.", ct);
+            }
+            else
+            {
+                await ReportResultAsync(command, config, "FAILED", "LOCK_FAILED", "Failed to lock workstation.", ct);
+            }
         }
 
         private async Task HandleUnlockRequestAsync(AgentCommand command, AgentConfig config, CancellationToken ct)

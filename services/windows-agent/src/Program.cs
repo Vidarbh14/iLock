@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -128,7 +129,44 @@ namespace ILock.WindowsAgent
                 }
             }
 
-            // Handle CLI Unlock Test
+            // Handle CLI Lock Helper (invoked by SYSTEM service in interactive session)
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] == "--lock-helper")
+                {
+                    string logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "iLock");
+                    if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
+                    string logFile = Path.Combine(logDir, "unlock_helper.log");
+
+                    void LockLog(string msg)
+                    {
+                        try
+                        {
+                            string entry = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] [LOCK-HELPER] {msg}{Environment.NewLine}";
+                            File.AppendAllText(logFile, entry);
+                            Console.WriteLine(msg);
+                        }
+                        catch { }
+                    }
+
+                    LockLog($"--lock-helper started. PID={Environment.ProcessId}, User={Environment.UserName}");
+                    bool ok = false;
+                    try
+                    {
+                        ok = WindowsAccessProvider.ExecuteNativeLock();
+                    }
+                    catch (Exception ex)
+                    {
+                        LockLog($"ExecuteNativeLock error: {ex.Message}");
+                    }
+                    try { File.WriteAllText(Path.Combine(logDir, "lock_state.txt"), "LOCKED"); } catch { }
+                    LockLog($"--lock-helper finished. Result={ok}");
+                    Environment.Exit(ok ? 0 : 1);
+                    return;
+                }
+            }
+
+            // Handle CLI Unlock Helper / Test (invoked by SYSTEM service on Winsta0\Winlogon)
             for (int i = 0; i < args.Length; i++)
             {
                 if (args[i] == "--test-unlock" || args[i] == "--unlock-helper")
@@ -159,12 +197,23 @@ namespace ILock.WindowsAgent
                     if (string.IsNullOrEmpty(pin))
                     {
                         HelperLog("ERROR: No PIN configured in vault. Run: ILock.WindowsAgent.exe --set-pin <pin>");
+                        Environment.Exit(1);
                         return;
                     }
 
                     HelperLog($"PIN retrieved successfully (length={pin.Length}). Simulating unlock keystrokes...");
-                    WindowsAccessProvider.SimulateUnlock(pin, HelperLog);
-                    HelperLog("--unlock-helper finished successfully.");
+                    bool unlocked = WindowsAccessProvider.SimulateUnlock(pin, HelperLog);
+                    if (unlocked)
+                    {
+                        try { File.WriteAllText(Path.Combine(logDir, "lock_state.txt"), "UNLOCKED"); } catch { }
+                        HelperLog("--unlock-helper finished successfully.");
+                        Environment.Exit(0);
+                    }
+                    else
+                    {
+                        HelperLog("ERROR: --unlock-helper completed but workstation is still locked.");
+                        Environment.Exit(1);
+                    }
                     return;
                 }
             }

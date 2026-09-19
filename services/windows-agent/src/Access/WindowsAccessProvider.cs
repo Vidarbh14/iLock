@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -14,12 +15,14 @@ namespace ILock.WindowsAgent.Access
     /// Uses legitimate Windows OS APIs (user32.dll LockWorkStation, keybd_event/mouse_event)
     /// and securely integrates with the local DPAPI credential vault.
     ///
-    /// Supports both interactive execution and SYSTEM Windows Service execution targeting Winsta0\Winlogon.
+    /// Supports both interactive execution and SYSTEM Windows Service execution targeting Winsta0\Winlogon / Winsta0\Default.
+    /// Listens for real-time hardware lock/unlock events via SessionNotificationListener.
     /// </summary>
-    public class WindowsAccessProvider : IWindowsAccessProvider
+    public class WindowsAccessProvider : IWindowsAccessProvider, IDisposable
     {
         private readonly ILogger<WindowsAccessProvider> _logger;
         private readonly SecureCredentialVault _vault;
+        private readonly SessionNotificationListener _sessionListener;
         private AccessSessionInfo? _currentSession;
         private readonly object _lock = new();
 
@@ -44,6 +47,28 @@ namespace ILock.WindowsAgent.Access
 
         [DllImport("user32.dll")]
         private static extern uint MapVirtualKey(uint uCode, uint uMapType);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool GetUserObjectInformation(IntPtr hObj, int nIndex, [Out] byte[] pvInfo, int nLength, out int lpnLengthNeeded);
+
+        private const int UOI_NAME = 2;
+
+        [DllImport("gdi32.dll")]
+        private static extern bool BitBlt(IntPtr hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, IntPtr hdcSrc, int nXSrc, int nYSrc, uint dwRop);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
+
+        private const int SM_CXSCREEN = 0;
+        private const int SM_CYSCREEN = 1;
+        private const uint SRCCOPY = 0x00CC0020;
+        private const uint CAPTUREBLT = 0x40000000;
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern uint WTSGetActiveConsoleSessionId();
@@ -101,6 +126,10 @@ namespace ILock.WindowsAgent.Access
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetExitCodeProcess(IntPtr hProcess, out uint lpExitCode);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -168,12 +197,14 @@ namespace ILock.WindowsAgent.Access
         private const byte VK_SPACE = 0x20;
         private const byte VK_BACK = 0x08;
         private const byte VK_RETURN = 0x0D;
+        private const byte VK_SHIFT = 0x10;
 
         public WindowsAccessProvider(ILogger<WindowsAccessProvider> logger, SecureCredentialVault vault)
         {
             _logger = logger;
             _vault = vault;
-            _logger.LogInformation("WindowsAccessProvider initialized with genuine Windows API bindings and DPAPI Vault.");
+            _sessionListener = new SessionNotificationListener(_logger);
+            _logger.LogInformation("WindowsAccessProvider initialized with genuine Windows API bindings, DPAPI Vault, and SessionNotificationListener.");
         }
 
         public Task<bool> RequestAuthorizedAccessAsync(Guid sessionId, DateTime expiresAtUtc, CancellationToken ct = default)
@@ -245,32 +276,79 @@ namespace ILock.WindowsAgent.Access
 
         public Task<bool> LockAsync(CancellationToken ct = default)
         {
-            _logger.LogInformation("Invoking user32.dll LockWorkStation()...");
+            _logger.LogInformation("Workstation lock requested.");
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    bool result = LockWorkStation();
-                    if (!result)
-                    {
-                        int error = Marshal.GetLastWin32Error();
-                        _logger.LogError("LockWorkStation failed with Win32 Error Code: {Error}", error);
-                        return Task.FromResult(false);
-                    }
-                    _logger.LogInformation("Workstation locked successfully via Win32 API.");
-                    return Task.FromResult(true);
-                }
-                else
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     _logger.LogWarning("LockWorkStation called on non-Windows platform. No-op.");
                     return Task.FromResult(true);
                 }
+
+                bool lockSuccess = false;
+
+                if (Process.GetCurrentProcess().SessionId != 0)
+                {
+                    // Running in interactive user session directly
+                    lockSuccess = ExecuteNativeLock();
+                }
+                else
+                {
+                    // Running as Windows Service in Session 0:
+                    // Must execute LockWorkStation inside active console session (Session 1)
+                    bool launched = TryLaunchInSession("--lock-helper", @"Winsta0\Default", _logger, 5000, out int exitCode);
+                    lockSuccess = launched && exitCode == 0;
+
+                    if (!lockSuccess)
+                    {
+                        // Fallback retry targeting Winsta0\Winlogon
+                        _logger.LogWarning("Retrying lock helper on Winsta0\\Winlogon...");
+                        TryLaunchInSession("--lock-helper", @"Winsta0\Winlogon", _logger, 5000, out exitCode);
+                        lockSuccess = exitCode == 0;
+                    }
+                }
+
+                try
+                {
+                    string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "iLock");
+                    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                    File.WriteAllText(Path.Combine(dir, "lock_state.txt"), "LOCKED");
+                }
+                catch { }
+
+                _logger.LogInformation("Workstation lock completed (success={Success}).", lockSuccess);
+                return Task.FromResult(lockSuccess);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error calling LockWorkStation");
+                _logger.LogError(ex, "Unexpected error calling LockAsync");
                 return Task.FromResult(false);
             }
+        }
+
+        /// <summary>
+        /// Native lock method callable from interactive sessions or --lock-helper
+        /// </summary>
+        public static bool ExecuteNativeLock()
+        {
+            bool locked = LockWorkStation();
+            if (!locked)
+            {
+                try
+                {
+                    var proc = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "rundll32.exe",
+                        Arguments = "user32.dll,LockWorkStation",
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    });
+                    proc?.WaitForExit(2000);
+                    return true;
+                }
+                catch { }
+            }
+            return locked;
         }
 
         public async Task<bool> UnlockAsync(CancellationToken ct = default)
@@ -294,26 +372,48 @@ namespace ILock.WindowsAgent.Access
 
                 _logger.LogInformation("Initiating unlock sequence for console session...");
 
-                // First attempt: Token duplication onto Winsta0\Winlogon (available when running as SYSTEM Windows Service)
-                bool launchedOnWinlogon = TryLaunchHelperOnWinlogon(_logger);
-                if (!launchedOnWinlogon)
+                bool unlockSuccess = false;
+
+                if (Process.GetCurrentProcess().SessionId == 0)
                 {
-                    _logger.LogInformation("Falling back to active desktop input simulation...");
-                    await Task.Run(() => SimulateUnlock(pin, msg => _logger.LogInformation(msg)), ct);
+                    // Running as SYSTEM Windows Service: target Winsta0\Winlogon
+                    bool launched = TryLaunchInSession("--unlock-helper", @"Winsta0\Winlogon", _logger, 20000, out int exitCode);
+                    unlockSuccess = launched && exitCode == 0;
+                }
+                else
+                {
+                    // Interactive mode
+                    unlockSuccess = await Task.Run(() => SimulateUnlock(pin, msg => _logger.LogInformation(msg)), ct);
                 }
 
-                lock (_lock)
+                if (unlockSuccess)
                 {
-                    _currentSession = new AccessSessionInfo(
-                        Guid.NewGuid(),
-                        DateTime.UtcNow.AddMinutes(30),
-                        AccessState.Active,
-                        "Workstation Unlocked via Remote Phone Biometrics"
-                    );
-                }
+                    lock (_lock)
+                    {
+                        _currentSession = new AccessSessionInfo(
+                            Guid.NewGuid(),
+                            DateTime.UtcNow.AddMinutes(30),
+                            AccessState.Active,
+                            "Workstation Unlocked via Remote Phone Biometrics"
+                        );
+                    }
 
-                _logger.LogInformation("Workstation unlock signal executed successfully.");
-                return true;
+                    try
+                    {
+                        string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "iLock");
+                        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                        File.WriteAllText(Path.Combine(dir, "lock_state.txt"), "UNLOCKED");
+                    }
+                    catch { }
+
+                    _logger.LogInformation("Workstation unlocked successfully.");
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("Workstation unlock sequence did not result in unlocked desktop.");
+                    return false;
+                }
             }
             catch (Exception ex)
             {
@@ -355,12 +455,18 @@ namespace ILock.WindowsAgent.Access
             return false;
         }
 
-        private static bool TryLaunchHelperOnWinlogon(ILogger logger)
+        private static bool TryLaunchInSession(
+            string argument,
+            string desktop,
+            ILogger logger,
+            int waitTimeoutMs,
+            out int exitCode)
         {
+            exitCode = -1;
             try
             {
                 uint activeSessionId = WTSGetActiveConsoleSessionId();
-                logger.LogInformation("Attempting secure unlock targeting active console session {SessionId}...", activeSessionId);
+                logger.LogInformation("Launching helper in console session {SessionId} on desktop {Desktop} (arg='{Arg}')...", activeSessionId, desktop, argument);
 
                 EnablePrivilege(SE_DEBUG_NAME, logger);
 
@@ -383,12 +489,7 @@ namespace ILock.WindowsAgent.Access
                                 {
                                     if (DuplicateTokenEx(hProcessToken, MAXIMUM_ALLOWED, IntPtr.Zero, 2, 1, out IntPtr hDup))
                                     {
-                                        logger.LogInformation("Successfully duplicated winlogon primary token for session {SessionId}.", activeSessionId);
                                         hPrimaryToken = hDup;
-                                    }
-                                    else
-                                    {
-                                        logger.LogWarning("DuplicateTokenEx on winlogon token failed: {Err}", Marshal.GetLastWin32Error());
                                     }
                                 }
                                 finally
@@ -396,27 +497,15 @@ namespace ILock.WindowsAgent.Access
                                     CloseHandle(hProcessToken);
                                 }
                             }
-                            else
-                            {
-                                logger.LogWarning("OpenProcessToken on winlogon failed: {Err}", Marshal.GetLastWin32Error());
-                            }
                         }
                         finally
                         {
                             CloseHandle(hProcess);
                         }
                     }
-                    else
-                    {
-                        logger.LogWarning("OpenProcess on winlogon PID {Pid} failed: {Err}", winlogonProc.Id, Marshal.GetLastWin32Error());
-                    }
-                }
-                else
-                {
-                    logger.LogWarning("No winlogon process found in session {SessionId}.", activeSessionId);
                 }
 
-                // Attempt 2: If winlogon token failed, duplicate own SYSTEM token and assign SessionId
+                // Attempt 2: Duplicate own SYSTEM token and assign SessionId
                 if (hPrimaryToken == IntPtr.Zero)
                 {
                     if (OpenProcessToken(Process.GetCurrentProcess().Handle, TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY | TOKEN_QUERY, out IntPtr hMyToken))
@@ -428,12 +517,10 @@ namespace ILock.WindowsAgent.Access
                                 uint sess = activeSessionId;
                                 if (SetTokenInformation(hDup, TokenSessionId, ref sess, sizeof(uint)))
                                 {
-                                    logger.LogInformation("Assigned session {SessionId} to duplicated service token.", activeSessionId);
                                     hPrimaryToken = hDup;
                                 }
                                 else
                                 {
-                                    logger.LogWarning("SetTokenInformation TokenSessionId failed: {Err}", Marshal.GetLastWin32Error());
                                     CloseHandle(hDup);
                                 }
                             }
@@ -450,12 +537,7 @@ namespace ILock.WindowsAgent.Access
                 {
                     if (WTSQueryUserToken(activeSessionId, out IntPtr hUserToken))
                     {
-                        logger.LogInformation("Obtained user token via WTSQueryUserToken for session {SessionId}.", activeSessionId);
                         hPrimaryToken = hUserToken;
-                    }
-                    else
-                    {
-                        logger.LogWarning("WTSQueryUserToken failed: {Err}", Marshal.GetLastWin32Error());
                     }
                 }
 
@@ -469,11 +551,11 @@ namespace ILock.WindowsAgent.Access
                 {
                     string exePath = Process.GetCurrentProcess().MainModule?.FileName 
                         ?? @"C:\Users\vidar\OneDrive\Desktop\iLock\services\windows-agent\src\bin\Release\net8.0\win-x64\publish\ILock.WindowsAgent.exe";
-                    string cmdLine = $"\"{exePath}\" --unlock-helper";
+                    string cmdLine = $"\"{exePath}\" {argument}";
 
                     var si = new STARTUPINFO();
                     si.cb = Marshal.SizeOf(si);
-                    si.lpDesktop = @"Winsta0\Winlogon";
+                    si.lpDesktop = desktop;
 
                     var pi = new PROCESS_INFORMATION();
 
@@ -494,15 +576,20 @@ namespace ILock.WindowsAgent.Access
                     if (!ok)
                     {
                         int err = Marshal.GetLastWin32Error();
-                        logger.LogWarning("CreateProcessAsUser on Winsta0\\Winlogon failed: {Err}", err);
+                        logger.LogWarning("CreateProcessAsUser on {Desktop} failed: {Err}", desktop, err);
                         return false;
                     }
 
-                    logger.LogInformation("Successfully spawned unlock helper on Winsta0\\Winlogon! PID={Pid}", pi.dwProcessId);
+                    logger.LogInformation("Successfully spawned helper PID={Pid} with arg '{Arg}' on {Desktop}", pi.dwProcessId, argument, desktop);
 
                     if (pi.hProcess != IntPtr.Zero)
                     {
-                        WaitForSingleObject(pi.hProcess, 6000);
+                        WaitForSingleObject(pi.hProcess, (uint)waitTimeoutMs);
+                        if (GetExitCodeProcess(pi.hProcess, out uint code))
+                        {
+                            exitCode = (int)code;
+                            logger.LogInformation("Helper PID={Pid} exited with code {Code}", pi.dwProcessId, exitCode);
+                        }
                         CloseHandle(pi.hProcess);
                     }
                     if (pi.hThread != IntPtr.Zero)
@@ -518,7 +605,7 @@ namespace ILock.WindowsAgent.Access
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "TryLaunchHelperOnWinlogon caught exception");
+                logger.LogWarning(ex, "TryLaunchInSession caught exception");
                 return false;
             }
         }
@@ -526,10 +613,12 @@ namespace ILock.WindowsAgent.Access
         /// <summary>
         /// Simulates hardware input to wake the monitor, dismiss the lock screen overlay,
         /// and type the 6-digit PIN into the Windows logon prompt.
-        /// Uses a clean dedicated thread attached to the active input desktop (including Winlogon).
+        /// Uses a clean dedicated MTA thread attached to the active input desktop (including Winlogon).
+        /// Returns true if the screen was successfully unlocked, false otherwise.
         /// </summary>
-        public static void SimulateUnlock(string pin, Action<string>? log = null)
+        public static bool SimulateUnlock(string pin, Action<string>? log = null)
         {
+            bool success = false;
             var thread = new Thread(() =>
             {
                 IntPtr hDesktop = IntPtr.Zero;
@@ -554,68 +643,102 @@ namespace ILock.WindowsAgent.Access
 
                     log?.Invoke("SimulateUnlock execution thread active.");
 
-                    // 1. Wake display / power management with mouse movement
-                    log?.Invoke("Waking display with mouse movement...");
-                    mouse_event(MOUSEEVENTF_MOVE, 0, 5, 0, UIntPtr.Zero);
-                    Thread.Sleep(50);
-                    mouse_event(MOUSEEVENTF_MOVE, 0, -5, 0, UIntPtr.Zero);
-                    Thread.Sleep(200);
-
-                    // 2. Dismiss lock screen wallpaper overlay (Space key with scan code)
-                    log?.Invoke("Dismissing lock screen overlay with Space key...");
-                    byte spaceScan = (byte)MapVirtualKey(VK_SPACE, 0);
-                    keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
-                    Thread.Sleep(50);
-                    keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-
-                    // Wait 2500ms for Windows 11 lock screen animation to slide up and focus the PIN box
-                    log?.Invoke("Waiting 2500ms for Windows 11 lock screen to fully transition...");
-                    Thread.Sleep(2500);
-
-                    // 3. Click directly on the PIN box area (normalized 50% X, 60% Y) to guarantee keyboard focus
-                    log?.Invoke("Focusing PIN input field with centered click...");
-                    // 0x8000 = MOUSEEVENTF_ABSOLUTE, 0x0001 = MOUSEEVENTF_MOVE, 0x0002 = LEFTDOWN, 0x0004 = LEFTUP
-                    mouse_event(0x8000 | 0x0001, 32767, 39000, 0, UIntPtr.Zero);
-                    Thread.Sleep(50);
-                    mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
-                    Thread.Sleep(50);
-                    mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
-                    Thread.Sleep(200);
-
-                    // 4. Clear any partial or accidental characters in PIN prompt with 8 backspaces
-                    log?.Invoke("Clearing existing input field with backspaces...");
-                    byte backScan = (byte)MapVirtualKey(VK_BACK, 0);
-                    for (int i = 0; i < 8; i++)
+                    void PerformTypeSequence(string sequencePin, string attemptLabel)
                     {
-                        keybd_event(VK_BACK, backScan, 0, UIntPtr.Zero);
-                        Thread.Sleep(40);
-                        keybd_event(VK_BACK, backScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                        Thread.Sleep(40);
-                    }
-                    Thread.Sleep(200);
+                        log?.Invoke($"[{attemptLabel}] 1. Waking display with mouse movement and Shift key...");
+                        mouse_event(MOUSEEVENTF_MOVE, 0, 2, 0, UIntPtr.Zero);
+                        Thread.Sleep(30);
+                        mouse_event(MOUSEEVENTF_MOVE, 0, -2, 0, UIntPtr.Zero);
+                        Thread.Sleep(50);
 
-                    // 5. Type each digit of the PIN with human-natural debounced timing (60ms down, 80ms up)
-                    log?.Invoke($"Typing {pin.Length} PIN digits...");
-                    foreach (char c in pin)
+                        byte shiftScan = (byte)MapVirtualKey(VK_SHIFT, 0);
+                        keybd_event(VK_SHIFT, shiftScan, 0, UIntPtr.Zero);
+                        Thread.Sleep(30);
+                        keybd_event(VK_SHIFT, shiftScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                        Thread.Sleep(100);
+
+                        log?.Invoke($"[{attemptLabel}] 2. Dismissing lock screen overlay with Space key...");
+                        byte spaceScan = (byte)MapVirtualKey(VK_SPACE, 0);
+                        keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
+                        Thread.Sleep(40);
+                        keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                        Thread.Sleep(120);
+
+                        // Second tap ensures overlay slides up even if screen was waking from standby
+                        keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
+                        Thread.Sleep(40);
+                        keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+
+                        log?.Invoke($"[{attemptLabel}] 3. Waiting 1100ms for Windows 11 lock screen slide animation to focus PIN box...");
+                        Thread.Sleep(1100);
+
+                        // NOTE: In Windows 11, the PIN box is automatically focused when the overlay slides up.
+                        // Do NOT simulate mouse clicks, which de-focus the PIN box on Windows 11.
+
+                        log?.Invoke($"[{attemptLabel}] 4. Clearing input field with 8 backspaces...");
+                        byte backScan = (byte)MapVirtualKey(VK_BACK, 0);
+                        for (int i = 0; i < 8; i++)
+                        {
+                            keybd_event(VK_BACK, backScan, 0, UIntPtr.Zero);
+                            Thread.Sleep(20);
+                            keybd_event(VK_BACK, backScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                            Thread.Sleep(20);
+                        }
+                        Thread.Sleep(100);
+
+                        log?.Invoke($"[{attemptLabel}] 5. Typing {sequencePin.Length} PIN digits with hardware scan codes...");
+                        foreach (char c in sequencePin)
+                        {
+                            byte vk = (byte)c;
+                            byte scan = (byte)MapVirtualKey(vk, 0);
+                            keybd_event(vk, scan, 0, UIntPtr.Zero);
+                            Thread.Sleep(40);
+                            keybd_event(vk, scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                            Thread.Sleep(40);
+                        }
+
+                        log?.Invoke($"[{attemptLabel}] 6. Submitting PIN with Enter key...");
+                        Thread.Sleep(100);
+                        byte enterScan = (byte)MapVirtualKey(VK_RETURN, 0);
+                        keybd_event(VK_RETURN, enterScan, 0, UIntPtr.Zero);
+                        Thread.Sleep(40);
+                        keybd_event(VK_RETURN, enterScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                    }
+
+                    // Attempt 1
+                    PerformTypeSequence(pin, "Attempt-1");
+
+                    // Responsive polling: Windows Hello switches desktop from Winlogon to Default in ~1.2s to 2.4s
+                    bool stillLocked = true;
+                    for (int i = 0; i < 16; i++) // Poll every 200ms up to 3.2s
                     {
-                        byte vk = (byte)c;
-                        byte scan = (byte)MapVirtualKey(vk, 0);
-                        keybd_event(vk, scan, 0, UIntPtr.Zero);
-                        Thread.Sleep(60);
-                        keybd_event(vk, scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                        Thread.Sleep(80);
+                        Thread.Sleep(200);
+                        stillLocked = CheckIfScreenIsLocked();
+                        if (!stillLocked)
+                        {
+                            log?.Invoke($"Workstation successfully unlocked on Attempt-1 after {(i + 1) * 200}ms!");
+                            break;
+                        }
                     }
 
-                    // 6. Wait 500ms for Windows Hello verification, then submit with Enter
-                    log?.Invoke("Submitting PIN with Enter key...");
-                    Thread.Sleep(500);
-                    byte enterScan = (byte)MapVirtualKey(VK_RETURN, 0);
-                    keybd_event(VK_RETURN, enterScan, 0, UIntPtr.Zero);
-                    Thread.Sleep(60);
-                    keybd_event(VK_RETURN, enterScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                    Thread.Sleep(300);
+                    if (stillLocked)
+                    {
+                        log?.Invoke("Workstation still locked after 3200ms. Initiating secondary retry attempt...");
+                        PerformTypeSequence(pin, "Attempt-2");
+                        for (int i = 0; i < 16; i++)
+                        {
+                            Thread.Sleep(200);
+                            stillLocked = CheckIfScreenIsLocked();
+                            if (!stillLocked)
+                            {
+                                log?.Invoke($"Workstation successfully unlocked on Attempt-2 after {(i + 1) * 200}ms!");
+                                break;
+                            }
+                        }
+                    }
 
-                    log?.Invoke("SimulateUnlock completed successfully.");
+                    success = !stillLocked;
+                    log?.Invoke($"SimulateUnlock completed. Unlocked={success}");
                 }
                 catch (Exception ex)
                 {
@@ -629,22 +752,89 @@ namespace ILock.WindowsAgent.Access
                     }
                 }
             });
-            // Keep MTA to prevent OLE/COM hidden message windows from interfering with SetThreadDesktop
+
             thread.Start();
             thread.Join();
+            return success;
+        }
+
+        public static void CaptureScreen(string filePath, Action<string>? log = null)
+        {
+            try
+            {
+                int width = GetSystemMetrics(SM_CXSCREEN);
+                int height = GetSystemMetrics(SM_CYSCREEN);
+                if (width <= 0 || height <= 0)
+                {
+                    width = 1920;
+                    height = 1080;
+                }
+
+                using var bmp = new System.Drawing.Bitmap(width, height);
+                using (var g = System.Drawing.Graphics.FromImage(bmp))
+                {
+                    IntPtr hdcDest = g.GetHdc();
+                    IntPtr hdcSrc = GetDC(IntPtr.Zero);
+                    BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, SRCCOPY | CAPTUREBLT);
+                    ReleaseDC(IntPtr.Zero, hdcSrc);
+                    g.ReleaseHdc(hdcDest);
+                }
+
+                string? dir = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                bmp.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+                log?.Invoke($"Captured screen to {filePath} ({width}x{height})");
+            }
+            catch (Exception ex)
+            {
+                log?.Invoke($"CaptureScreen error: {ex.Message}");
+            }
+        }
+
+        public static string? GetActiveDesktopName()
+        {
+            IntPtr hDesktop = OpenInputDesktop(0, false, 0x0100);
+            if (hDesktop == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            try
+            {
+                byte[] buffer = new byte[256];
+                if (GetUserObjectInformation(hDesktop, UOI_NAME, buffer, buffer.Length, out int lengthNeeded))
+                {
+                    return System.Text.Encoding.ASCII.GetString(buffer, 0, lengthNeeded).TrimEnd('\0');
+                }
+                return null;
+            }
+            finally
+            {
+                CloseDesktop(hDesktop);
+            }
         }
 
         public static bool CheckIfScreenIsLocked()
         {
             try
             {
-                IntPtr hDesktop = OpenInputDesktop(0, false, 0x0100);
-                if (hDesktop == IntPtr.Zero)
+                string? desktopName = GetActiveDesktopName();
+                if (desktopName == null)
                 {
                     // Access Denied or null handle indicates Winsta0\Winlogon secure desktop is active
                     return true;
                 }
-                CloseDesktop(hDesktop);
+
+                if (desktopName.Equals("Winlogon", StringComparison.OrdinalIgnoreCase) ||
+                    desktopName.Equals("Screen-saver", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
                 return false;
             }
             catch
@@ -655,9 +845,36 @@ namespace ILock.WindowsAgent.Access
 
         public Task<(bool isLocked, string? activeUser)> GetStatusAsync(CancellationToken ct = default)
         {
-            bool isLocked = CheckIfScreenIsLocked() || GetAccessState() != AccessState.Active;
+            bool isLocked = true;
+            try
+            {
+                string statePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "iLock", "lock_state.txt");
+                if (File.Exists(statePath))
+                {
+                    string state = File.ReadAllText(statePath).Trim();
+                    isLocked = state.Equals("LOCKED", StringComparison.OrdinalIgnoreCase);
+                }
+                else if (Process.GetCurrentProcess().SessionId != 0)
+                {
+                    isLocked = CheckIfScreenIsLocked() || GetAccessState() != AccessState.Active;
+                }
+                else
+                {
+                    isLocked = GetAccessState() != AccessState.Active;
+                }
+            }
+            catch
+            {
+                isLocked = CheckIfScreenIsLocked() || GetAccessState() != AccessState.Active;
+            }
+
             string? activeUser = Environment.UserName;
             return Task.FromResult<(bool isLocked, string? activeUser)>((isLocked, activeUser));
+        }
+
+        public void Dispose()
+        {
+            _sessionListener?.Dispose();
         }
     }
 }
