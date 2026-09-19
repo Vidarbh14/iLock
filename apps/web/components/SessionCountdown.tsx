@@ -35,20 +35,20 @@ export function SessionCountdown({ expiresAt, totalDurationMinutes = 30, onExpir
   const progressPct = Math.min(100, Math.max(0, (timeLeftMs / totalMs) * 100));
 
   // Color styling based on remaining duration
-  let colorClass = 'text-emerald-400';
-  let barColor = 'bg-emerald-500';
+  let colorClass = 'text-[#30d158]';
+  let barColor = 'bg-[#30d158]';
 
   if (minutes < 5) {
-    colorClass = 'text-rose-400 animate-pulse';
-    barColor = 'bg-rose-500';
+    colorClass = 'text-[#ff6961] animate-pulse';
+    barColor = 'bg-[#ff453a]';
   } else if (minutes < 15) {
-    colorClass = 'text-amber-400';
-    barColor = 'bg-amber-500';
+    colorClass = 'text-[#ff9f0a]';
+    barColor = 'bg-[#ff9f0a]';
   }
 
   if (timeLeftMs === 0) {
     return (
-      <div className={`font-mono text-xs font-semibold text-slate-400 ${className}`}>
+      <div className={`font-mono text-xs font-semibold text-slate-500 ${className}`}>
         EXPIRED
       </div>
     );
@@ -58,11 +58,11 @@ export function SessionCountdown({ expiresAt, totalDurationMinutes = 30, onExpir
     <div className={`space-y-1.5 ${className}`}>
       <div className="flex items-center justify-between text-xs">
         <span className="text-slate-400">Time Remaining:</span>
-        <span className={`font-mono font-bold tracking-wider ${colorClass}`}>
+        <span className={`font-mono font-semibold tracking-wider ${colorClass}`}>
           {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
         </span>
       </div>
-      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
         <div
           className={`h-full ${barColor} transition-all duration-1000 rounded-full`}
           style={{ width: `${progressPct}%` }}

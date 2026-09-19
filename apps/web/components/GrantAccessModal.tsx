@@ -69,29 +69,29 @@ export function GrantAccessModal({ device, isOpen, onClose, onSuccess }: Props) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-md glass-modal p-6 shadow-2xl space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+            <div className="p-2.5 rounded-2xl bg-[#2997ff]/10 border border-[#2997ff]/25 text-[#2997ff] shadow-[0_0_12px_rgba(41,151,255,0.2)]">
               <KeyRound className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Grant Temporary Access</h3>
+              <h3 className="text-base font-semibold text-white">Grant Temporary Access</h3>
               <p className="text-xs text-slate-400 font-mono">{device.deviceName}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 text-xs bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl">
+          <div className="flex items-center gap-2 p-3 text-xs bg-[#ff453a]/10 border border-[#ff453a]/25 text-[#ff6961] rounded-2xl backdrop-blur-md">
             <AlertTriangle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
@@ -114,10 +114,10 @@ export function GrantAccessModal({ device, isOpen, onClose, onSuccess }: Props) 
                       setIsCustom(false);
                       setSelectedDuration(preset.minutes);
                     }}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                    className={`py-2 px-3 rounded-full text-xs font-medium transition-all ${
                       isSelected
-                        ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.25)]'
-                        : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
+                        ? 'bg-[#2997ff] text-white shadow-[0_0_14px_rgba(41,151,255,0.4)] border border-[#2997ff]'
+                        : 'bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:bg-white/[0.08]'
                     }`}
                   >
                     {preset.label}
@@ -131,7 +131,7 @@ export function GrantAccessModal({ device, isOpen, onClose, onSuccess }: Props) 
               <button
                 type="button"
                 onClick={() => setIsCustom(!isCustom)}
-                className="text-xs text-cyan-400 hover:underline flex items-center gap-1"
+                className="text-xs text-[#2997ff] hover:underline flex items-center gap-1 font-medium"
               >
                 <Clock className="w-3.5 h-3.5" />
                 {isCustom ? 'Use preset duration' : 'Enter custom duration'}
@@ -145,7 +145,7 @@ export function GrantAccessModal({ device, isOpen, onClose, onSuccess }: Props) 
                     value={customMinutes}
                     onChange={(e) => setCustomMinutes(e.target.value)}
                     placeholder="Minutes (e.g. 45)"
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 font-mono"
+                    className="flex-1 apple-input px-3 py-2 text-sm font-mono"
                   />
                   <span className="text-xs text-slate-400">minutes</span>
                 </div>
@@ -163,15 +163,15 @@ export function GrantAccessModal({ device, isOpen, onClose, onSuccess }: Props) 
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
               placeholder="e.g. Brother printing documents"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+              className="w-full apple-input px-3 py-2 text-sm"
             />
           </div>
 
           {/* Expiration Preview Card */}
-          <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1 text-xs">
+          <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-1.5 text-xs">
             <div className="flex justify-between text-slate-400">
               <span>Automatic Expiration:</span>
-              <span className="font-mono text-cyan-400 font-semibold">
+              <span className="font-mono text-[#2997ff] font-semibold">
                 {expiryTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -194,14 +194,14 @@ export function GrantAccessModal({ device, isOpen, onClose, onSuccess }: Props) 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+              className="px-4 py-2 text-xs font-medium apple-btn-secondary rounded-full"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl hover:opacity-90 transition-opacity shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:opacity-50 flex items-center gap-1.5"
+              className="px-5 py-2 text-xs font-medium apple-btn-primary rounded-full disabled:opacity-50 flex items-center gap-1.5"
             >
               {isSubmitting ? (
                 'Authorizing...'

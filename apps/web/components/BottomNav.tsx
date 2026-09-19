@@ -17,7 +17,7 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-800 bg-slate-950/95 backdrop-blur-lg pb-safe">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-[#0a0d14]/85 backdrop-blur-2xl pb-safe">
       <div className="flex items-center justify-around h-16 px-2">
         {items.map((item) => {
           const Icon = item.icon;
@@ -26,18 +26,18 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
-                isActive ? 'text-cyan-400 font-semibold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+                isActive ? 'text-white font-medium' : 'text-[#86868b] hover:text-[#f5f5f7]'
               }`}
             >
               <div
-                className={`p-1 rounded-xl transition-all ${
-                  isActive ? 'bg-cyan-500/15 text-cyan-400 scale-110' : ''
+                className={`p-1.5 rounded-xl transition-all ${
+                  isActive ? 'bg-white/[0.12] text-white border border-white/[0.14] shadow-sm' : ''
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-4 h-4" />
               </div>
-              <span className="text-[11px] mt-0.5">{item.label}</span>
+              <span className="text-[10px] mt-1 tracking-tight">{item.label}</span>
             </Link>
           );
         })}

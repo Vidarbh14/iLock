@@ -60,19 +60,19 @@ export default function LoginPage() {
   return (
     <div className="max-w-md mx-auto my-12 space-y-6">
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-500 mx-auto flex items-center justify-center text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]">
-          <Lock className="w-6 h-6" />
+        <div className="w-14 h-14 rounded-3xl bg-gradient-to-b from-white/[0.15] to-white/[0.04] border border-white/[0.12] mx-auto flex items-center justify-center text-white shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
+          <Lock className="w-7 h-7 text-[#2997ff]" />
         </div>
-        <h1 className="text-2xl font-extrabold text-white">Sign In to iLock</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Sign In to iLock</h1>
         <p className="text-xs text-slate-400">
           Zero-knowledge remote temporary access & PC authorization
         </p>
       </div>
 
       {!isConfigured && (
-        <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-300 space-y-1">
-          <p className="font-bold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+        <div className="p-3.5 rounded-2xl bg-[#2997ff]/10 border border-[#2997ff]/25 text-xs text-[#2997ff] space-y-1 backdrop-blur-md">
+          <p className="font-semibold flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#2997ff] animate-pulse" />
             Instant Sandbox Mode Active
           </p>
           <p className="text-slate-400 text-[11px]">
@@ -82,24 +82,24 @@ export default function LoginPage() {
       )}
 
       {error && (
-        <div className="flex items-center gap-2 p-3 text-xs bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl">
+        <div className="flex items-center gap-2 p-3 text-xs bg-[#ff453a]/10 border border-[#ff453a]/25 text-[#ff6961] rounded-2xl backdrop-blur-md">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      <form onSubmit={handleLogin} className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+      <form onSubmit={handleLogin} className="p-7 rounded-3xl glass-card space-y-4">
         <div>
           <label className="block text-xs font-medium text-slate-300 mb-1">Email</label>
           <div className="relative">
-            <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+            <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="owner@example.com"
-              className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500"
+              className="w-full pl-10 pr-3.5 py-2.5 apple-input text-sm text-white"
             />
           </div>
         </div>
@@ -107,19 +107,19 @@ export default function LoginPage() {
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs font-medium text-slate-300">Password</label>
-            <Link href="/forgot-password" className="text-[11px] text-cyan-400 hover:underline">
+            <Link href="/forgot-password" className="text-[11px] text-[#2997ff] hover:underline">
               Forgot password?
             </Link>
           </div>
           <div className="relative">
-            <KeyRound className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+            <KeyRound className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
-              className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500"
+              className="w-full pl-10 pr-3.5 py-2.5 apple-input text-sm text-white"
             />
           </div>
         </div>
@@ -127,18 +127,18 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 transition-opacity shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:opacity-50 flex items-center justify-center gap-1.5"
+          className="w-full py-3 rounded-full text-xs font-semibold text-white apple-btn-primary disabled:opacity-50 flex items-center justify-center gap-1.5"
         >
           {isLoading ? 'Signing In...' : 'Sign In'}
           <ArrowRight className="w-4 h-4" />
         </button>
 
         {/* Quick Demo Mode Login */}
-        <div className="pt-2 border-t border-slate-800">
+        <div className="pt-2 border-t border-white/[0.08]">
           <button
             type="button"
             onClick={handleDemoLogin}
-            className="w-full py-2.5 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-colors flex items-center justify-center gap-2 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+            className="w-full py-2.5 rounded-full text-xs font-medium text-[#30d158] bg-[#30d158]/10 hover:bg-[#30d158]/20 border border-[#30d158]/30 transition-colors flex items-center justify-center gap-2 shadow-[0_0_12px_rgba(48,209,88,0.15)]"
           >
             <ShieldCheck className="w-4 h-4" />
             Launch Instant Demo Mode (Vidarbh)
@@ -148,7 +148,7 @@ export default function LoginPage() {
 
       <p className="text-center text-xs text-slate-400">
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="text-cyan-400 hover:underline font-semibold">
+        <Link href="/signup" className="text-[#2997ff] hover:underline font-medium">
           Create Account
         </Link>
       </p>

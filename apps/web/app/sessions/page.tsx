@@ -65,8 +65,8 @@ export default function SessionsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
-            <History className="w-6 h-6 text-cyan-400" />
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <History className="w-6 h-6 text-[#2997ff]" />
             Access Sessions & History
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -80,7 +80,7 @@ export default function SessionsPage() {
               setIsRefreshing(true);
               fetchData();
             }}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+            className="p-2 rounded-full apple-btn-secondary"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
@@ -88,14 +88,14 @@ export default function SessionsPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-800 max-w-md">
+      <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl max-w-md">
         {['ALL', 'ACTIVE', 'EXPIRED', 'REVOKED'].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex-1 py-1.5 px-3 rounded-full text-xs font-medium transition-all ${
               filter === f
-                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+                ? 'bg-[#2997ff] text-white shadow-[0_0_12px_rgba(41,151,255,0.4)]'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -107,11 +107,11 @@ export default function SessionsPage() {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 rounded-2xl bg-slate-900/50 animate-pulse" />
+            <div key={i} className="h-24 rounded-2xl glass-card animate-pulse" />
           ))}
         </div>
       ) : filteredSessions.length === 0 ? (
-        <div className="text-center py-12 rounded-2xl bg-slate-900/30 border border-slate-800/60">
+        <div className="text-center py-12 rounded-3xl glass-card">
           <Clock className="w-10 h-10 text-slate-600 mx-auto mb-2" />
           <p className="text-xs text-slate-400">No sessions match your filter.</p>
         </div>
@@ -124,16 +124,16 @@ export default function SessionsPage() {
             return (
               <div
                 key={session.id}
-                className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-slate-700/80 transition-all space-y-3"
+                className="p-4 rounded-2xl glass-card space-y-3"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-white">
+                      <span className="text-sm font-semibold text-white">
                         {dev?.deviceName || 'Windows PC'}
                       </span>
                       <span
-                        className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full border ${getStatusBadge(
+                        className={`text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full border ${getStatusBadge(
                           session.status
                         )}`}
                       >
@@ -149,7 +149,7 @@ export default function SessionsPage() {
                   {isLive && (
                     <button
                       onClick={() => setSessionToRevoke(session)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 rounded-full text-xs font-medium apple-btn-danger flex items-center gap-1.5"
                     >
                       <Lock className="w-3.5 h-3.5" />
                       Revoke
@@ -165,7 +165,7 @@ export default function SessionsPage() {
                   />
                 )}
 
-                <div className="pt-1 flex items-center justify-between text-[11px] text-slate-500 font-mono border-t border-slate-800/40">
+                <div className="pt-1 flex items-center justify-between text-[11px] text-slate-500 font-mono border-t border-white/[0.06]">
                   <span>Created: {new Date(session.createdAt).toLocaleTimeString()}</span>
                   <span>Expires: {new Date(session.expiresAt).toLocaleTimeString()}</span>
                 </div>

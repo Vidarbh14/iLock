@@ -117,18 +117,18 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-sm bg-slate-900 border border-emerald-500/30 rounded-2xl p-6 shadow-2xl space-y-5 text-center">
+      <div className="w-full max-w-sm glass-modal p-6 shadow-2xl space-y-5 text-center">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-[#30d158] font-semibold text-xs uppercase tracking-wider">
             <Smartphone className="w-4 h-4" />
             <span>Phone Authenticator</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -136,15 +136,15 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
         <div className="py-4 space-y-3">
           <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
             {authSuccess ? (
-              <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 animate-bounce">
+              <div className="w-20 h-20 rounded-full bg-[#30d158]/20 border-2 border-[#30d158] flex items-center justify-center text-[#30d158] animate-bounce shadow-[0_0_20px_rgba(48,209,88,0.4)]">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
             ) : (
               <div
                 className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
                   isAuthenticating
-                    ? 'bg-cyan-500/20 border-2 border-cyan-400 animate-pulse text-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.5)]'
-                    : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:scale-105'
+                    ? 'bg-[#2997ff]/20 border-2 border-[#2997ff] animate-pulse text-[#2997ff] shadow-[0_0_25px_rgba(41,151,255,0.5)]'
+                    : 'bg-[#30d158]/10 border border-[#30d158]/30 text-[#30d158] hover:scale-105'
                 }`}
               >
                 <Fingerprint className="w-10 h-10" />
@@ -153,7 +153,7 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
           </div>
 
           <div>
-            <h3 className="text-base font-bold text-white">
+            <h3 className="text-base font-semibold text-white">
               {authSuccess ? 'Unlocked!' : 'Authenticate to Unlock'}
             </h3>
             <p className="text-xs text-slate-400 mt-1">
@@ -163,14 +163,14 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 text-xs bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-left">
+          <div className="flex items-center gap-2 p-3 text-xs bg-[#ff453a]/10 border border-[#ff453a]/25 text-[#ff6961] rounded-2xl text-left backdrop-blur-md">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {authSuccess && (
-          <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-medium">
+          <div className="p-3.5 rounded-2xl bg-[#30d158]/15 border border-[#30d158]/30 text-[#30d158] text-xs font-medium backdrop-blur-md">
             Signal transmitted! Laptop is unlocking...
           </div>
         )}
@@ -180,7 +180,7 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
             <button
               onClick={triggerBiometricAuth}
               disabled={isAuthenticating}
-              className="w-full py-3 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] disabled:opacity-50"
+              className="w-full py-3 rounded-full text-xs font-semibold text-white bg-[#30d158] hover:bg-[#28b84d] transition-all flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(48,209,88,0.35)] disabled:opacity-50"
             >
               {isAuthenticating ? (
                 <>
@@ -195,7 +195,7 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
               )}
             </button>
 
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[10px] text-slate-400">
               End-to-end zero-knowledge cryptographic authorization
             </p>
           </div>

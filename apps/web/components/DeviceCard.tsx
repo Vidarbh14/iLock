@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Laptop, Lock, Shield, Cpu, HardDrive, Battery, Clock, KeyRound, ChevronRight, Fingerprint, Wifi, Zap } from 'lucide-react';
 import type { Device } from '@ilock/shared';
@@ -29,19 +29,19 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
   };
 
   return (
-    <div className="relative rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800/80 p-5 shadow-lg hover:border-slate-700/80 transition-all flex flex-col justify-between">
+    <div className="glass-card p-5 transition-all duration-300 flex flex-col justify-between group">
       {/* Top row */}
       <div>
-        <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex items-start justify-between gap-2 mb-3.5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center justify-center text-cyan-400 shadow-inner">
-              <Laptop className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-white/[0.06] border border-white/[0.12] flex items-center justify-center text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)] group-hover:border-white/[0.22] transition-colors">
+              <Laptop className="w-5 h-5 text-[#f5f5f7]" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <h3 className="text-sm font-semibold tracking-tight text-[#f5f5f7] flex items-center gap-2">
                 {device.deviceName}
               </h3>
-              <p className="text-xs text-slate-400 font-mono">
+              <p className="text-xs text-[#86868b]">
                 {device.hostname || 'Windows Workstation'}
               </p>
             </div>
@@ -50,10 +50,10 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
             <DeviceStatusBadge status={device.status} />
             {isOnline && telemetry && (
               <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border ${
                   telemetry.workstation_locked
-                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-                    : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                    ? 'bg-[#ff9f0a]/15 border-[#ff9f0a]/30 text-[#ff9f0a]'
+                    : 'bg-[#30d158]/15 border-[#30d158]/30 text-[#30d158]'
                 }`}
               >
                 {telemetry.workstation_locked ? (
@@ -64,7 +64,7 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
                 ) : (
                   <>
                     <Shield className="w-2.5 h-2.5" />
-                    Unlocked
+                    Active
                   </>
                 )}
               </span>
@@ -73,52 +73,52 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
         </div>
 
         {/* Telemetry info */}
-        <div className="grid grid-cols-3 gap-2 my-2.5 p-2 rounded-xl bg-slate-950/60 border border-slate-800/50 text-[11px] text-slate-400 font-mono">
+        <div className="grid grid-cols-3 gap-2 my-2.5 p-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-[11px] text-[#a1a1a6] font-mono">
           <div className="flex items-center gap-1.5 truncate" title={`CPU: ${parsedTel.cpuUsagePct}%`}>
-            <Cpu className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <Cpu className="w-3.5 h-3.5 text-[#2997ff] shrink-0" />
             <span>{parsedTel.cpuUsagePct}%</span>
           </div>
           <div className="flex items-center gap-1.5 truncate" title={`RAM: ${parsedTel.ramUsagePct}% (${parsedTel.ramUsedGb}G)`}>
-            <HardDrive className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <HardDrive className="w-3.5 h-3.5 text-[#a1a1a6] shrink-0" />
             <span>{parsedTel.ramUsagePct}%</span>
           </div>
           <div className="flex items-center gap-1.5 truncate" title={`Battery: ${parsedTel.batteryPct}%`}>
-            <Battery className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <Battery className="w-3.5 h-3.5 text-[#30d158] shrink-0" />
             <span>{parsedTel.batteryPct}%</span>
-            {parsedTel.isCharging && <Zap className="w-2.5 h-2.5 text-amber-400 fill-amber-400 shrink-0" />}
+            {parsedTel.isCharging && <Zap className="w-2.5 h-2.5 text-[#ff9f0a] fill-[#ff9f0a] shrink-0" />}
           </div>
         </div>
 
         {/* Wi-Fi & IP banner */}
-        <div className="flex items-center justify-between text-[11px] text-slate-400 mb-3 px-1">
-          <span className="flex items-center gap-1 text-cyan-300 font-mono truncate max-w-[140px]" title={parsedTel.wifiSsid}>
-            <Wifi className="w-3 h-3 text-cyan-400 shrink-0" />
+        <div className="flex items-center justify-between text-[11px] text-[#86868b] mb-3 px-1">
+          <span className="flex items-center gap-1.5 text-[#f5f5f7] font-medium truncate max-w-[140px]" title={parsedTel.wifiSsid}>
+            <Wifi className="w-3 h-3 text-[#2997ff] shrink-0" />
             {parsedTel.wifiSsid}
           </span>
-          <span className="font-mono text-[10px] text-slate-500">{parsedTel.localIp}</span>
+          <span className="font-mono text-[10px] text-[#86868b]">{parsedTel.localIp}</span>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-slate-400 mb-4 px-1">
-          <span className="flex items-center gap-1">
+        <div className="flex items-center justify-between text-xs text-[#86868b] mb-4 px-1">
+          <span className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" />
-            Seen: {formatLastSeen(device.lastSeen)}
+            {formatLastSeen(device.lastSeen)}
           </span>
-          <span className="font-mono text-[11px] text-slate-500">v{device.agentVersion}</span>
+          <span className="font-mono text-[11px] text-[#86868b]">v{device.agentVersion}</span>
         </div>
       </div>
 
       {/* Action buttons */}
-      <div className="flex items-center gap-2 pt-2 border-t border-slate-800/60">
+      <div className="flex items-center gap-2 pt-3 border-t border-white/[0.06]">
         <button
           onClick={() => onGrantAccess(device)}
           disabled={!isOnline}
-          className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 px-3 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
             isOnline
-              ? 'bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/25 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-              : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border border-slate-800'
+              ? 'apple-btn-secondary'
+              : 'bg-white/[0.02] text-[#86868b]/50 cursor-not-allowed border border-white/[0.04]'
           }`}
         >
-          <KeyRound className="w-3.5 h-3.5" />
+          <KeyRound className="w-3.5 h-3.5 text-[#2997ff]" />
           Grant
         </button>
 
@@ -126,14 +126,14 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
           <button
             onClick={() => onUnlock(device)}
             disabled={!isOnline}
-            title="Unlock PC via Mobile Face ID / Fingerprint"
-            className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 ${
+            title="Unlock PC via Mobile Biometrics"
+            className={`py-2 px-3.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 border ${
               isOnline
-                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border-slate-800'
+                ? 'bg-[#30d158]/15 border-[#30d158]/35 text-[#30d158] hover:bg-[#30d158]/25 shadow-sm'
+                : 'bg-white/[0.02] text-[#86868b]/50 cursor-not-allowed border-white/[0.04]'
             }`}
           >
-            <Fingerprint className="w-4 h-4 text-emerald-400" />
+            <Fingerprint className="w-3.5 h-3.5" />
             <span>Unlock</span>
           </button>
         )}
@@ -142,17 +142,17 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
           onClick={() => onLock(device.id)}
           disabled={isLocking || !isOnline}
           title="Instant Workstation Lock"
-          className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors disabled:opacity-50"
+          className="p-2 rounded-full apple-btn-secondary text-[#a1a1a6] hover:text-white disabled:opacity-40"
         >
-          <Lock className={`w-4 h-4 ${isLocking ? 'animate-spin text-cyan-400' : ''}`} />
+          <Lock className={`w-3.5 h-3.5 ${isLocking ? 'animate-spin text-[#2997ff]' : ''}`} />
         </button>
 
         <Link
           href={`/devices/${device.id}`}
-          className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+          className="p-2 rounded-full apple-btn-secondary text-[#a1a1a6] hover:text-white"
           title="Device Details"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-3.5 h-3.5" />
         </Link>
       </div>
     </div>

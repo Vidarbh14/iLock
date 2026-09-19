@@ -156,13 +156,13 @@ export default function DashboardPage() {
       {/* Top Banner: Greeting & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             Command Center
-            <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#2997ff]/10 text-[#2997ff] border border-[#2997ff]/25 backdrop-blur-md">
               Active
             </span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-400 mt-0.5 font-normal">
             Monitor and control temporary Windows access authorizations
           </p>
         </div>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleManualRefresh}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-full apple-btn-secondary"
             title="Refresh Status"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -178,15 +178,15 @@ export default function DashboardPage() {
 
           <button
             onClick={handleLockAll}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(244,63,94,0.15)]"
+            className="px-4 py-2 rounded-full text-xs font-medium apple-btn-danger flex items-center gap-1.5"
           >
-            <Lock className="w-4 h-4 text-rose-400" />
+            <Lock className="w-3.5 h-3.5 text-[#ff6961]" />
             Lock All PCs
           </button>
 
           <button
             onClick={() => setIsPairModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+            className="px-4 py-2 rounded-full text-xs font-medium apple-btn-primary flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
             Add PC
@@ -195,7 +195,7 @@ export default function DashboardPage() {
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-3 text-xs bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl">
+        <div className="flex items-center gap-2 p-3 text-xs bg-[#ff453a]/10 border border-[#ff453a]/25 text-[#ff6961] rounded-2xl backdrop-blur-md">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -203,15 +203,18 @@ export default function DashboardPage() {
 
       {/* ACTIVE AUTHORIZATIONS ALERT CARD */}
       {activeSessions.length > 0 && (
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-slate-900 to-blue-950/40 border border-cyan-500/40 shadow-xl space-y-4">
+        <div className="p-5 glass-panel rounded-3xl border border-[#2997ff]/30 space-y-4 shadow-[0_12px_40px_rgba(0,0,0,0.5)] relative overflow-hidden">
+          <div className="absolute -top-24 -right-24 w-60 h-60 rounded-full bg-[#2997ff]/10 blur-3xl pointer-events-none" />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)] animate-ping" />
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#2997ff] shadow-[0_0_10px_rgba(41,151,255,0.8)] animate-ping" />
+              <h2 className="text-xs font-semibold text-white uppercase tracking-wider">
                 Live Active Temporary Access ({activeSessions.length})
               </h2>
             </div>
-            <span className="text-[11px] font-mono text-cyan-400">Time-Bound Session</span>
+            <span className="text-[11px] font-mono text-[#2997ff] px-2.5 py-0.5 rounded-full bg-[#2997ff]/10 border border-[#2997ff]/20">
+              Time-Bound Session
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -220,18 +223,18 @@ export default function DashboardPage() {
               return (
                 <div
                   key={session.id}
-                  className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3"
+                  className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl space-y-3"
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-xs font-bold text-white">
+                      <span className="text-xs font-semibold text-white">
                         {matchedDevice?.deviceName || 'Windows PC'}
                       </span>
                       <p className="text-[11px] text-slate-400">
                         {String(session.metadata?.purpose || 'Temporary user authorization')}
                       </p>
                     </div>
-                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#30d158]/15 text-[#30d158] border border-[#30d158]/30">
                       {session.status}
                     </span>
                   </div>
@@ -245,9 +248,9 @@ export default function DashboardPage() {
                   <div className="pt-2 flex items-center justify-end">
                     <button
                       onClick={() => setSelectedSessionForRevoke(session)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-300 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 transition-colors flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-full text-xs font-medium apple-btn-danger flex items-center gap-1.5"
                     >
-                      <Lock className="w-3.5 h-3.5 text-rose-400" />
+                      <Lock className="w-3.5 h-3.5 text-[#ff6961]" />
                       Revoke Immediately
                     </button>
                   </div>
@@ -261,14 +264,14 @@ export default function DashboardPage() {
       {/* MY DEVICES SECTION */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <Laptop className="w-4 h-4 text-cyan-400" />
+          <h2 className="text-base font-semibold text-white flex items-center gap-2">
+            <Laptop className="w-4 h-4 text-[#2997ff]" />
             My Registered Computers
             <span className="text-xs text-slate-400 font-mono">({devices.length})</span>
           </h2>
           <button
             onClick={() => setIsPairModalOpen(true)}
-            className="text-xs text-cyan-400 hover:underline flex items-center gap-1"
+            className="text-xs text-[#2997ff] hover:underline flex items-center gap-1 font-medium"
           >
             Pair New Machine &rarr;
           </button>
@@ -279,20 +282,20 @@ export default function DashboardPage() {
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-44 rounded-2xl bg-slate-900/50 border border-slate-800/60 animate-pulse"
+                className="h-44 rounded-2xl glass-card animate-pulse"
               />
             ))}
           </div>
         ) : devices.length === 0 ? (
-          <div className="text-center py-12 rounded-2xl bg-slate-900/40 border border-slate-800/60 space-y-3">
-            <Laptop className="w-10 h-10 text-slate-600 mx-auto" />
-            <h3 className="text-sm font-semibold text-slate-300">No computers enrolled yet</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          <div className="text-center py-12 rounded-3xl glass-card space-y-3">
+            <Laptop className="w-10 h-10 text-slate-500 mx-auto" />
+            <h3 className="text-sm font-semibold text-slate-200">No computers enrolled yet</h3>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
               Install the iLock Windows Agent on your laptop or PC and pair it in under 60 seconds.
             </p>
             <button
               onClick={() => setIsPairModalOpen(true)}
-              className="px-4 py-2 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-500 rounded-xl transition-colors"
+              className="px-5 py-2 text-xs font-medium text-white apple-btn-primary rounded-full transition-all"
             >
               Pair First Computer
             </button>
@@ -314,13 +317,13 @@ export default function DashboardPage() {
       </div>
 
       {/* RECENT SECURITY LOGS */}
-      <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 space-y-4">
+      <div className="p-5 glass-card space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-sm font-bold text-white">Recent Security Audit Trail</h3>
+            <ShieldCheck className="w-4 h-4 text-[#30d158]" />
+            <h3 className="text-sm font-semibold text-white">Recent Security Audit Trail</h3>
           </div>
-          <a href="/security" className="text-xs text-cyan-400 hover:underline font-medium">
+          <a href="/security" className="text-xs text-[#2997ff] hover:underline font-medium">
             View All Logs &rarr;
           </a>
         </div>
@@ -328,13 +331,13 @@ export default function DashboardPage() {
         {recentLogs.length === 0 ? (
           <p className="text-xs text-slate-500">No security events recorded yet.</p>
         ) : (
-          <div className="divide-y divide-slate-800/60 text-xs">
+          <div className="divide-y divide-white/[0.06] text-xs">
             {recentLogs.map((log) => (
               <div key={log.id} className="py-2.5 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      log.success ? 'bg-emerald-400' : 'bg-rose-400'
+                      log.success ? 'bg-[#30d158]' : 'bg-[#ff453a]'
                     }`}
                   />
                   <div className="truncate">

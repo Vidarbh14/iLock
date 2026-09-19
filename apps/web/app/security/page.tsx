@@ -49,8 +49,8 @@ export default function SecurityAuditPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-cyan-400" />
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <ShieldCheck className="w-6 h-6 text-[#2997ff]" />
             Security & Audit Trail
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -63,7 +63,7 @@ export default function SecurityAuditPage() {
             setIsRefreshing(true);
             fetchLogs();
           }}
-          className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+          className="p-2 rounded-full apple-btn-secondary"
         >
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
@@ -71,27 +71,27 @@ export default function SecurityAuditPage() {
 
       {/* Security Architecture Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
+        <div className="p-4 rounded-2xl glass-card space-y-1">
           <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-            <Key className="w-3.5 h-3.5 text-cyan-400" /> Zero Credential Storage
+            <Key className="w-3.5 h-3.5 text-[#2997ff]" /> Zero Credential Storage
           </span>
           <p className="text-xs text-slate-300 leading-snug">
             Actual Windows passwords are never transmitted or stored in the database.
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
+        <div className="p-4 rounded-2xl glass-card space-y-1">
           <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Asymmetric Enrollment
+            <ShieldCheck className="w-3.5 h-3.5 text-[#30d158]" /> Asymmetric Enrollment
           </span>
           <p className="text-xs text-slate-300 leading-snug">
             Every PC signs heartbeats and commands with a local RSA private key.
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
+        <div className="p-4 rounded-2xl glass-card space-y-1">
           <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5 text-rose-400" /> Replay & Drift Shield
+            <Lock className="w-3.5 h-3.5 text-[#ff453a]" /> Replay & Drift Shield
           </span>
           <p className="text-xs text-slate-300 leading-snug">
             Single-use cryptographic nonces and strict 120s server-time drift checks.
@@ -100,14 +100,14 @@ export default function SecurityAuditPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-800 max-w-sm">
+      <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl max-w-sm">
         {['ALL', 'ACCESS', 'DEVICE', 'SECURITY'].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex-1 py-1.5 px-3 rounded-full text-xs font-medium transition-all ${
               filter === f
-                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+                ? 'bg-[#2997ff] text-white shadow-[0_0_12px_rgba(41,151,255,0.4)]'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -117,23 +117,23 @@ export default function SecurityAuditPage() {
       </div>
 
       {/* Log Feed */}
-      <div className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800">
+      <div className="p-5 glass-card">
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-12 bg-slate-800/40 rounded-xl animate-pulse" />
+              <div key={i} className="h-12 bg-white/[0.04] rounded-xl animate-pulse" />
             ))}
           </div>
         ) : filteredLogs.length === 0 ? (
           <p className="text-xs text-slate-400 text-center py-6">No audit records found.</p>
         ) : (
-          <div className="divide-y divide-slate-800/70 text-xs">
+          <div className="divide-y divide-white/[0.06] text-xs">
             {filteredLogs.map((log) => (
               <div key={log.id} className="py-3 flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded-full border ${getEventBadge(
+                      className={`font-mono text-[10px] font-medium px-2.5 py-0.5 rounded-full border ${getEventBadge(
                         log.eventType,
                         log.success
                       )}`}

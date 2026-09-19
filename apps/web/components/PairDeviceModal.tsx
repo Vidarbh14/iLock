@@ -58,29 +58,29 @@ export function PairDeviceModal({ isOpen, onClose, onDeviceRegistered }: Props) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-lg glass-modal p-6 shadow-2xl space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+            <div className="p-2.5 rounded-2xl bg-[#2997ff]/10 border border-[#2997ff]/25 text-[#2997ff] shadow-[0_0_12px_rgba(41,151,255,0.2)]">
               <Laptop className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Register Windows PC</h3>
+              <h3 className="text-base font-semibold text-white">Register Windows PC</h3>
               <p className="text-xs text-slate-400">Asymmetric Cryptographic Enrollment</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="p-3 text-xs bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl">
+          <div className="p-3 text-xs bg-[#ff453a]/10 border border-[#ff453a]/25 text-[#ff6961] rounded-2xl backdrop-blur-md">
             {error}
           </div>
         )}
@@ -96,20 +96,20 @@ export function PairDeviceModal({ isOpen, onClose, onDeviceRegistered }: Props) 
                 required
                 value={deviceName}
                 onChange={(e) => setDeviceName(e.target.value)}
-                placeholder="e.g. Vidarbh's OMEN 16 or Work Laptop"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                placeholder="e.g. Vidarbh's Laptop or Desktop"
+                className="w-full apple-input px-3.5 py-2.5 text-sm font-normal"
               />
               <p className="text-[11px] text-slate-400 mt-1">
                 Give this machine a recognizable label.
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 text-xs text-slate-400">
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-1.5 text-xs text-slate-400">
               <div className="flex items-center gap-2 text-slate-200 font-semibold">
-                <Shield className="w-4 h-4 text-cyan-400" />
+                <Shield className="w-4 h-4 text-[#2997ff]" />
                 Zero-Knowledge Device Pairing
               </div>
-              <p>
+              <p className="leading-relaxed">
                 Your Windows PC will locally generate a 4096-bit RSA keypair. Only the public key will be
                 registered. Your Windows login password is never collected or transmitted.
               </p>
@@ -119,14 +119,14 @@ export function PairDeviceModal({ isOpen, onClose, onDeviceRegistered }: Props) 
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white rounded-xl hover:bg-slate-800"
+                className="px-4 py-2 text-xs font-medium apple-btn-secondary rounded-full"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isGenerating}
-                className="px-5 py-2 text-xs font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
+                className="px-5 py-2 text-xs font-medium apple-btn-primary rounded-full disabled:opacity-50 flex items-center gap-1.5"
               >
                 {isGenerating ? 'Generating...' : 'Generate Pairing Code'}
                 <ArrowRight className="w-4 h-4" />
@@ -136,21 +136,22 @@ export function PairDeviceModal({ isOpen, onClose, onDeviceRegistered }: Props) 
         ) : (
           <div className="space-y-4">
             {/* Pairing Code Big Banner */}
-            <div className="text-center p-6 rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 border border-cyan-500/30">
-              <span className="text-xs uppercase tracking-widest text-cyan-400 font-mono">
+            <div className="text-center p-6 rounded-3xl bg-[#0a0d14]/70 border border-[#2997ff]/30 shadow-lg relative overflow-hidden">
+              <div className="absolute inset-0 bg-radial-gradient pointer-events-none opacity-20" />
+              <span className="text-xs uppercase tracking-widest text-[#2997ff] font-mono font-medium">
                 One-Time Pairing Code
               </span>
-              <div className="mt-2 flex items-center justify-center gap-3">
-                <span className="font-mono text-3xl font-extrabold text-white tracking-widest selection:bg-cyan-500">
+              <div className="mt-3 flex items-center justify-center gap-3">
+                <span className="font-mono text-3xl font-bold text-white tracking-widest selection:bg-[#2997ff]">
                   {pairingData.pairingCode}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleCopy(pairingData.pairingCode)}
-                  className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                  className="p-2 rounded-full apple-btn-secondary"
                   title="Copy Pairing Code"
                 >
-                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  {copied ? <Check className="w-4 h-4 text-[#30d158]" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
               <p className="text-[11px] text-slate-400 mt-2">
@@ -160,14 +161,14 @@ export function PairDeviceModal({ isOpen, onClose, onDeviceRegistered }: Props) 
 
             {/* Instruction Steps */}
             <div className="space-y-2 text-xs">
-              <span className="text-slate-300 font-semibold">On your Windows PC:</span>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 font-mono">
-                <div className="flex items-center gap-2 text-cyan-400">
+              <span className="text-slate-300 font-medium">On your Windows PC:</span>
+              <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-2 font-mono">
+                <div className="flex items-center gap-2 text-[#2997ff]">
                   <Terminal className="w-4 h-4" />
                   <span>Run in PowerShell / Terminal:</span>
                 </div>
-                <div className="flex items-center justify-between bg-slate-900 px-3 py-2 rounded-lg text-slate-300 text-[11px]">
-                  <code>ILock.WindowsAgent.exe --pair {pairingData.pairingCode}</code>
+                <div className="flex items-center justify-between bg-black/40 px-3 py-2 rounded-xl text-slate-300 text-[11px] border border-white/[0.05]">
+                  <code className="text-[#2997ff]">ILock.WindowsAgent.exe --pair {pairingData.pairingCode}</code>
                   <button
                     onClick={() =>
                       handleCopy(`ILock.WindowsAgent.exe --pair ${pairingData.pairingCode}`)
@@ -184,7 +185,7 @@ export function PairDeviceModal({ isOpen, onClose, onDeviceRegistered }: Props) 
               <button
                 type="button"
                 onClick={() => setPairingData(null)}
-                className="text-xs text-slate-400 hover:underline"
+                className="text-xs text-slate-400 hover:text-white transition-colors"
               >
                 Generate another code
               </button>
@@ -194,7 +195,7 @@ export function PairDeviceModal({ isOpen, onClose, onDeviceRegistered }: Props) 
                   onDeviceRegistered();
                   onClose();
                 }}
-                className="px-4 py-2 text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition-colors"
+                className="px-5 py-2 text-xs font-medium apple-btn-secondary rounded-full"
               >
                 Done / Refresh Devices
               </button>

@@ -99,8 +99,8 @@ export default function DevicesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
-            <Laptop className="w-6 h-6 text-cyan-400" />
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <Laptop className="w-6 h-6 text-[#2997ff]" />
             Registered Computers
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -114,13 +114,13 @@ export default function DevicesPage() {
               setIsRefreshing(true);
               fetchDevices();
             }}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+            className="p-2 rounded-full apple-btn-secondary"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={() => setIsPairModalOpen(true)}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+            className="px-4 py-2 rounded-full text-xs font-medium apple-btn-primary flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
             Pair New PC
@@ -130,24 +130,24 @@ export default function DevicesPage() {
 
       {/* Search Filter */}
       <div className="relative">
-        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
+        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Filter by device name or hostname..."
-          className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+          className="w-full pl-10 pr-4 py-2.5 rounded-2xl apple-input text-sm text-white placeholder-slate-500"
         />
       </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-44 rounded-2xl bg-slate-900/50 animate-pulse" />
+            <div key={i} className="h-44 rounded-2xl glass-card animate-pulse" />
           ))}
         </div>
       ) : filteredDevices.length === 0 ? (
-        <div className="text-center py-12 rounded-2xl bg-slate-900/30 border border-slate-800/60">
+        <div className="text-center py-12 rounded-3xl glass-card">
           <p className="text-sm text-slate-400">No computers found matching your filter.</p>
         </div>
       ) : (
