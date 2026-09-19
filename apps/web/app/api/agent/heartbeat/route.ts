@@ -27,8 +27,8 @@ export async function POST(request: Request) {
       activeUser,
     } = parseResult.data;
 
-    // Rate limiting (supports fast 2-3s responsive polling)
-    const rateCheck = heartbeatRateLimiter.check(`hb:${deviceUuid}`, 60000, 120);
+    // Rate limiting (supports fast 400ms responsive polling when locked: up to 240 req/min)
+    const rateCheck = heartbeatRateLimiter.check(`hb:${deviceUuid}`, 60000, 240);
     if (!rateCheck.success) {
       return errorResponse('RATE_LIMIT_EXCEEDED', 'Heartbeat flood detected', 429);
     }

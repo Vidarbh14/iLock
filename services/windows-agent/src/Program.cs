@@ -206,6 +206,28 @@ namespace ILock.WindowsAgent
                     if (unlocked)
                     {
                         try { File.WriteAllText(Path.Combine(logDir, "lock_state.txt"), "UNLOCKED"); } catch { }
+                        
+                        string restartFlag = Path.Combine(logDir, "needs_service_restart.flag");
+                        if (File.Exists(restartFlag))
+                        {
+                            try
+                            {
+                                File.Delete(restartFlag);
+                                HelperLog("Restart flag detected: upgrading background service to new binary...");
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = "cmd.exe",
+                                    Arguments = "/c timeout /t 1 /nobreak & sc.exe stop iLockAgent & timeout /t 2 /nobreak & sc.exe start iLockAgent",
+                                    CreateNoWindow = true,
+                                    UseShellExecute = false
+                                });
+                            }
+                            catch (Exception ex)
+                            {
+                                HelperLog($"Failed to trigger service restart: {ex.Message}");
+                            }
+                        }
+
                         HelperLog("--unlock-helper finished successfully.");
                         Environment.Exit(0);
                     }

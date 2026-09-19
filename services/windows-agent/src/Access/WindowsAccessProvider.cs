@@ -647,44 +647,44 @@ namespace ILock.WindowsAgent.Access
                     {
                         log?.Invoke($"[{attemptLabel}] 1. Waking display with mouse movement and Shift key...");
                         mouse_event(MOUSEEVENTF_MOVE, 0, 2, 0, UIntPtr.Zero);
-                        Thread.Sleep(30);
+                        Thread.Sleep(10);
                         mouse_event(MOUSEEVENTF_MOVE, 0, -2, 0, UIntPtr.Zero);
-                        Thread.Sleep(50);
+                        Thread.Sleep(15);
 
                         byte shiftScan = (byte)MapVirtualKey(VK_SHIFT, 0);
                         keybd_event(VK_SHIFT, shiftScan, 0, UIntPtr.Zero);
-                        Thread.Sleep(30);
+                        Thread.Sleep(15);
                         keybd_event(VK_SHIFT, shiftScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                        Thread.Sleep(100);
+                        Thread.Sleep(30);
 
                         log?.Invoke($"[{attemptLabel}] 2. Dismissing lock screen overlay with Space key...");
                         byte spaceScan = (byte)MapVirtualKey(VK_SPACE, 0);
                         keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
-                        Thread.Sleep(40);
+                        Thread.Sleep(20);
                         keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                        Thread.Sleep(120);
+                        Thread.Sleep(40);
 
                         // Second tap ensures overlay slides up even if screen was waking from standby
                         keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
-                        Thread.Sleep(40);
+                        Thread.Sleep(20);
                         keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
 
-                        log?.Invoke($"[{attemptLabel}] 3. Waiting 1100ms for Windows 11 lock screen slide animation to focus PIN box...");
-                        Thread.Sleep(1100);
+                        log?.Invoke($"[{attemptLabel}] 3. Waiting 450ms for Windows 11 lock screen slide animation to focus PIN box...");
+                        Thread.Sleep(450);
 
                         // NOTE: In Windows 11, the PIN box is automatically focused when the overlay slides up.
                         // Do NOT simulate mouse clicks, which de-focus the PIN box on Windows 11.
 
-                        log?.Invoke($"[{attemptLabel}] 4. Clearing input field with 8 backspaces...");
+                        log?.Invoke($"[{attemptLabel}] 4. Clearing input field with 4 backspaces...");
                         byte backScan = (byte)MapVirtualKey(VK_BACK, 0);
-                        for (int i = 0; i < 8; i++)
+                        for (int i = 0; i < 4; i++)
                         {
                             keybd_event(VK_BACK, backScan, 0, UIntPtr.Zero);
-                            Thread.Sleep(20);
+                            Thread.Sleep(10);
                             keybd_event(VK_BACK, backScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                            Thread.Sleep(20);
+                            Thread.Sleep(10);
                         }
-                        Thread.Sleep(100);
+                        Thread.Sleep(30);
 
                         log?.Invoke($"[{attemptLabel}] 5. Typing {sequencePin.Length} PIN digits with hardware scan codes...");
                         foreach (char c in sequencePin)
@@ -692,46 +692,46 @@ namespace ILock.WindowsAgent.Access
                             byte vk = (byte)c;
                             byte scan = (byte)MapVirtualKey(vk, 0);
                             keybd_event(vk, scan, 0, UIntPtr.Zero);
-                            Thread.Sleep(40);
+                            Thread.Sleep(20);
                             keybd_event(vk, scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                            Thread.Sleep(40);
+                            Thread.Sleep(20);
                         }
 
                         log?.Invoke($"[{attemptLabel}] 6. Submitting PIN with Enter key...");
-                        Thread.Sleep(100);
+                        Thread.Sleep(30);
                         byte enterScan = (byte)MapVirtualKey(VK_RETURN, 0);
                         keybd_event(VK_RETURN, enterScan, 0, UIntPtr.Zero);
-                        Thread.Sleep(40);
+                        Thread.Sleep(20);
                         keybd_event(VK_RETURN, enterScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
                     }
 
                     // Attempt 1
                     PerformTypeSequence(pin, "Attempt-1");
 
-                    // Responsive polling: Windows Hello switches desktop from Winlogon to Default in ~1.2s to 2.4s
+                    // Responsive polling: Windows Hello switches desktop from Winlogon to Default in ~200ms to 600ms
                     bool stillLocked = true;
-                    for (int i = 0; i < 16; i++) // Poll every 200ms up to 3.2s
+                    for (int i = 0; i < 25; i++) // Poll every 80ms up to 2.0s
                     {
-                        Thread.Sleep(200);
+                        Thread.Sleep(80);
                         stillLocked = CheckIfScreenIsLocked();
                         if (!stillLocked)
                         {
-                            log?.Invoke($"Workstation successfully unlocked on Attempt-1 after {(i + 1) * 200}ms!");
+                            log?.Invoke($"Workstation successfully unlocked on Attempt-1 after {(i + 1) * 80}ms!");
                             break;
                         }
                     }
 
                     if (stillLocked)
                     {
-                        log?.Invoke("Workstation still locked after 3200ms. Initiating secondary retry attempt...");
+                        log?.Invoke("Workstation still locked after 2000ms. Initiating secondary retry attempt...");
                         PerformTypeSequence(pin, "Attempt-2");
-                        for (int i = 0; i < 16; i++)
+                        for (int i = 0; i < 25; i++)
                         {
-                            Thread.Sleep(200);
+                            Thread.Sleep(80);
                             stillLocked = CheckIfScreenIsLocked();
                             if (!stillLocked)
                             {
-                                log?.Invoke($"Workstation successfully unlocked on Attempt-2 after {(i + 1) * 200}ms!");
+                                log?.Invoke($"Workstation successfully unlocked on Attempt-2 after {(i + 1) * 80}ms!");
                                 break;
                             }
                         }

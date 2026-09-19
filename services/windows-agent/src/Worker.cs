@@ -78,6 +78,7 @@ namespace ILock.WindowsAgent
             while (!stoppingToken.IsCancellationRequested)
             {
                 bool processedCommand = false;
+                bool isLocked = false;
                 try
                 {
                     // 1. Check local session expiration
@@ -90,7 +91,8 @@ namespace ILock.WindowsAgent
                     // 2. Prepare Signed Heartbeat Payload
                     long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                     string nonce = Guid.NewGuid().ToString("N");
-                    var (isLocked, activeUser) = await _accessProvider.GetStatusAsync(stoppingToken);
+                    string activeUser;
+                    (isLocked, activeUser) = await _accessProvider.GetStatusAsync(stoppingToken);
 
                     string payloadToSign = $"{_config.DeviceUuid}:{timestamp}:{nonce}:{isLocked}";
                     string signature = _deviceIdentity.SignData(payloadToSign);
@@ -155,16 +157,25 @@ namespace ILock.WindowsAgent
                     continue;
                 }
 
-                // 5. Normal polling interval (sub-second or config-based) with backoff on failure
-                int baseIntervalSeconds = Math.Max(1, _config.HeartbeatIntervalSeconds);
+                // 5. Adaptive polling interval:
+                // When locked, poll fast (400ms) so mobile unlock commands are picked up almost instantaneously.
+                // When unlocked, poll normal (1-2s) to conserve bandwidth.
                 if (consecutiveFailures > 3)
                 {
                     int backoff = Math.Min(60, (int)Math.Pow(2, Math.Min(consecutiveFailures, 6)));
                     int jitter = random.Next(1, 5);
-                    baseIntervalSeconds = backoff + jitter;
+                    await Task.Delay(TimeSpan.FromSeconds(backoff + jitter), stoppingToken);
                 }
-
-                await Task.Delay(TimeSpan.FromSeconds(baseIntervalSeconds), stoppingToken);
+                else if (isLocked)
+                {
+                    // Fast responsive polling while locked (<400ms latency from phone tap to laptop processing)
+                    await Task.Delay(TimeSpan.FromMilliseconds(400), stoppingToken);
+                }
+                else
+                {
+                    int baseIntervalSeconds = Math.Max(1, _config.HeartbeatIntervalSeconds);
+                    await Task.Delay(TimeSpan.FromSeconds(baseIntervalSeconds), stoppingToken);
+                }
             }
         }
 
