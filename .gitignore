@@ -47,3 +47,5 @@ supabase/.temp/
 services/windows-agent/publish_app/
 services/windows-agent/src/bin/Release/net8.0/win-x64/publish-new/
 scratch/
+
+iLock-Windows-Client.zip
