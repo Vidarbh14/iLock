@@ -11,7 +11,6 @@ export async function GET() {
 
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient();
-      const LEGACY_DEMO_OWNER_ID = 'c60ba6f8-265f-4191-8ab2-9bf1316c43e3';
 
       let query = supabase
         .from('devices')
@@ -30,12 +29,15 @@ export async function GET() {
         `)
         .order('created_at', { ascending: false });
 
+      const PRIMARY_OWNER_ID = 'a6b3545a-0e0e-4603-b038-af01e996dbec';
+      const LEGACY_DEMO_OWNER_ID = 'c60ba6f8-265f-4191-8ab2-9bf1316c43e3';
+
       // Multi-tenant device isolation:
-      // Show devices belonging to this authenticated user.
-      if (userId === DEMO_USER_ID) {
-        query = query.or(`owner_id.eq.${DEMO_USER_ID},owner_id.eq.${LEGACY_DEMO_OWNER_ID}`);
+      // Show devices belonging to this authenticated user or legacy/primary workstation owner
+      if (userId === DEMO_USER_ID || userId === PRIMARY_OWNER_ID || userId === LEGACY_DEMO_OWNER_ID) {
+        query = query.or(`owner_id.eq.${userId},owner_id.eq.${PRIMARY_OWNER_ID},owner_id.eq.${LEGACY_DEMO_OWNER_ID},owner_id.eq.${DEMO_USER_ID}`);
       } else {
-        query = query.or(`owner_id.eq.${userId},owner_id.eq.${LEGACY_DEMO_OWNER_ID}`);
+        query = query.eq('owner_id', userId);
       }
 
       const { data: devices, error } = await query;

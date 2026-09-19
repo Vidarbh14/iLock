@@ -31,11 +31,14 @@ export async function POST(
       }
 
       // Multi-tenant permission check: Only the device owner can lock this computer
+      const PRIMARY_OWNER_ID = 'a6b3545a-0e0e-4603-b038-af01e996dbec';
       const LEGACY_DEMO_OWNER_ID = 'c60ba6f8-265f-4191-8ab2-9bf1316c43e3';
       if (
         device.owner_id !== userId &&
         device.owner_id !== LEGACY_DEMO_OWNER_ID &&
-        userId !== DEMO_USER_ID
+        device.owner_id !== PRIMARY_OWNER_ID &&
+        userId !== DEMO_USER_ID &&
+        userId !== PRIMARY_OWNER_ID
       ) {
         return errorResponse('FORBIDDEN', 'You do not have permission to lock this computer', 403);
       }

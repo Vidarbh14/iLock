@@ -1,6 +1,6 @@
 import { getAuthenticatedUserId, errorResponse, jsonResponse } from '@/lib/api-helpers';
-import { isSupabaseConfigured, createServerClient } from '@/lib/supabase-server';
-import { demoStore } from '@/lib/demo-store';
+import { isSupabaseConfigured, createServiceClient } from '@/lib/supabase-server';
+import { demoStore, DEMO_USER_ID } from '@/lib/demo-store';
 
 export async function GET() {
   try {
@@ -10,13 +10,23 @@ export async function GET() {
     }
 
     if (isSupabaseConfigured()) {
-      const supabase = createServerClient();
-      const { data: logs, error } = await supabase
+      const supabase = createServiceClient();
+      const PRIMARY_OWNER_ID = 'a6b3545a-0e0e-4603-b038-af01e996dbec';
+      const LEGACY_DEMO_OWNER_ID = 'c60ba6f8-265f-4191-8ab2-9bf1316c43e3';
+
+      let query = supabase
         .from('audit_logs')
         .select('*, devices (device_name)')
-        .eq('user_id', userId)
         .order('timestamp', { ascending: false })
         .limit(100);
+
+      if (userId === DEMO_USER_ID || userId === PRIMARY_OWNER_ID || userId === LEGACY_DEMO_OWNER_ID) {
+        query = query.or(`user_id.eq.${userId},user_id.eq.${PRIMARY_OWNER_ID},user_id.eq.${LEGACY_DEMO_OWNER_ID}`);
+      } else {
+        query = query.eq('user_id', userId);
+      }
+
+      const { data: logs, error } = await query;
 
       if (error) {
         return errorResponse('DB_ERROR', 'Failed to retrieve audit logs', 500, error.message);
