@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Laptop, Lock, Shield, Cpu, HardDrive, Battery, Clock, KeyRound, ChevronRight, Fingerprint } from 'lucide-react';
+import { Laptop, Lock, Shield, Cpu, HardDrive, Battery, Clock, KeyRound, ChevronRight, Fingerprint, Wifi, Zap } from 'lucide-react';
 import type { Device } from '@ilock/shared';
 import { DeviceStatusBadge } from './DeviceStatusBadge';
+import { parseDeviceTelemetry } from '@/lib/telemetry-helper';
 
 interface Props {
   device: Device & { device_status?: any[] };
@@ -17,6 +18,7 @@ interface Props {
 export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking = false }: Props) {
   const telemetry = device.device_status?.[0];
   const isOnline = device.status === 'online';
+  const parsedTel = parseDeviceTelemetry(telemetry, device);
 
   const formatLastSeen = (isoString: string) => {
     const diffSeconds = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
@@ -71,19 +73,29 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
         </div>
 
         {/* Telemetry info */}
-        <div className="grid grid-cols-3 gap-2 my-3 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/50 text-[11px] text-slate-400 font-mono">
-          <div className="flex items-center gap-1.5">
-            <Cpu className="w-3.5 h-3.5 text-cyan-500" />
-            <span>{telemetry?.cpu_usage_pct ?? 12}%</span>
+        <div className="grid grid-cols-3 gap-2 my-2.5 p-2 rounded-xl bg-slate-950/60 border border-slate-800/50 text-[11px] text-slate-400 font-mono">
+          <div className="flex items-center gap-1.5 truncate" title={`CPU: ${parsedTel.cpuUsagePct}%`}>
+            <Cpu className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span>{parsedTel.cpuUsagePct}%</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <HardDrive className="w-3.5 h-3.5 text-blue-500" />
-            <span>{telemetry?.memory_usage_pct ?? 45}%</span>
+          <div className="flex items-center gap-1.5 truncate" title={`RAM: ${parsedTel.ramUsagePct}% (${parsedTel.ramUsedGb}G)`}>
+            <HardDrive className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span>{parsedTel.ramUsagePct}%</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Battery className="w-3.5 h-3.5 text-emerald-500" />
-            <span>{telemetry?.battery_pct ?? 100}%</span>
+          <div className="flex items-center gap-1.5 truncate" title={`Battery: ${parsedTel.batteryPct}%`}>
+            <Battery className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>{parsedTel.batteryPct}%</span>
+            {parsedTel.isCharging && <Zap className="w-2.5 h-2.5 text-amber-400 fill-amber-400 shrink-0" />}
           </div>
+        </div>
+
+        {/* Wi-Fi & IP banner */}
+        <div className="flex items-center justify-between text-[11px] text-slate-400 mb-3 px-1">
+          <span className="flex items-center gap-1 text-cyan-300 font-mono truncate max-w-[140px]" title={parsedTel.wifiSsid}>
+            <Wifi className="w-3 h-3 text-cyan-400 shrink-0" />
+            {parsedTel.wifiSsid}
+          </span>
+          <span className="font-mono text-[10px] text-slate-500">{parsedTel.localIp}</span>
         </div>
 
         <div className="flex items-center justify-between text-xs text-slate-400 mb-4 px-1">

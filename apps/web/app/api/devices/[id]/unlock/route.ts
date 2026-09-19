@@ -23,7 +23,8 @@ export async function POST(
 
     const biometricVerified = Boolean(body?.biometricVerified);
     const nonce = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 60 * 1000).toISOString();
+    // 120s expiration allows generous window for cold boot / Wi-Fi reconnection buffer
+    const expiresAt = new Date(Date.now() + 120 * 1000).toISOString();
 
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient();

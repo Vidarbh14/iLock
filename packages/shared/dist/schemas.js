@@ -75,7 +75,7 @@ exports.AgentHeartbeatSchema = zod_1.z.object({
     memoryUsagePct: zod_1.z.number().min(0).max(100).optional(),
     batteryPct: zod_1.z.number().min(0).max(100).optional(),
     isCharging: zod_1.z.boolean().optional(),
-    activeUser: zod_1.z.string().max(128).optional(),
+    activeUser: zod_1.z.string().max(2048).optional(),
     workstationLocked: zod_1.z.boolean().default(true),
 });
 // Agent Challenge Request Schema (Windows Agent -> API)

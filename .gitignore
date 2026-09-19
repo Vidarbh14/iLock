@@ -45,3 +45,5 @@ supabase/.temp/
 
 # Agent local publish folder
 services/windows-agent/publish_app/
+services/windows-agent/src/bin/Release/net8.0/win-x64/publish-new/
+scratch/

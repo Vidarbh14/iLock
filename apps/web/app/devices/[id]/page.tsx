@@ -17,12 +17,19 @@ import {
   User,
   AlertTriangle,
   Fingerprint,
+  Wifi,
+  Zap,
+  Activity,
+  Globe,
+  Disc,
+  Terminal,
 } from 'lucide-react';
 import type { Device, AccessSession } from '@ilock/shared';
 import { DeviceStatusBadge } from '@/components/DeviceStatusBadge';
 import { GrantAccessModal } from '@/components/GrantAccessModal';
 import { ConfirmRevokeModal } from '@/components/ConfirmRevokeModal';
 import { BiometricUnlockModal } from '@/components/BiometricUnlockModal';
+import { parseDeviceTelemetry } from '@/lib/telemetry-helper';
 
 export default function DeviceDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -139,6 +146,7 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
 
   const telemetry = device.device_status?.[0];
   const sessions = device.access_sessions || [];
+  const parsedTel = parseDeviceTelemetry(telemetry, device);
 
   return (
     <div className="space-y-6">
@@ -155,15 +163,15 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-2xl font-extrabold text-white">{device.deviceName}</h1>
               <DeviceStatusBadge status={device.status} />
-              {device.status === 'online' && telemetry && (
+              {device.status === 'online' && (
                 <span
                   className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                    telemetry.workstation_locked
+                    telemetry?.workstation_locked
                       ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
                       : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
                   }`}
                 >
-                  {telemetry.workstation_locked ? (
+                  {telemetry?.workstation_locked ? (
                     <>
                       <Lock className="w-3 h-3" />
                       Locked
@@ -211,45 +219,77 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
         </div>
       </div>
 
-      {/* Telemetry Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
+      {/* Quick Metrics Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Wi-Fi Network */}
+        <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
           <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-            <Cpu className="w-3.5 h-3.5 text-cyan-400" /> CPU Usage
+            <Wifi className="w-3.5 h-3.5 text-cyan-400" /> Wi-Fi Network
           </span>
-          <p className="text-lg font-bold font-mono text-white">
-            {telemetry?.cpu_usage_pct ?? 14}%
+          <p className="text-sm font-bold font-mono text-white truncate" title={parsedTel.wifiSsid}>
+            {parsedTel.wifiSsid}
           </p>
+          <div className="flex items-center gap-1 text-[10px] text-cyan-400">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            {parsedTel.wifiSignal}% Signal
+          </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
-          <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-            <HardDrive className="w-3.5 h-3.5 text-blue-400" /> Memory Usage
-          </span>
-          <p className="text-lg font-bold font-mono text-white">
-            {telemetry?.memory_usage_pct ?? 46}%
-          </p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
+        {/* Battery & Power */}
+        <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
           <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
             <Battery className="w-3.5 h-3.5 text-emerald-400" /> Battery
           </span>
-          <p className="text-lg font-bold font-mono text-white">
-            {telemetry?.battery_pct ?? 100}%
+          <p className="text-lg font-bold font-mono text-white flex items-center gap-1">
+            {parsedTel.batteryPct}%
+            {parsedTel.isCharging && <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
+          </p>
+          <p className="text-[10px] text-slate-400">
+            {parsedTel.isCharging ? 'AC Connected' : 'On Battery'}
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
+        {/* CPU Usage */}
+        <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
           <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 text-purple-400" /> Console User
+            <Cpu className="w-3.5 h-3.5 text-indigo-400" /> CPU Load
           </span>
-          <p className="text-lg font-bold font-mono text-white truncate">
-            {telemetry?.active_user || 'None'}
+          <p className="text-lg font-bold font-mono text-white">
+            {parsedTel.cpuUsagePct}%
+          </p>
+          <p className="text-[10px] text-slate-400 font-mono truncate">
+            {parsedTel.cpuCores} Threads
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
+        {/* RAM Usage */}
+        <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
+          <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <Activity className="w-3.5 h-3.5 text-blue-400" /> RAM Memory
+          </span>
+          <p className="text-lg font-bold font-mono text-white">
+            {parsedTel.ramUsagePct}%
+          </p>
+          <p className="text-[10px] text-slate-400 font-mono">
+            {parsedTel.ramUsedGb} / {parsedTel.ramTotalGb} GB
+          </p>
+        </div>
+
+        {/* Storage (C:) */}
+        <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
+          <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <HardDrive className="w-3.5 h-3.5 text-purple-400" /> Storage (C:)
+          </span>
+          <p className="text-lg font-bold font-mono text-white">
+            {parsedTel.diskFreeGb} GB
+          </p>
+          <p className="text-[10px] text-slate-400 font-mono">
+            {parsedTel.diskUsagePct}% Used of {parsedTel.diskTotalGb}G
+          </p>
+        </div>
+
+        {/* Security State */}
+        <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1">
           <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5 text-amber-400" /> Security State
           </span>
@@ -260,6 +300,133 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
           >
             {telemetry?.workstation_locked ? 'Locked' : 'Unlocked'}
           </p>
+          <p className="text-[10px] text-slate-400 truncate">
+            User: {parsedTel.user}
+          </p>
+        </div>
+      </div>
+
+      {/* High-Tech Real-Time Computer Hardware Card */}
+      <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800 shadow-xl space-y-5">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+          <div className="flex items-center gap-2">
+            <Terminal className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-sm font-bold text-white tracking-wide">Live Hardware & System Telemetry</h3>
+          </div>
+          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+            Real-Time Sync Active
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
+          {/* Processor & OS */}
+          <div className="space-y-3 p-4 rounded-xl bg-slate-950/50 border border-slate-800/60">
+            <div className="flex items-center gap-2 text-cyan-400 font-semibold">
+              <Cpu className="w-4 h-4" />
+              <span>Processor & Platform</span>
+            </div>
+            <div className="space-y-1.5 font-mono text-[11px]">
+              <div>
+                <span className="text-slate-500">Model:</span>{' '}
+                <span className="text-slate-200 font-bold">{parsedTel.cpuModel}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Threads:</span>{' '}
+                <span className="text-slate-300">{parsedTel.cpuCores} Logical Processors</span>
+              </div>
+              <div>
+                <span className="text-slate-500">OS:</span>{' '}
+                <span className="text-slate-300">{parsedTel.os}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">System Uptime:</span>{' '}
+                <span className="text-emerald-400 font-bold">{parsedTel.uptime}</span>
+              </div>
+            </div>
+            {/* CPU Meter */}
+            <div className="space-y-1 pt-1">
+              <div className="flex justify-between text-[10px] text-slate-400">
+                <span>CPU Load</span>
+                <span>{parsedTel.cpuUsagePct}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(5, parsedTel.cpuUsagePct))}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Memory & Storage */}
+          <div className="space-y-3 p-4 rounded-xl bg-slate-950/50 border border-slate-800/60">
+            <div className="flex items-center gap-2 text-blue-400 font-semibold">
+              <HardDrive className="w-4 h-4" />
+              <span>Memory & Drive Storage</span>
+            </div>
+            {/* RAM Progress */}
+            <div className="space-y-1 font-mono text-[11px]">
+              <div className="flex justify-between text-[11px]">
+                <span className="text-slate-400">RAM: {parsedTel.ramUsedGb} GB / {parsedTel.ramTotalGb} GB</span>
+                <span className="text-blue-300 font-bold">{parsedTel.ramUsagePct}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-500"
+                  style={{ width: `${parsedTel.ramUsagePct}%` }}
+                />
+              </div>
+            </div>
+            {/* Disk Progress */}
+            <div className="space-y-1 font-mono text-[11px] pt-1">
+              <div className="flex justify-between text-[11px]">
+                <span className="text-slate-400">Drive C: {parsedTel.diskFreeGb} GB Free</span>
+                <span className="text-purple-300 font-bold">{parsedTel.diskUsagePct}% Used</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
+                  style={{ width: `${parsedTel.diskUsagePct}%` }}
+                />
+              </div>
+              <div className="text-[10px] text-slate-500">
+                Total Capacity: {parsedTel.diskTotalGb} GB • Used: {parsedTel.diskUsedGb} GB
+              </div>
+            </div>
+          </div>
+
+          {/* Network & Console Session */}
+          <div className="space-y-3 p-4 rounded-xl bg-slate-950/50 border border-slate-800/60">
+            <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+              <Wifi className="w-4 h-4" />
+              <span>Network & Active Session</span>
+            </div>
+            <div className="space-y-1.5 font-mono text-[11px]">
+              <div>
+                <span className="text-slate-500">Wi-Fi SSID:</span>{' '}
+                <span className="text-cyan-300 font-bold">{parsedTel.wifiSsid}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Signal Strength:</span>{' '}
+                <span className="text-emerald-400 font-bold">{parsedTel.wifiSignal}%</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Local IP:</span>{' '}
+                <span className="text-slate-200">{parsedTel.localIp}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Console User:</span>{' '}
+                <span className="text-purple-300 font-bold">{parsedTel.user}</span>
+              </div>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
+              <span>Battery: {parsedTel.batteryPct}%</span>
+              <span className="text-emerald-400 font-medium">
+                {parsedTel.isCharging ? '⚡ Charging' : '🔋 Discharging'}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

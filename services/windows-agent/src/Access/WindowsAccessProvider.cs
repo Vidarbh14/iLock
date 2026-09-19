@@ -39,6 +39,9 @@ namespace ILock.WindowsAgent.Access
         [DllImport("user32.dll", SetLastError = true)]
         private static extern IntPtr OpenInputDesktop(uint dwFlags, bool fInherit, uint dwDesiredAccess);
 
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern IntPtr OpenDesktop(string lpszDesktop, uint dwFlags, bool fInherit, uint dwDesiredAccess);
+
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SetThreadDesktop(IntPtr hDesktop);
 
@@ -631,181 +634,218 @@ namespace ILock.WindowsAgent.Access
         /// <summary>
         /// Simulates hardware input to wake the monitor, dismiss the lock screen overlay,
         /// and type the 6-digit PIN into the Windows logon prompt.
-        /// Uses a clean dedicated MTA thread attached to the active input desktop (including Winlogon).
+        /// Uses distinct clean threads to guarantee accurate desktop attachment (Default for curtain dismiss, Winlogon for PIN entry).
         /// Returns true if the screen was successfully unlocked, false otherwise.
         /// </summary>
         public static bool SimulateUnlock(string pin, Action<string>? log = null)
         {
             bool success = false;
-            var thread = new Thread(() =>
+            try
             {
-                IntPtr hDesktop = IntPtr.Zero;
-                try
+                string? initialDesktop = GetActiveDesktopName();
+                log?.Invoke($"SimulateUnlock starting. Initial active desktop: {initialDesktop}");
+
+                // Phase 1: If on Default desktop (LockApp wallpaper curtain), wake and dismiss
+                if (initialDesktop != "Winlogon")
                 {
-                    // Attach clean thread to current input desktop immediately before ANY console/UI calls
-                    hDesktop = OpenInputDesktop(0, false, 0x01FF);
-                    if (hDesktop == IntPtr.Zero)
+                    log?.Invoke("Phase 1: Waking display hardware and dismissing wallpaper curtain...");
+                    var wakeThread = new Thread(() =>
                     {
-                        hDesktop = OpenInputDesktop(0, false, 0x0100);
-                    }
-
-                    if (hDesktop != IntPtr.Zero)
-                    {
-                        bool set = SetThreadDesktop(hDesktop);
-                        log?.Invoke($"SetThreadDesktop result: {set}");
-                    }
-                    else
-                    {
-                        log?.Invoke("OpenInputDesktop returned Zero handle.");
-                    }
-
-                    log?.Invoke("SimulateUnlock execution thread active.");
-
-                    void PerformTypeSequence(string sequencePin, string attemptLabel, bool isRetry = false)
-                    {
-                        if (!isRetry)
+                        IntPtr hCur = OpenInputDesktop(0, false, 0x01FF);
+                        if (hCur == IntPtr.Zero) hCur = OpenInputDesktop(0, false, 0x0100);
+                        if (hCur != IntPtr.Zero)
                         {
-                            log?.Invoke($"[{attemptLabel}] 1. Waking display hardware (SetThreadExecutionState, mouse, Shift)...");
-                            try
-                            {
-                                SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED);
-                            }
-                            catch { }
-
-                            mouse_event(MOUSEEVENTF_MOVE, 0, 5, 0, UIntPtr.Zero);
-                            Thread.Sleep(20);
-                            mouse_event(MOUSEEVENTF_MOVE, 0, -5, 0, UIntPtr.Zero);
-                            Thread.Sleep(30);
-
-                            byte shiftScan = (byte)MapVirtualKey(VK_SHIFT, 0);
-                            keybd_event(VK_SHIFT, shiftScan, 0, UIntPtr.Zero);
-                            Thread.Sleep(30);
-                            keybd_event(VK_SHIFT, shiftScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-
-                            // Allow physical display driver and DWM to complete wake from standby
-                            log?.Invoke($"[{attemptLabel}] 2. Waiting 600ms for display backlight & DWM wake-up...");
-                            Thread.Sleep(600);
-
-                            log?.Invoke($"[{attemptLabel}] 3. Dismissing lock screen wallpaper curtain with Space...");
-                            byte spaceScan = (byte)MapVirtualKey(VK_SPACE, 0);
-                            keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
-                            Thread.Sleep(30);
-                            keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                            Thread.Sleep(120);
-
-                            // Send a second Space in case the display wake swallowed the first keystroke
-                            keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
-                            Thread.Sleep(30);
-                            keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-
-                            log?.Invoke($"[{attemptLabel}] 4. Waiting 1400ms for lock screen slide animation to focus PIN box...");
-                            Thread.Sleep(1400);
-                        }
-                        else
-                        {
-                            log?.Invoke($"[{attemptLabel}] 1. Secondary retry on active password page (settling 250ms)...");
-                            Thread.Sleep(250);
+                            SetThreadDesktop(hCur);
+                            CloseDesktop(hCur);
                         }
 
-                        // NOTE: In Windows 11, the PIN box is automatically focused when the overlay slides up.
-                        // Do NOT send Up-Arrow or Escape or mouse clicks, which de-focus or dismiss the PIN box.
+                        try { SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED); } catch { }
+                        mouse_event(MOUSEEVENTF_MOVE, 0, 5, 0, UIntPtr.Zero);
+                        Thread.Sleep(20);
+                        mouse_event(MOUSEEVENTF_MOVE, 0, -5, 0, UIntPtr.Zero);
+                        Thread.Sleep(30);
 
-                        log?.Invoke($"[{attemptLabel}] 5. Clearing input field with 8 backspaces...");
-                        byte backScan = (byte)MapVirtualKey(VK_BACK, 0);
-                        for (int i = 0; i < 8; i++)
-                        {
-                            keybd_event(VK_BACK, backScan, 0, UIntPtr.Zero);
-                            Thread.Sleep(15);
-                            keybd_event(VK_BACK, backScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                            Thread.Sleep(15);
-                        }
-                        Thread.Sleep(60);
-
-                        log?.Invoke($"[{attemptLabel}] 6. Typing {sequencePin.Length} PIN digits with hardware scan codes...");
-                        foreach (char c in sequencePin)
-                        {
-                            byte vk = (byte)c;
-                            byte scan = (byte)MapVirtualKey(vk, 0);
-                            keybd_event(vk, scan, 0, UIntPtr.Zero);
-                            Thread.Sleep(25);
-                            keybd_event(vk, scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                            Thread.Sleep(25);
-                        }
-
-                        log?.Invoke($"[{attemptLabel}] 7. Submitting PIN with Enter key...");
-                        Thread.Sleep(50);
-                        byte enterScan = (byte)MapVirtualKey(VK_RETURN, 0);
-                        keybd_event(VK_RETURN, enterScan, 0, UIntPtr.Zero);
+                        byte shiftScan = (byte)MapVirtualKey(VK_SHIFT, 0);
+                        keybd_event(VK_SHIFT, shiftScan, 0, UIntPtr.Zero);
                         Thread.Sleep(25);
-                        keybd_event(VK_RETURN, enterScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                        keybd_event(VK_SHIFT, shiftScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                        Thread.Sleep(200);
+
+                        log?.Invoke("Dismissing lock screen wallpaper curtain with Space...");
+                        byte spaceScan = (byte)MapVirtualKey(VK_SPACE, 0);
+                        keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
+                        Thread.Sleep(25);
+                        keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                        Thread.Sleep(80);
+                        keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
+                        Thread.Sleep(25);
+                        keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                    });
+                    wakeThread.SetApartmentState(ApartmentState.MTA);
+                    wakeThread.Start();
+                    wakeThread.Join();
+
+                    // Dynamically watch for the active input desktop to transition to Winlogon
+                    log?.Invoke("Waiting for active input desktop to transition to Winlogon...");
+                    bool reachedWinlogon = false;
+                    for (int i = 0; i < 40; i++) // up to 2.0 seconds (polling every 50ms)
+                    {
+                        Thread.Sleep(50);
+                        string? curDt = GetActiveDesktopName();
+                        if (curDt == "Winlogon")
+                        {
+                            log?.Invoke($"Active desktop transitioned to Winlogon in {(i + 1) * 50}ms!");
+                            reachedWinlogon = true;
+                            break;
+                        }
                     }
 
-                    // Attempt 1: Full sequence with 600ms wake stabilization and 1400ms curtain slide
-                    PerformTypeSequence(pin, "Attempt-1", isRetry: false);
+                    if (!reachedWinlogon)
+                    {
+                        log?.Invoke("Timeout waiting for Winlogon transition, proceeding with typing sequence...");
+                    }
 
-                    // Responsive polling: Windows Hello switches desktop from Winlogon to Default in ~150ms to 400ms
-                    bool stillLocked = true;
-                    for (int i = 0; i < 18; i++) // Poll every 80ms up to ~1.44s
+                    // Settle delay for LogonUI to focus the PIN box
+                    Thread.Sleep(200);
+                }
+                else
+                {
+                    log?.Invoke("Workstation is already on Winlogon password screen. Skipping curtain dismiss.");
+                    try { SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED); } catch { }
+                    Thread.Sleep(100);
+                }
+
+                // Phase 2: Type PIN on a FRESH, dedicated thread attached specifically to Winlogon
+                void TypePinOnWinlogon(string attemptLabel)
+                {
+                    var typeThread = new Thread(() =>
+                    {
+                        IntPtr hWinlogon = IntPtr.Zero;
+                        try
+                        {
+                            hWinlogon = OpenInputDesktop(0, false, 0x01FF);
+                            if (hWinlogon == IntPtr.Zero) hWinlogon = OpenInputDesktop(0, false, 0x0100);
+                            if (hWinlogon == IntPtr.Zero) hWinlogon = OpenDesktop("Winlogon", 0, false, 0x01FF);
+                            if (hWinlogon == IntPtr.Zero) hWinlogon = OpenDesktop("Winlogon", 0, false, 0x0100);
+
+                            if (hWinlogon != IntPtr.Zero)
+                            {
+                                bool set = SetThreadDesktop(hWinlogon);
+                                string curName = GetActiveDesktopName() ?? "unknown";
+                                log?.Invoke($"[{attemptLabel}] SetThreadDesktop result: {set}, Attached Desktop: {curName}");
+                            }
+                            else
+                            {
+                                log?.Invoke($"[{attemptLabel}] Warning: Could not acquire Winlogon desktop handle.");
+                            }
+
+                            // 8 backspaces to ensure clean empty PIN field
+                            byte backScan = (byte)MapVirtualKey(VK_BACK, 0);
+                            for (int i = 0; i < 8; i++)
+                            {
+                                keybd_event(VK_BACK, backScan, 0, UIntPtr.Zero);
+                                Thread.Sleep(10);
+                                keybd_event(VK_BACK, backScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                                Thread.Sleep(10);
+                            }
+                            Thread.Sleep(40);
+
+                            // Type PIN digits with hardware scan codes
+                            log?.Invoke($"[{attemptLabel}] Typing {pin.Length} PIN digits on Winlogon desktop...");
+                            foreach (char c in pin)
+                            {
+                                byte vk = (byte)c;
+                                byte scan = (byte)MapVirtualKey(vk, 0);
+                                keybd_event(vk, scan, 0, UIntPtr.Zero);
+                                Thread.Sleep(18);
+                                keybd_event(vk, scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                                Thread.Sleep(18);
+                            }
+
+                            // Submit Enter key
+                            log?.Invoke($"[{attemptLabel}] Submitting PIN with Enter key...");
+                            Thread.Sleep(35);
+                            byte enterScan = (byte)MapVirtualKey(VK_RETURN, 0);
+                            keybd_event(VK_RETURN, enterScan, 0, UIntPtr.Zero);
+                            Thread.Sleep(20);
+                            keybd_event(VK_RETURN, enterScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                        }
+                        catch (Exception ex)
+                        {
+                            log?.Invoke($"[{attemptLabel}] Exception during typing: {ex.Message}");
+                        }
+                        finally
+                        {
+                            if (hWinlogon != IntPtr.Zero)
+                            {
+                                CloseDesktop(hWinlogon);
+                            }
+                        }
+                    });
+                    typeThread.SetApartmentState(ApartmentState.MTA);
+                    typeThread.Start();
+                    typeThread.Join();
+                }
+
+                // Attempt-1: Primary typing attempt
+                TypePinOnWinlogon("Attempt-1");
+
+                // Responsive polling for workstation unlock
+                bool stillLocked = true;
+                for (int i = 0; i < 20; i++)
+                {
+                    Thread.Sleep(80);
+                    stillLocked = CheckIfScreenIsLocked();
+                    if (!stillLocked)
+                    {
+                        log?.Invoke($"Workstation successfully unlocked on Attempt-1 after {(i + 1) * 80}ms!");
+                        break;
+                    }
+                }
+
+                // Attempt-2 retry if still locked
+                if (stillLocked)
+                {
+                    log?.Invoke("Workstation still locked after Attempt-1. Initiating Attempt-2 retry on Winlogon desktop...");
+                    Thread.Sleep(300);
+                    TypePinOnWinlogon("Attempt-2");
+                    for (int i = 0; i < 20; i++)
                     {
                         Thread.Sleep(80);
                         stillLocked = CheckIfScreenIsLocked();
                         if (!stillLocked)
                         {
-                            log?.Invoke($"Workstation successfully unlocked on Attempt-1 after {(i + 1) * 80}ms!");
+                            log?.Invoke($"Workstation successfully unlocked on Attempt-2 after {(i + 1) * 80}ms!");
                             break;
                         }
                     }
+                }
 
-                    if (stillLocked)
+                // Attempt-3 tertiary retry if still locked
+                if (stillLocked)
+                {
+                    log?.Invoke("Workstation still locked after Attempt-2. Initiating Attempt-3 tertiary retry on Winlogon desktop...");
+                    Thread.Sleep(300);
+                    TypePinOnWinlogon("Attempt-3");
+                    for (int i = 0; i < 20; i++)
                     {
-                        log?.Invoke("Workstation still locked after Attempt-1. Initiating secondary retry attempt on active password page...");
-                        PerformTypeSequence(pin, "Attempt-2", isRetry: true);
-                        for (int i = 0; i < 20; i++)
+                        Thread.Sleep(80);
+                        stillLocked = CheckIfScreenIsLocked();
+                        if (!stillLocked)
                         {
-                            Thread.Sleep(80);
-                            stillLocked = CheckIfScreenIsLocked();
-                            if (!stillLocked)
-                            {
-                                log?.Invoke($"Workstation successfully unlocked on Attempt-2 after {(i + 1) * 80}ms!");
-                                break;
-                            }
+                            log?.Invoke($"Workstation successfully unlocked on Attempt-3 after {(i + 1) * 80}ms!");
+                            break;
                         }
                     }
-
-                    if (stillLocked)
-                    {
-                        log?.Invoke("Workstation still locked after Attempt-2. Initiating final tertiary retry attempt...");
-                        PerformTypeSequence(pin, "Attempt-3", isRetry: true);
-                        for (int i = 0; i < 20; i++)
-                        {
-                            Thread.Sleep(80);
-                            stillLocked = CheckIfScreenIsLocked();
-                            if (!stillLocked)
-                            {
-                                log?.Invoke($"Workstation successfully unlocked on Attempt-3 after {(i + 1) * 80}ms!");
-                                break;
-                            }
-                        }
-                    }
-
-                    success = !stillLocked;
-                    log?.Invoke($"SimulateUnlock completed. Unlocked={success}");
                 }
-                catch (Exception ex)
-                {
-                    log?.Invoke($"SimulateUnlock exception: {ex.Message}");
-                }
-                finally
-                {
-                    if (hDesktop != IntPtr.Zero)
-                    {
-                        CloseDesktop(hDesktop);
-                    }
-                }
-            });
 
-            thread.Start();
-            thread.Join();
+                success = !stillLocked;
+                log?.Invoke($"SimulateUnlock completed. Unlocked={success}");
+            }
+            catch (Exception ex)
+            {
+                log?.Invoke($"SimulateUnlock exception: {ex.Message}");
+            }
             return success;
         }
 

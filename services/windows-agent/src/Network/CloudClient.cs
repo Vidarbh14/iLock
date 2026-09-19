@@ -74,7 +74,8 @@ namespace ILock.WindowsAgent.Network
                     return await response.Content.ReadFromJsonAsync<HeartbeatResponse>(cancellationToken: ct);
                 }
 
-                _logger.LogWarning("Heartbeat rejected with status {Status}", response.StatusCode);
+                string errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("Heartbeat rejected with status {Status}: {Body}", response.StatusCode, errorBody);
                 return null;
             }
             catch (Exception ex)

@@ -87,7 +87,7 @@ export const AgentHeartbeatSchema = z.object({
   memoryUsagePct: z.number().min(0).max(100).optional(),
   batteryPct: z.number().min(0).max(100).optional(),
   isCharging: z.boolean().optional(),
-  activeUser: z.string().max(128).optional(),
+  activeUser: z.string().max(2048).optional(),
   workstationLocked: z.boolean().default(true),
 });
 export type AgentHeartbeatInput = z.infer<typeof AgentHeartbeatSchema>;
