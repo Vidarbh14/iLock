@@ -9,22 +9,24 @@ param(
     [string]$ServiceName = "iLockAgent",
     [string]$DisplayName = "iLock Remote Security Agent",
     [string]$Description = "Manages remote authorized temporary access sessions for iLock without exposing Windows credentials.",
-    [string]$BinPath = "$PSScriptRoot\..\src\bin\Release\net8.0\win-x64\publish\ILock.WindowsAgent.exe"
+    [string]$BinPath = "$PSScriptRoot\..\publish_app\ILock.WindowsAgent.exe"
 )
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "         iLock Windows Service Installer                  " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
-# Verify executable existence
+# Verify executable existence: check publish_app, then src publish, then debug
 if (-not (Test-Path $BinPath)) {
-    # Check debug binary if publish binary isn't built yet
+    $PublishBin = "$PSScriptRoot\..\src\bin\Release\net8.0\win-x64\publish\ILock.WindowsAgent.exe"
     $DebugBin = "$PSScriptRoot\..\src\bin\Debug\net8.0\ILock.WindowsAgent.exe"
-    if (Test-Path $DebugBin) {
+    if (Test-Path $PublishBin) {
+        $BinPath = (Resolve-Path $PublishBin).Path
+    } elseif (Test-Path $DebugBin) {
         $BinPath = (Resolve-Path $DebugBin).Path
         Write-Host "Notice: Using Debug build at $BinPath" -ForegroundColor Yellow
     } else {
-        Write-Error "Executable not found at $BinPath. Please run 'dotnet publish -c Release -r win-x64' first."
+        Write-Error "Executable not found. Please run 'dotnet publish -c Release -r win-x64' first."
         exit 1
     }
 } else {
