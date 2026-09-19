@@ -175,14 +175,22 @@ namespace ILock.WindowsAgent.Access
                     }
                     catch { }
                 }
-                else if (eventType == WTS_SESSION_UNLOCK || eventType == WTS_SESSION_LOGON)
+                else if (eventType == WTS_SESSION_UNLOCK)
                 {
-                    try
+                    // Verify that the active console session is actually unlocked before updating file
+                    if (!WindowsAccessProvider.QueryIsConsoleSessionLocked())
                     {
-                        File.WriteAllText(stateFile, "UNLOCKED");
-                        _logger?.LogInformation("Hardware unlock detected (PIN / Hello / logon). State updated to UNLOCKED.");
+                        try
+                        {
+                            File.WriteAllText(stateFile, "UNLOCKED");
+                            _logger?.LogInformation("Hardware unlock verified. State updated to UNLOCKED.");
+                        }
+                        catch { }
                     }
-                    catch { }
+                    else
+                    {
+                        _logger?.LogInformation("WTS_SESSION_UNLOCK received but console session remains locked.");
+                    }
                 }
             }
             return DefWindowProc(hWnd, msg, wParam, lParam);

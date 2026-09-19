@@ -162,6 +162,28 @@ namespace ILock.WindowsAgent
                         LockLog($"ExecuteNativeLock error: {ex.Message}");
                     }
                     try { File.WriteAllText(Path.Combine(logDir, "lock_state.txt"), "LOCKED"); } catch { }
+
+                    string restartFlag = Path.Combine(logDir, "needs_service_restart.flag");
+                    if (File.Exists(restartFlag))
+                    {
+                        try
+                        {
+                            File.Delete(restartFlag);
+                            LockLog("Restart flag detected: upgrading background service to new binary...");
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = "cmd.exe",
+                                Arguments = "/c timeout /t 1 /nobreak & sc.exe stop iLockAgent & timeout /t 2 /nobreak & sc.exe start iLockAgent",
+                                CreateNoWindow = true,
+                                UseShellExecute = false
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            LockLog($"Failed to trigger service restart: {ex.Message}");
+                        }
+                    }
+
                     LockLog($"--lock-helper finished. Result={ok}");
                     Environment.Exit(ok ? 0 : 1);
                     return;

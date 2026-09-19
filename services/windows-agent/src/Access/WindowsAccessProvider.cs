@@ -113,6 +113,53 @@ namespace ILock.WindowsAgent.Access
         [DllImport("wtsapi32.dll", SetLastError = true)]
         private static extern bool WTSQueryUserToken(uint SessionId, out IntPtr phToken);
 
+        [DllImport("wtsapi32.dll", SetLastError = true)]
+        private static extern bool WTSQuerySessionInformation(
+            IntPtr hServer,
+            int sessionId,
+            int wtsInfoClass,
+            out IntPtr ppBuffer,
+            out int pBytesReturned);
+
+        [DllImport("wtsapi32.dll")]
+        private static extern void WTSFreeMemory(IntPtr pMemory);
+
+        private const int WTSSessionInfoEx = 25;
+        private const int WTS_SESSIONSTATE_LOCK = 0;
+        private const int WTS_SESSIONSTATE_UNLOCK = 1;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WTSINFOEX
+        {
+            public int Level;
+            public WTSINFOEX_LEVEL1 Data;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WTSINFOEX_LEVEL1
+        {
+            public int SessionId;
+            public int SessionState;
+            public int SessionFlags;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 33)]
+            public string WinStationName;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 21)]
+            public string UserName;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 18)]
+            public string DomainName;
+            public long LogonTime;
+            public long ConnectTime;
+            public long DisconnectTime;
+            public long LastInputTime;
+            public long CurrentTime;
+            public long IncomingBytes;
+            public long OutgoingBytes;
+            public long IncomingFrames;
+            public long OutgoingFrames;
+            public long IncomingCompressedBytes;
+            public long OutgoingCompressedBytes;
+        }
+
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         private static extern bool CreateProcessAsUser(
             IntPtr hToken,
@@ -934,30 +981,81 @@ namespace ILock.WindowsAgent.Access
             }
         }
 
-        public Task<(bool isLocked, string? activeUser)> GetStatusAsync(CancellationToken ct = default)
+        /// <summary>
+        /// Authoritative query directly to the Windows Terminal Services kernel subsystem.
+        /// Returns true if the active console session is locked, disconnected, or at Winlogon.
+        /// </summary>
+        public static bool QueryIsConsoleSessionLocked()
         {
-            bool isLocked = true;
+            try
+            {
+                uint activeSession = WTSGetActiveConsoleSessionId();
+                if (activeSession == 0xFFFFFFFF)
+                {
+                    // No interactive console session attached (e.g. at logon/switch screen or asleep)
+                    return true;
+                }
+
+                IntPtr pBuf = IntPtr.Zero;
+                int bytesReturned = 0;
+                if (WTSQuerySessionInformation(IntPtr.Zero, (int)activeSession, WTSSessionInfoEx, out pBuf, out bytesReturned) && pBuf != IntPtr.Zero)
+                {
+                    try
+                    {
+                        var info = (WTSINFOEX)Marshal.PtrToStructure(pBuf, typeof(WTSINFOEX));
+                        // SessionFlags: 0 = WTS_SESSIONSTATE_LOCK (Workstation is locked), 1 = WTS_SESSIONSTATE_UNLOCK (Unlocked)
+                        // If SessionFlags is 0, it is definitively LOCKED by the Windows OS.
+                        if (info.Data.SessionFlags == WTS_SESSIONSTATE_LOCK)
+                        {
+                            return true;
+                        }
+                        // If session state is not active (0 = WTSActive), e.g. disconnected or idle, it is not in active use
+                        if (info.Data.SessionState != 0)
+                        {
+                            return true;
+                        }
+                        return false;
+                    }
+                    finally
+                    {
+                        WTSFreeMemory(pBuf);
+                    }
+                }
+            }
+            catch { }
+
+            // Secondary check: if active desktop is Winlogon or Screen-saver
+            if (CheckIfScreenIsLocked())
+            {
+                return true;
+            }
+
+            // Fallback: check lock_state.txt
             try
             {
                 string statePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "iLock", "lock_state.txt");
                 if (File.Exists(statePath))
                 {
                     string state = File.ReadAllText(statePath).Trim();
-                    isLocked = state.Equals("LOCKED", StringComparison.OrdinalIgnoreCase);
-                }
-                else if (Process.GetCurrentProcess().SessionId != 0)
-                {
-                    isLocked = CheckIfScreenIsLocked() || GetAccessState() != AccessState.Active;
-                }
-                else
-                {
-                    isLocked = GetAccessState() != AccessState.Active;
+                    return state.Equals("LOCKED", StringComparison.OrdinalIgnoreCase);
                 }
             }
-            catch
+            catch { }
+
+            return false;
+        }
+
+        public Task<(bool isLocked, string? activeUser)> GetStatusAsync(CancellationToken ct = default)
+        {
+            bool isLocked = QueryIsConsoleSessionLocked();
+
+            // Keep lock_state.txt strictly synchronized with ground truth
+            try
             {
-                isLocked = CheckIfScreenIsLocked() || GetAccessState() != AccessState.Active;
+                string statePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "iLock", "lock_state.txt");
+                File.WriteAllText(statePath, isLocked ? "LOCKED" : "UNLOCKED");
             }
+            catch { }
 
             string? activeUser = Environment.UserName;
             return Task.FromResult<(bool isLocked, string? activeUser)>((isLocked, activeUser));

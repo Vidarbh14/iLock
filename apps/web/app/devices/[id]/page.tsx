@@ -28,6 +28,7 @@ import {
   Radio,
   Server,
   Key,
+  Moon,
 } from 'lucide-react';
 import type { Device, AccessSession } from '@ilock/shared';
 import { DeviceStatusBadge } from '@/components/DeviceStatusBadge';
@@ -217,27 +218,32 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
                     {device.deviceName || (device as any).device_name || 'Windows Workstation'}
                   </h1>
                   <DeviceStatusBadge status={device.status} />
-                  {isOnline && (
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                        isLocked
-                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                          : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                      }`}
-                    >
-                      {isLocked ? (
-                        <>
-                          <Lock className="w-3 h-3 text-amber-400" />
-                          Workstation Locked
-                        </>
-                      ) : (
-                        <>
-                          <Activity className="w-3 h-3 text-emerald-400" />
-                          In Use
-                        </>
-                      )}
-                    </span>
-                  )}
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                      !isOnline
+                        ? 'bg-slate-800/60 border-slate-700/60 text-slate-400'
+                        : isLocked
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                    }`}
+                  >
+                    {!isOnline ? (
+                      <>
+                        <Moon className="w-3 h-3 text-slate-400" />
+                        Sleeping / Offline
+                      </>
+                    ) : isLocked ? (
+                      <>
+                        <Lock className="w-3 h-3 text-amber-400" />
+                        Workstation Locked
+                      </>
+                    ) : (
+                      <>
+                        <Activity className="w-3 h-3 text-emerald-400" />
+                        In Use
+                      </>
+                    )}
+                  </span>
                 </div>
                 <p className="text-xs text-slate-400 font-mono mt-1">
                   Hostname: <span className="text-slate-200">{device.hostname || 'Unknown'}</span> • Platform: <span className="text-slate-200">{parsedTel.os}</span>
@@ -387,13 +393,13 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
           </span>
           <p
             className={`text-sm font-bold font-mono ${
-              telemetry?.workstation_locked ? 'text-amber-300' : 'text-emerald-300'
+              !isOnline ? 'text-slate-400' : telemetry?.workstation_locked ? 'text-amber-300' : 'text-emerald-300'
             }`}
           >
-            {telemetry?.workstation_locked ? 'Locked' : 'In Use'}
+            {!isOnline ? 'Standby / Sleep' : telemetry?.workstation_locked ? 'Locked' : 'In Use'}
           </p>
           <p className="text-[10px] text-slate-400 font-mono">
-            {telemetry?.workstation_locked ? 'DPAPI Protected' : 'Desktop In Use'}
+            {!isOnline ? 'Machine Inactive' : telemetry?.workstation_locked ? 'DPAPI Protected' : 'Desktop In Use'}
           </p>
         </div>
       </div>

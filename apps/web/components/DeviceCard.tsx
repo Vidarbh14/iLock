@@ -18,6 +18,7 @@ import {
   Zap,
   Activity,
   Loader2,
+  Moon,
 } from 'lucide-react';
 import type { Device } from '@ilock/shared';
 import { DeviceStatusBadge } from './DeviceStatusBadge';
@@ -101,27 +102,32 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
           {/* Badges: Online & Lock State */}
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <DeviceStatusBadge status={device.status} />
-            {isOnline && telemetry && (
-              <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider border transition-all duration-300 ${
-                  isLocked
-                    ? 'bg-[#f59e0b]/15 border-[#f59e0b]/35 text-[#fbbf24]'
-                    : 'bg-[#10b981]/15 border-[#10b981]/35 text-[#34d399]'
-                }`}
-              >
-                {isLocked ? (
-                  <>
-                    <Lock className="w-2.5 h-2.5 text-amber-400" />
-                    LOCKED
-                  </>
-                ) : (
-                  <>
-                    <Activity className="w-2.5 h-2.5 text-emerald-400" />
-                    IN USE
-                  </>
-                )}
-              </span>
-            )}
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider border transition-all duration-300 ${
+                !isOnline
+                  ? 'bg-slate-800/60 border-slate-700/60 text-slate-400'
+                  : isLocked
+                  ? 'bg-[#f59e0b]/15 border-[#f59e0b]/35 text-[#fbbf24]'
+                  : 'bg-[#10b981]/15 border-[#10b981]/35 text-[#34d399]'
+              }`}
+            >
+              {!isOnline ? (
+                <>
+                  <Moon className="w-2.5 h-2.5 text-slate-400" />
+                  STANDBY
+                </>
+              ) : isLocked ? (
+                <>
+                  <Lock className="w-2.5 h-2.5 text-amber-400" />
+                  LOCKED
+                </>
+              ) : (
+                <>
+                  <Activity className="w-2.5 h-2.5 text-emerald-400" />
+                  IN USE
+                </>
+              )}
+            </span>
           </div>
         </div>
 

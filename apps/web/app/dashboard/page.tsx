@@ -25,6 +25,7 @@ import {
   Radio,
   Server,
   Sparkles,
+  Moon,
 } from 'lucide-react';
 import type { Device, AccessSession, AuditLog } from '@ilock/shared';
 import { DeviceCard } from '@/components/DeviceCard';
@@ -347,12 +348,19 @@ export default function DashboardPage() {
                 <DeviceStatusBadge status={primaryDevice.status} />
                 <span
                   className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider border transition-all duration-300 ${
-                    isPrimaryLocked
+                    !isPrimaryOnline
+                      ? 'bg-slate-800/60 border-slate-700/60 text-slate-400'
+                      : isPrimaryLocked
                       ? 'bg-[#f59e0b]/15 border-[#f59e0b]/35 text-[#fbbf24]'
                       : 'bg-[#10b981]/15 border-[#10b981]/35 text-[#34d399]'
                   }`}
                 >
-                  {isPrimaryLocked ? (
+                  {!isPrimaryOnline ? (
+                    <>
+                      <Moon className="w-2.5 h-2.5 text-slate-400" />
+                      SLEEPING / OFFLINE
+                    </>
+                  ) : isPrimaryLocked ? (
                     <>
                       <Lock className="w-2.5 h-2.5 text-amber-400" />
                       LOCKED

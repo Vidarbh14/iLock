@@ -52,15 +52,17 @@ namespace ILock.WindowsAgent
             _accessProvider = accessProvider;
             _config = _configManager.LoadConfig();
 
-            // Hook network events to instantly wake polling when Wi-Fi connects or IP changes
+            // Hook network and OS power/session events to instantly synchronize state
             try
             {
                 NetworkChange.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
                 NetworkChange.NetworkAddressChanged += OnNetworkAddressChanged;
+                Microsoft.Win32.SystemEvents.PowerModeChanged += OnPowerModeChanged;
+                Microsoft.Win32.SystemEvents.SessionSwitch += OnSessionSwitch;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not register NetworkChange event handlers.");
+                _logger.LogWarning(ex, "Could not register NetworkChange or SystemEvents event handlers.");
             }
         }
 
@@ -261,6 +263,46 @@ namespace ILock.WindowsAgent
             }
         }
 
+        private void OnSessionSwitch(object? sender, Microsoft.Win32.SessionSwitchEventArgs e)
+        {
+            _logger.LogInformation("SystemEvents.SessionSwitch: Reason={Reason}", e.Reason);
+            if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock)
+            {
+                try
+                {
+                    string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "iLock");
+                    File.WriteAllText(Path.Combine(dir, "lock_state.txt"), "LOCKED");
+                }
+                catch { }
+                _consecutiveFailures = 0;
+                TriggerWake();
+            }
+            else if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock)
+            {
+                _consecutiveFailures = 0;
+                TriggerWake();
+            }
+        }
+
+        private void OnPowerModeChanged(object? sender, Microsoft.Win32.PowerModeChangedEventArgs e)
+        {
+            _logger.LogInformation("SystemEvents.PowerModeChanged: Mode={Mode}", e.Mode);
+            if (e.Mode == Microsoft.Win32.PowerModes.Suspend)
+            {
+                try
+                {
+                    string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "iLock");
+                    File.WriteAllText(Path.Combine(dir, "lock_state.txt"), "LOCKED");
+                }
+                catch { }
+            }
+            else if (e.Mode == Microsoft.Win32.PowerModes.Resume)
+            {
+                _consecutiveFailures = 0;
+                TriggerWake();
+            }
+        }
+
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("iLock Windows Agent shutting down gracefully.");
@@ -268,6 +310,8 @@ namespace ILock.WindowsAgent
             {
                 NetworkChange.NetworkAvailabilityChanged -= OnNetworkAvailabilityChanged;
                 NetworkChange.NetworkAddressChanged -= OnNetworkAddressChanged;
+                Microsoft.Win32.SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+                Microsoft.Win32.SystemEvents.SessionSwitch -= OnSessionSwitch;
             }
             catch { }
             await base.StopAsync(cancellationToken);

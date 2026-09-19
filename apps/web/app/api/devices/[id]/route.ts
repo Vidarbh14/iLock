@@ -38,8 +38,23 @@ export async function GET(
         return errorResponse('DEVICE_NOT_FOUND', 'Device not found or not owned by user', 404);
       }
 
+      const nowMs = Date.now();
+      const HEARTBEAT_TIMEOUT_MS = 8000;
+      const lastSeenMs = device.last_seen ? new Date(device.last_seen).getTime() : 0;
+      const isStale = (nowMs - lastSeenMs) > HEARTBEAT_TIMEOUT_MS;
+      const computedStatus = isStale ? 'offline' : (device.status || 'online');
+
+      if (isStale && device.status === 'online') {
+        supabase.from('devices').update({ status: 'offline' }).eq('id', device.id).then();
+      }
+
+      const rawStatus = Array.isArray(device.device_status) ? device.device_status : (device.device_status ? [device.device_status] : []);
+      const patchedStatus = rawStatus.map((st: any) => isStale ? { ...st, workstation_locked: true } : st);
+
       const mappedDevice = {
         ...device,
+        status: computedStatus,
+        device_status: patchedStatus,
         deviceName: device.device_name || device.deviceName || 'Windows PC',
         deviceUuid: device.device_uuid || device.deviceUuid,
         ownerId: device.owner_id || device.ownerId,
@@ -49,7 +64,6 @@ export async function GET(
         publicKeyAlgorithm: device.public_key_algorithm || device.publicKeyAlgorithm,
         lastSeen: device.last_seen || device.lastSeen || new Date().toISOString(),
         isTrusted: device.is_trusted !== undefined ? device.is_trusted : device.isTrusted,
-        device_status: Array.isArray(device.device_status) ? device.device_status : (device.device_status ? [device.device_status] : []),
       };
 
       return jsonResponse({ device: mappedDevice });
