@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShieldAlert, X, AlertTriangle, Lock } from 'lucide-react';
+import { ShieldAlert, X, AlertTriangle, Lock, Loader2 } from 'lucide-react';
 import type { AccessSession } from '@ilock/shared';
+import { CornerOrb } from './CornerOrb';
 
 interface Props {
   session: AccessSession | null;
@@ -43,60 +44,73 @@ export function ConfirmRevokeModal({ session, isOpen, onClose, onSuccess }: Prop
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-md glass-modal p-6 shadow-2xl space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl animate-fade-in">
+      <div className="w-full max-w-md glass-modal p-6 shadow-2xl space-y-5 relative overflow-hidden border border-white/[0.1]">
+        <CornerOrb position="top-right" variant="rose" size="sm" active />
+        <CornerOrb position="bottom-left" variant="amber" size="sm" active />
+
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-[#ff3b30]/10 border border-[#ff3b30]/20 text-[#ff3b30] shadow-[0_0_12px_rgba(255,59,48,0.15)]">
+            <div className="p-2.5 rounded-2xl bg-[#f43f5e]/15 border border-[#f43f5e]/30 text-[#fb7185] shadow-[0_0_15px_rgba(244,63,94,0.3)]">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-[#1d1d1f]">Emergency Revoke Access</h3>
-              <p className="text-xs text-[#6e6e73]">Immediate Session Termination</p>
+              <h3 className="text-base font-semibold text-[#f0f3f6]">Emergency Kill Switch</h3>
+              <p className="text-xs text-[#8b949e] font-mono">Immediate Session Termination</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-black/[0.05] transition-colors"
+            className="p-1.5 rounded-full hover:bg-white/[0.08] text-[#8b949e] hover:text-[#f0f3f6] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 text-xs bg-[#ff3b30]/10 border border-[#ff3b30]/25 text-[#ff3b30] rounded-2xl backdrop-blur-md">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <div className="flex items-start gap-2.5 p-3.5 text-xs bg-[#f43f5e]/15 border border-[#f43f5e]/30 text-[#fb7185] rounded-2xl animate-shake">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
 
-        <div className="p-4 rounded-2xl bg-black/[0.02] border border-black/[0.06] text-xs text-[#1d1d1f] space-y-2">
-          <p className="font-semibold text-[#1d1d1f]">Are you sure you want to revoke this session?</p>
-          <ul className="list-disc pl-4 space-y-1.5 text-[#6e6e73]">
-            <li>The remote authorization will be invalidated instantly.</li>
-            <li>The Windows workstation will be immediately locked via Win32 LockWorkStation.</li>
-            <li>This action is permanent and cannot be undone.</li>
-          </ul>
+        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-xs text-[#8b949e] space-y-2 relative z-10">
+          <p className="text-[#f0f3f6] font-medium leading-relaxed">
+            Are you sure you want to revoke this active session immediately?
+          </p>
+          <div className="pt-2 border-t border-white/[0.06] space-y-1 font-mono text-[11px]">
+            <div className="flex justify-between">
+              <span>Session ID:</span>
+              <span className="text-[#f0f3f6] truncate max-w-[180px]">{session.id}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Action:</span>
+              <span className="text-[#fb7185] font-semibold">Immediate Lock & Invalidate Token</span>
+            </div>
+          </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex items-center gap-3 relative z-10">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-medium apple-btn-secondary rounded-full"
+            className="flex-1 py-2.5 rounded-full text-xs font-medium apple-btn-secondary"
           >
-            Cancel
+            Keep Active
           </button>
           <button
             type="button"
             onClick={handleRevoke}
             disabled={isSubmitting}
-            className="px-5 py-2 text-xs font-medium text-white apple-btn-danger rounded-full disabled:opacity-50 flex items-center gap-1.5"
+            className="flex-1 py-2.5 rounded-full text-xs font-semibold text-white apple-btn-danger disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <Lock className="w-4 h-4" />
-            {isSubmitting ? 'Revoking...' : 'Revoke & Lock PC'}
+            {isSubmitting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Lock className="w-4 h-4" />
+            )}
+            <span>{isSubmitting ? 'Revoking...' : 'Revoke & Lock Now'}</span>
           </button>
         </div>
       </div>

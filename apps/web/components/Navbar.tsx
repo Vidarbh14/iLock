@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShieldCheck, Laptop, KeyRound, History, Lock, Settings } from 'lucide-react';
+import { ShieldCheck, Laptop, KeyRound, History, Lock, Settings, Shield } from 'lucide-react';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -29,22 +29,24 @@ export function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-black/[0.06] bg-white/80 backdrop-blur-2xl">
+    <header className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-[#08090d]/85 backdrop-blur-2xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand */}
+        {/* Brand Logo & Tag */}
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-2xl bg-[#0071e3] flex items-center justify-center text-white shadow-[0_2px_8px_rgba(0,113,227,0.3)] group-hover:scale-105 transition-all">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-[#0066ff] to-[#00d2ff] flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,102,255,0.45)] group-hover:scale-105 transition-all">
               <Lock className="w-4 h-4 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="text-base font-semibold tracking-tight text-[#1d1d1f] flex items-center gap-2">
+              <span className="text-base font-bold tracking-tight text-[#f0f3f6] flex items-center gap-2">
                 iLock
-                <span className="text-[10px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-black/[0.05] text-[#6e6e73] border border-black/[0.08]">
-                  Cloud
+                <span className="text-[9px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-[#00e5ff]/10 text-[#00e5ff] border border-[#00e5ff]/25">
+                  COMMAND
                 </span>
               </span>
-              <span className="text-[10px] text-[#6e6e73] leading-none">Remote Zero-Knowledge Access</span>
+              <span className="text-[10px] text-[#8b949e] font-mono leading-none">
+                Zero-Knowledge Authorization
+              </span>
             </div>
           </Link>
 
@@ -59,8 +61,8 @@ export function Navbar() {
                   href={item.href}
                   className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                     isActive
-                      ? 'bg-[#0071e3] text-white shadow-sm'
-                      : 'text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-black/[0.04]'
+                      ? 'bg-gradient-to-r from-[#0066ff]/25 to-[#00e5ff]/20 text-[#00e5ff] border border-[#00e5ff]/35 shadow-[0_0_15px_rgba(0,229,255,0.2)]'
+                      : 'text-[#8b949e] hover:text-[#f0f3f6] hover:bg-white/[0.04]'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -71,24 +73,28 @@ export function Navbar() {
           </nav>
         </div>
 
-        {/* Right side controls */}
+        {/* Right Side Status & User Profile */}
         <div className="flex items-center gap-2.5">
-          {/* Live System Indicator */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-black/[0.04] border border-black/[0.06] text-[11px] text-[#6e6e73] font-medium backdrop-blur-md">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#34c759] shadow-[0_0_6px_#34c759]" />
-            Cloud Active
+          {/* Cloud Active Indicator */}
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-[11px] font-mono text-[#8b949e]">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10b981] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10b981] shadow-[0_0_8px_#10b981]" />
+            </span>
+            <span>Cloud Active</span>
           </div>
 
+          {/* Profile & Settings Button */}
           <Link
             href="/settings"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/[0.03] hover:bg-black/[0.06] border border-black/[0.06] transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] hover:border-[#00e5ff]/30 transition-all group"
             title={userEmail || 'Settings'}
           >
-            <div className="w-5 h-5 rounded-full bg-[#0071e3] text-white flex items-center justify-center text-[10px] font-semibold uppercase shadow-xs">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#0066ff] to-[#00e5ff] text-white flex items-center justify-center text-[10px] font-semibold uppercase shadow-[0_0_10px_rgba(0,102,255,0.4)]">
               {userEmail ? userEmail[0] : <Settings className="w-3 h-3" />}
             </div>
-            <span className="hidden sm:inline text-xs font-medium text-[#1d1d1f] max-w-[120px] truncate">
-              {userEmail ? (userEmail.includes('@') ? userEmail.split('@')[0] : userEmail) : 'Settings'}
+            <span className="hidden sm:inline text-xs font-mono font-medium text-[#f0f3f6] max-w-[130px] truncate">
+              {userEmail ? (userEmail.includes('@') ? userEmail.split('@')[0] : userEmail) : 'Owner'}
             </span>
           </Link>
         </div>

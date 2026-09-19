@@ -23,12 +23,19 @@ import {
   Globe,
   Disc,
   Terminal,
+  Copy,
+  Check,
+  Radio,
+  Server,
+  Key,
 } from 'lucide-react';
 import type { Device, AccessSession } from '@ilock/shared';
 import { DeviceStatusBadge } from '@/components/DeviceStatusBadge';
 import { GrantAccessModal } from '@/components/GrantAccessModal';
 import { ConfirmRevokeModal } from '@/components/ConfirmRevokeModal';
 import { BiometricUnlockModal } from '@/components/BiometricUnlockModal';
+import { CornerOrb } from '@/components/CornerOrb';
+import { TelemetryGauge } from '@/components/TelemetryGauge';
 import { parseDeviceTelemetry } from '@/lib/telemetry-helper';
 
 export default function DeviceDetailPage({ params }: { params: { id: string } }) {
@@ -40,6 +47,7 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
   const [error, setError] = useState<string | null>(null);
   const [isLocking, setIsLocking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
 
   // Modals
   const [isGrantOpen, setIsGrantOpen] = useState(false);
@@ -127,18 +135,41 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
     }
   };
 
+  const handleCopyPublicKey = () => {
+    if (device?.publicKey) {
+      navigator.clipboard.writeText(device.publicKey);
+      setCopiedKey(true);
+      setTimeout(() => setCopiedKey(false), 2000);
+    }
+  };
+
   if (isLoading) {
-    return <div className="h-64 rounded-2xl bg-slate-900/50 animate-pulse" />;
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-16 rounded-2xl bg-cyber-card/60 border border-cyber-border" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-cyber-card/40 border border-cyber-border/40" />
+          ))}
+        </div>
+        <div className="h-72 rounded-3xl bg-cyber-card/30 border border-cyber-border/40" />
+      </div>
+    );
   }
 
   if (error || !device) {
     return (
-      <div className="p-8 text-center space-y-4">
-        <AlertTriangle className="w-10 h-10 text-[#ff3b30] mx-auto" />
-        <h2 className="text-base font-bold text-[#1d1d1f]">Device Not Found</h2>
-        <p className="text-xs text-[#6e6e73]">{error || 'Unable to load computer profile.'}</p>
-        <Link href="/devices" className="text-xs text-[#0071e3] hover:underline">
-          &larr; Back to Devices
+      <div className="glass-card p-10 text-center space-y-4 max-w-lg mx-auto">
+        <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 mx-auto flex items-center justify-center">
+          <AlertTriangle className="w-7 h-7" />
+        </div>
+        <h2 className="text-lg font-bold text-slate-100">Workstation Not Found</h2>
+        <p className="text-xs text-slate-400">{error || 'Unable to load computer profile.'}</p>
+        <Link
+          href="/devices"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 transition-all"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Workstations
         </Link>
       </div>
     );
@@ -147,212 +178,269 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
   const telemetry = device.device_status?.[0];
   const sessions = device.access_sessions || [];
   const parsedTel = parseDeviceTelemetry(telemetry, device);
+  const isOnline = device.status === 'online';
+  const isLocked = Boolean(telemetry?.workstation_locked);
+
+  const orbVariant = !isOnline ? 'rose' : isLocked ? 'amber' : 'cyan';
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/devices"
-            className="p-2 rounded-full apple-btn-secondary"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f]">{device.deviceName}</h1>
-              <DeviceStatusBadge status={device.status} />
-              {device.status === 'online' && (
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                    telemetry?.workstation_locked
-                      ? 'bg-[#ff9500]/10 border-[#ff9500]/25 text-[#c97500]'
-                      : 'bg-[#34c759]/10 border-[#34c759]/25 text-[#248a3d]'
-                  }`}
-                >
-                  {telemetry?.workstation_locked ? (
-                    <>
-                      <Lock className="w-3 h-3" />
-                      Locked
-                    </>
-                  ) : (
-                    <>
-                      <Shield className="w-3 h-3" />
-                      Unlocked
-                    </>
+      {/* Top Breadcrumb / Nav */}
+      <div className="flex items-center justify-between">
+        <Link
+          href="/devices"
+          className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-cyan-400 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Workstations
+        </Link>
+        <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+          <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+          Node ID: <span className="text-slate-300">{device.id.slice(0, 8)}...</span>
+        </span>
+      </div>
+
+      {/* Main Workstation Command Spotlight Header */}
+      <div className="relative glass-card p-6 md:p-8 rounded-3xl border border-cyber-border overflow-hidden">
+        <CornerOrb variant={orbVariant} pulse={isOnline} />
+
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,229,255,0.15)]">
+                <Laptop className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-100">{device.deviceName}</h1>
+                  <DeviceStatusBadge status={device.status} />
+                  {isOnline && (
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                        isLocked
+                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                          : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                      }`}
+                    >
+                      {isLocked ? (
+                        <>
+                          <Lock className="w-3 h-3 text-amber-400" />
+                          Workstation Locked
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="w-3 h-3 text-emerald-400" />
+                          Workstation Unlocked
+                        </>
+                      )}
+                    </span>
                   )}
-                </span>
-              )}
+                </div>
+                <p className="text-xs text-slate-400 font-mono mt-1">
+                  Hostname: <span className="text-slate-200">{device.hostname || 'Unknown'}</span> • Platform: <span className="text-slate-200">{parsedTel.os}</span>
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-[#6e6e73] font-mono mt-0.5">
-              Hostname: {device.hostname || 'Unknown'} • UUID: {device.deviceUuid}
-            </p>
+          </div>
+
+          {/* Action Triggers */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              onClick={() => setIsUnlockOpen(true)}
+              disabled={!isOnline}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <Fingerprint className="w-4 h-4" />
+              Authorize & Unlock
+            </button>
+            <button
+              onClick={handleLock}
+              disabled={isLocking || !isOnline}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-amber-500/40 transition-all flex items-center gap-2 disabled:opacity-40"
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              {isLocking ? 'Sending Lock...' : 'Lock PC'}
+            </button>
+            <button
+              onClick={() => setIsGrantOpen(true)}
+              disabled={!isOnline}
+              className="cyber-btn-cyan text-xs py-2.5 px-4 flex items-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <KeyRound className="w-4 h-4" />
+              Grant Access
+            </button>
           </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsUnlockOpen(true)}
-            disabled={device.status !== 'online'}
-            className="px-4 py-2 rounded-full text-xs font-semibold text-white bg-[#34c759] hover:bg-[#2db84d] transition-all flex items-center gap-1.5 shadow-[0_4px_14px_rgba(52,199,89,0.3)] disabled:opacity-50"
-          >
-            <Fingerprint className="w-4 h-4 text-white" />
-            Unlock PC
-          </button>
-          <button
-            onClick={handleLock}
-            disabled={isLocking}
-            className="px-4 py-2 rounded-full text-xs font-medium apple-btn-secondary flex items-center gap-1.5"
-          >
-            <Lock className="w-3.5 h-3.5 text-[#0071e3]" />
-            {isLocking ? 'Locking...' : 'Lock PC'}
-          </button>
-          <button
-            onClick={() => setIsGrantOpen(true)}
-            disabled={device.status !== 'online'}
-            className="px-4 py-2 rounded-full text-xs font-medium apple-btn-primary flex items-center gap-1.5 disabled:opacity-50"
-          >
-            <KeyRound className="w-4 h-4" />
-            Grant Access
-          </button>
-        </div>
+      {/* Radial Telemetry Overview Gauges */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <TelemetryGauge
+          label="CPU Load"
+          value={parsedTel.cpuUsagePct}
+          subtitle={`${parsedTel.cpuCores} Cores`}
+          icon={Cpu}
+          variant="cyan"
+        />
+
+        <TelemetryGauge
+          label="Memory Usage"
+          value={parsedTel.ramUsagePct}
+          subtitle={`${parsedTel.ramUsedGb} / ${parsedTel.ramTotalGb} GB`}
+          icon={HardDrive}
+          variant="purple"
+        />
+
+        <TelemetryGauge
+          label="Drive C: Storage"
+          value={parsedTel.diskUsagePct}
+          subtitle={`${parsedTel.diskFreeGb} GB Free`}
+          icon={Disc}
+          variant="blue"
+        />
+
+        <TelemetryGauge
+          label={parsedTel.isCharging ? 'AC Power' : 'Battery'}
+          value={parsedTel.batteryPct}
+          subtitle={parsedTel.isCharging ? '⚡ Connected' : '🔋 Discharging'}
+          icon={Battery}
+          variant={parsedTel.batteryPct > 20 ? 'emerald' : 'amber'}
+        />
       </div>
 
       {/* Quick Metrics Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* Wi-Fi Network */}
-        <div className="p-4 rounded-2xl glass-card space-y-1">
-          <span className="text-[11px] text-[#6e6e73] flex items-center gap-1.5">
-            <Wifi className="w-3.5 h-3.5 text-[#0071e3]" /> Wi-Fi Network
+        <div className="p-4 rounded-2xl glass-card space-y-1.5 border border-cyber-border/70">
+          <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <Wifi className="w-3.5 h-3.5 text-cyan-400" /> Wi-Fi Network
           </span>
-          <p className="text-sm font-semibold font-mono text-[#1d1d1f] truncate" title={parsedTel.wifiSsid}>
+          <p className="text-sm font-semibold font-mono text-slate-100 truncate" title={parsedTel.wifiSsid}>
             {parsedTel.wifiSsid}
           </p>
-          <div className="flex items-center gap-1 text-[10px] text-[#0071e3]">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#0071e3] animate-pulse" />
+          <div className="flex items-center gap-1.5 text-[10px] text-cyan-400 font-mono">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
             {parsedTel.wifiSignal}% Signal
           </div>
         </div>
 
         {/* Battery & Power */}
-        <div className="p-4 rounded-2xl glass-card space-y-1">
-          <span className="text-[11px] text-[#6e6e73] flex items-center gap-1.5">
-            <Battery className="w-3.5 h-3.5 text-[#34c759]" /> Battery
+        <div className="p-4 rounded-2xl glass-card space-y-1.5 border border-cyber-border/70">
+          <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <Battery className="w-3.5 h-3.5 text-emerald-400" /> Battery State
           </span>
-          <p className="text-lg font-bold font-mono text-[#1d1d1f] flex items-center gap-1">
+          <p className="text-sm font-bold font-mono text-slate-100 flex items-center gap-1">
             {parsedTel.batteryPct}%
-            {parsedTel.isCharging && <Zap className="w-3.5 h-3.5 text-[#ff9500] fill-[#ff9500]" />}
+            {parsedTel.isCharging && <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
           </p>
-          <p className="text-[10px] text-[#6e6e73]">
-            {parsedTel.isCharging ? 'AC Connected' : 'On Battery'}
-          </p>
-        </div>
-
-        {/* CPU Usage */}
-        <div className="p-4 rounded-2xl glass-card space-y-1">
-          <span className="text-[11px] text-[#6e6e73] flex items-center gap-1.5">
-            <Cpu className="w-3.5 h-3.5 text-[#af52de]" /> CPU Load
-          </span>
-          <p className="text-lg font-bold font-mono text-[#1d1d1f]">
-            {parsedTel.cpuUsagePct}%
-          </p>
-          <p className="text-[10px] text-[#6e6e73] font-mono truncate">
-            {parsedTel.cpuCores} Threads
+          <p className="text-[10px] text-slate-400 font-mono">
+            {parsedTel.isCharging ? 'Charging' : 'Discharging'}
           </p>
         </div>
 
-        {/* RAM Usage */}
-        <div className="p-4 rounded-2xl glass-card space-y-1">
-          <span className="text-[11px] text-[#6e6e73] flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-[#0071e3]" /> RAM Memory
+        {/* Console User */}
+        <div className="p-4 rounded-2xl glass-card space-y-1.5 border border-cyber-border/70">
+          <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <User className="w-3.5 h-3.5 text-purple-400" /> Console User
           </span>
-          <p className="text-lg font-bold font-mono text-[#1d1d1f]">
-            {parsedTel.ramUsagePct}%
+          <p className="text-sm font-bold font-mono text-slate-100 truncate" title={parsedTel.user}>
+            {parsedTel.user}
           </p>
-          <p className="text-[10px] text-[#6e6e73] font-mono">
-            {parsedTel.ramUsedGb} / {parsedTel.ramTotalGb} GB
+          <p className="text-[10px] text-slate-400 font-mono">
+            Active Session
           </p>
         </div>
 
-        {/* Storage (C:) */}
-        <div className="p-4 rounded-2xl glass-card space-y-1">
-          <span className="text-[11px] text-[#6e6e73] flex items-center gap-1.5">
-            <HardDrive className="w-3.5 h-3.5 text-[#5856d6]" /> Storage (C:)
+        {/* Local IP */}
+        <div className="p-4 rounded-2xl glass-card space-y-1.5 border border-cyber-border/70">
+          <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5 text-blue-400" /> Local IP
           </span>
-          <p className="text-lg font-bold font-mono text-[#1d1d1f]">
-            {parsedTel.diskFreeGb} GB
+          <p className="text-sm font-semibold font-mono text-slate-100 truncate" title={parsedTel.localIp}>
+            {parsedTel.localIp}
           </p>
-          <p className="text-[10px] text-[#6e6e73] font-mono">
-            {parsedTel.diskUsagePct}% Used of {parsedTel.diskTotalGb}G
+          <p className="text-[10px] text-slate-400 font-mono">
+            Subnet Bound
+          </p>
+        </div>
+
+        {/* System Uptime */}
+        <div className="p-4 rounded-2xl glass-card space-y-1.5 border border-cyber-border/70">
+          <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-indigo-400" /> System Uptime
+          </span>
+          <p className="text-sm font-bold font-mono text-slate-100 truncate" title={parsedTel.uptime}>
+            {parsedTel.uptime}
+          </p>
+          <p className="text-[10px] text-emerald-400 font-mono">
+            Healthy Daemon
           </p>
         </div>
 
         {/* Security State */}
-        <div className="p-4 rounded-2xl glass-card space-y-1">
-          <span className="text-[11px] text-[#6e6e73] flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5 text-[#ff9500]" /> Security State
+        <div className="p-4 rounded-2xl glass-card space-y-1.5 border border-cyber-border/70">
+          <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5 text-amber-400" /> Lock State
           </span>
           <p
-            className={`text-lg font-bold font-mono ${
-              telemetry?.workstation_locked ? 'text-[#c97500]' : 'text-[#248a3d]'
+            className={`text-sm font-bold font-mono ${
+              telemetry?.workstation_locked ? 'text-amber-300' : 'text-emerald-300'
             }`}
           >
             {telemetry?.workstation_locked ? 'Locked' : 'Unlocked'}
           </p>
-          <p className="text-[10px] text-[#6e6e73] truncate">
-            User: {parsedTel.user}
+          <p className="text-[10px] text-slate-400 font-mono">
+            DPAPI Protected
           </p>
         </div>
       </div>
 
-      {/* High-Tech Real-Time Computer Hardware Card */}
-      <div className="p-6 rounded-3xl glass-card space-y-5 shadow-sm">
-        <div className="flex items-center justify-between pb-3 border-b border-black/[0.06]">
+      {/* Detailed Hardware & System Telemetry Console */}
+      <div className="p-6 rounded-3xl glass-card space-y-5 border border-cyber-border">
+        <div className="flex items-center justify-between pb-3 border-b border-cyber-border/60">
           <div className="flex items-center gap-2">
-            <Terminal className="w-4 h-4 text-[#0071e3]" />
-            <h3 className="text-sm font-semibold text-[#1d1d1f] tracking-wide">Live Hardware & System Telemetry</h3>
+            <Terminal className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-sm font-semibold text-slate-100 tracking-wide">Live Hardware & Daemon Telemetry</h3>
           </div>
-          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#0071e3]/10 border border-[#0071e3]/20 text-[#0071e3] flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#0071e3] animate-ping" />
-            Real-Time Sync Active
+          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+            Continuous Sync (3s)
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
           {/* Processor & OS */}
-          <div className="space-y-3 p-4 rounded-2xl bg-black/[0.02] border border-black/[0.06]">
-            <div className="flex items-center gap-2 text-[#0071e3] font-medium">
+          <div className="space-y-3 p-4 rounded-2xl bg-slate-950/40 border border-cyber-border/60">
+            <div className="flex items-center gap-2 text-cyan-400 font-semibold">
               <Cpu className="w-4 h-4" />
               <span>Processor & Platform</span>
             </div>
             <div className="space-y-1.5 font-mono text-[11px]">
               <div>
-                <span className="text-[#6e6e73]">Model:</span>{' '}
-                <span className="text-[#1d1d1f] font-medium">{parsedTel.cpuModel}</span>
+                <span className="text-slate-400">Processor:</span>{' '}
+                <span className="text-slate-200 font-medium">{parsedTel.cpuModel}</span>
               </div>
               <div>
-                <span className="text-[#6e6e73]">Threads:</span>{' '}
-                <span className="text-[#1d1d1f]">{parsedTel.cpuCores} Logical Processors</span>
+                <span className="text-slate-400">Architecture:</span>{' '}
+                <span className="text-slate-200">{parsedTel.cpuCores} Logical Processors</span>
               </div>
               <div>
-                <span className="text-[#6e6e73]">OS:</span>{' '}
-                <span className="text-[#1d1d1f]">{parsedTel.os}</span>
+                <span className="text-slate-400">Operating System:</span>{' '}
+                <span className="text-slate-200">{parsedTel.os}</span>
               </div>
               <div>
-                <span className="text-[#6e6e73]">System Uptime:</span>{' '}
-                <span className="text-[#248a3d] font-medium">{parsedTel.uptime}</span>
+                <span className="text-slate-400">Daemon Uptime:</span>{' '}
+                <span className="text-emerald-400 font-medium">{parsedTel.uptime}</span>
               </div>
             </div>
-            {/* CPU Meter */}
+            {/* CPU Bar */}
             <div className="space-y-1 pt-1">
-              <div className="flex justify-between text-[10px] text-[#6e6e73]">
+              <div className="flex justify-between text-[10px] text-slate-400 font-mono">
                 <span>CPU Load</span>
-                <span className="text-[#1d1d1f] font-medium">{parsedTel.cpuUsagePct}%</span>
+                <span className="text-cyan-400 font-medium">{parsedTel.cpuUsagePct}%</span>
               </div>
-              <div className="w-full h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
+              <div className="w-full h-1.5 rounded-full bg-slate-800/80 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[#0071e3] to-[#af52de] rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(100, Math.max(5, parsedTel.cpuUsagePct))}%` }}
                 />
               </div>
@@ -360,20 +448,20 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
           </div>
 
           {/* Memory & Storage */}
-          <div className="space-y-3 p-4 rounded-2xl bg-black/[0.02] border border-black/[0.06]">
-            <div className="flex items-center gap-2 text-[#0071e3] font-medium">
+          <div className="space-y-3 p-4 rounded-2xl bg-slate-950/40 border border-cyber-border/60">
+            <div className="flex items-center gap-2 text-purple-400 font-semibold">
               <HardDrive className="w-4 h-4" />
               <span>Memory & Drive Storage</span>
             </div>
             {/* RAM Progress */}
             <div className="space-y-1 font-mono text-[11px]">
               <div className="flex justify-between text-[11px]">
-                <span className="text-[#6e6e73]">RAM: {parsedTel.ramUsedGb} GB / {parsedTel.ramTotalGb} GB</span>
-                <span className="text-[#0071e3] font-medium">{parsedTel.ramUsagePct}%</span>
+                <span className="text-slate-400">RAM: {parsedTel.ramUsedGb} / {parsedTel.ramTotalGb} GB</span>
+                <span className="text-purple-400 font-medium">{parsedTel.ramUsagePct}%</span>
               </div>
-              <div className="w-full h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
+              <div className="w-full h-1.5 rounded-full bg-slate-800/80 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[#0071e3] to-[#34c759] rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
                   style={{ width: `${parsedTel.ramUsagePct}%` }}
                 />
               </div>
@@ -381,108 +469,140 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
             {/* Disk Progress */}
             <div className="space-y-1 font-mono text-[11px] pt-1">
               <div className="flex justify-between text-[11px]">
-                <span className="text-[#6e6e73]">Drive C: {parsedTel.diskFreeGb} GB Free</span>
-                <span className="text-[#af52de] font-medium">{parsedTel.diskUsagePct}% Used</span>
+                <span className="text-slate-400">Drive C: {parsedTel.diskFreeGb} GB Free</span>
+                <span className="text-blue-400 font-medium">{parsedTel.diskUsagePct}% Used</span>
               </div>
-              <div className="w-full h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
+              <div className="w-full h-1.5 rounded-full bg-slate-800/80 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[#af52de] to-[#ff2d55] rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-500"
                   style={{ width: `${parsedTel.diskUsagePct}%` }}
                 />
               </div>
-              <div className="text-[10px] text-[#6e6e73]">
+              <div className="text-[10px] text-slate-400">
                 Total Capacity: {parsedTel.diskTotalGb} GB • Used: {parsedTel.diskUsedGb} GB
               </div>
             </div>
           </div>
 
-          {/* Network & Console Session */}
-          <div className="space-y-3 p-4 rounded-2xl bg-black/[0.02] border border-black/[0.06]">
-            <div className="flex items-center gap-2 text-[#248a3d] font-medium">
+          {/* Network & Security Enclave */}
+          <div className="space-y-3 p-4 rounded-2xl bg-slate-950/40 border border-cyber-border/60">
+            <div className="flex items-center gap-2 text-emerald-400 font-semibold">
               <Wifi className="w-4 h-4" />
               <span>Network & Active Session</span>
             </div>
             <div className="space-y-1.5 font-mono text-[11px]">
               <div>
-                <span className="text-[#6e6e73]">Wi-Fi SSID:</span>{' '}
-                <span className="text-[#0071e3] font-medium">{parsedTel.wifiSsid}</span>
+                <span className="text-slate-400">Wi-Fi SSID:</span>{' '}
+                <span className="text-cyan-400 font-medium">{parsedTel.wifiSsid}</span>
               </div>
               <div>
-                <span className="text-[#6e6e73]">Signal Strength:</span>{' '}
-                <span className="text-[#248a3d] font-medium">{parsedTel.wifiSignal}%</span>
+                <span className="text-slate-400">Signal Strength:</span>{' '}
+                <span className="text-emerald-400 font-medium">{parsedTel.wifiSignal}%</span>
               </div>
               <div>
-                <span className="text-[#6e6e73]">Local IP:</span>{' '}
-                <span className="text-[#1d1d1f]">{parsedTel.localIp}</span>
+                <span className="text-slate-400">Local IP:</span>{' '}
+                <span className="text-slate-200">{parsedTel.localIp}</span>
               </div>
               <div>
-                <span className="text-[#6e6e73]">Console User:</span>{' '}
-                <span className="text-[#af52de] font-medium">{parsedTel.user}</span>
+                <span className="text-slate-400">Console User:</span>{' '}
+                <span className="text-purple-300 font-medium">{parsedTel.user}</span>
               </div>
             </div>
-            <div className="p-2.5 rounded-xl bg-black/[0.03] border border-black/[0.06] text-[10px] text-[#6e6e73] flex items-center justify-between">
+            <div className="p-2.5 rounded-xl bg-slate-900/60 border border-cyber-border/60 text-[10px] text-slate-400 flex items-center justify-between">
               <span>Battery: {parsedTel.batteryPct}%</span>
-              <span className="text-[#248a3d] font-medium">
-                {parsedTel.isCharging ? '⚡ Charging' : '🔋 Discharging'}
+              <span className="text-emerald-400 font-medium">
+                {parsedTel.isCharging ? '⚡ AC Connected' : '🔋 Battery Active'}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Cryptographic Identity Info Card */}
-      <div className="p-5 glass-card space-y-3">
-        <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-[#0071e3]" />
-          <h3 className="text-sm font-semibold text-[#1d1d1f]">Cryptographic Device Identity</h3>
+      {/* Cryptographic Device Identity Card */}
+      <div className="p-6 glass-card rounded-3xl space-y-4 border border-cyber-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+              <Key className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-100">Cryptographic Workstation Identity</h3>
+              <p className="text-xs text-slate-400">Asymmetric DPAPI Key Enclave ({device.publicKeyAlgorithm})</p>
+            </div>
+          </div>
+          <button
+            onClick={handleCopyPublicKey}
+            className="px-3 py-1.5 rounded-xl text-xs font-mono text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 transition-all flex items-center gap-1.5"
+          >
+            {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            {copiedKey ? 'Copied' : 'Copy Key'}
+          </button>
         </div>
-        <p className="text-xs text-[#6e6e73]">
-          This workstation is bound to your account using asymmetric public-key cryptography (
-          {device.publicKeyAlgorithm}). Private keys are securely protected by Windows DPAPI on the
-          PC and never leave the device.
+        <p className="text-xs text-slate-400 leading-relaxed">
+          This workstation is cryptographically bound to your account using asymmetric public-key cryptography.
+          The private signing key is encrypted inside the Windows DPAPI master vault on this physical machine
+          and never leaves the hardware.
         </p>
-        <div className="p-3.5 rounded-2xl bg-black/[0.03] border border-black/[0.06] font-mono text-[10px] text-[#1d1d1f] overflow-x-auto">
+        <div className="p-4 rounded-2xl bg-slate-950/60 border border-cyber-border/80 font-mono text-[10px] text-cyan-300 overflow-x-auto leading-relaxed">
           <code>{device.publicKey}</code>
         </div>
       </div>
 
       {/* Access Sessions on this PC */}
-      <div className="p-5 glass-card space-y-4">
-        <h3 className="text-sm font-semibold text-[#1d1d1f] flex items-center gap-2">
-          <Clock className="w-4 h-4 text-[#0071e3]" />
-          Temporary Access History
-        </h3>
+      <div className="p-6 glass-card rounded-3xl space-y-4 border border-cyber-border">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-cyan-400" />
+            Access Authorization History
+          </h3>
+          <span className="text-[11px] font-mono text-slate-400">
+            {sessions.length} recorded session{sessions.length === 1 ? '' : 's'}
+          </span>
+        </div>
 
         {sessions.length === 0 ? (
-          <p className="text-xs text-[#6e6e73]">No temporary access granted on this PC yet.</p>
+          <div className="p-6 text-center rounded-2xl bg-slate-950/30 border border-cyber-border/40 text-xs text-slate-400">
+            No access authorizations recorded on this workstation yet.
+          </div>
         ) : (
-          <div className="divide-y divide-black/[0.06] text-xs">
+          <div className="divide-y divide-cyber-border/60 text-xs">
             {sessions.map((sess) => (
-              <div key={sess.id} className="py-3 flex items-center justify-between gap-4">
+              <div key={sess.id} className="py-3.5 flex items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-[#1d1d1f]">
-                      {sess.durationMinutes} Minutes Access
+                    <span className="font-semibold text-slate-100">
+                      {sess.durationMinutes} Minutes Session
                     </span>
-                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-black/[0.04] text-[#1d1d1f] border border-black/[0.08]">
+                    <span
+                      className={`text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full border ${
+                        sess.status === 'ACTIVE'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          : sess.status === 'EXPIRING'
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 animate-pulse'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
                       {sess.status}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#6e6e73] mt-0.5">
-                    {new Date(sess.createdAt).toLocaleString()} • Expires:{' '}
-                    {new Date(sess.expiresAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                  <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                    Created {new Date(sess.createdAt).toLocaleTimeString()} • Expires:{' '}
+                    <span className="text-slate-300">
+                      {new Date(sess.expiresAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
                   </p>
                 </div>
 
                 {(sess.status === 'ACTIVE' || sess.status === 'EXPIRING' || sess.status === 'AUTHORIZED') && (
                   <button
                     onClick={() => setSessionToRevoke(sess)}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium apple-btn-danger"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all flex items-center gap-1.5"
                   >
-                    Revoke
+                    <Lock className="w-3 h-3" />
+                    Revoke Now
                   </button>
                 )}
               </div>
@@ -491,25 +611,26 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
         )}
       </div>
 
-      {/* Danger Zone: Device Removal */}
-      <div className="p-5 rounded-3xl bg-[#ff3b30]/5 border border-[#ff3b30]/20 space-y-3">
-        <h3 className="text-sm font-semibold text-[#ff3b30] flex items-center gap-2">
+      {/* Danger Zone: Device Disenrollment */}
+      <div className="p-6 rounded-3xl bg-rose-950/15 border border-rose-500/30 space-y-3">
+        <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
           <Trash2 className="w-4 h-4" />
-          Danger Zone
+          Workstation Disenrollment
         </h3>
-        <p className="text-xs text-[#6e6e73]">
-          Removing this machine disenrolls its public key, immediately invalidates all active
-          sessions, and rejects further remote commands.
+        <p className="text-xs text-slate-400 leading-relaxed">
+          Removing this machine permanently revokes its cryptographic enrollment, immediately invalidates all active sessions,
+          and rejects any future heartbeats from its Windows background agent.
         </p>
         <button
           onClick={handleDelete}
           disabled={isDeleting}
-          className="px-5 py-2 rounded-full text-xs font-medium text-white apple-btn-danger transition-all disabled:opacity-50"
+          className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 transition-all shadow-[0_0_15px_rgba(244,63,94,0.3)] disabled:opacity-50"
         >
-          {isDeleting ? 'Removing...' : 'Remove and Disenroll PC'}
+          {isDeleting ? 'Disenrolling...' : 'Remove and Disenroll PC'}
         </button>
       </div>
 
+      {/* Reusable Modals */}
       <GrantAccessModal
         device={device}
         isOpen={isGrantOpen}

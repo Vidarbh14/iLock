@@ -13,8 +13,11 @@ import {
   EyeOff,
   Loader2,
   CheckCircle2,
+  Shield,
+  Zap,
 } from 'lucide-react';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase-client';
+import { CornerOrb } from '@/components/CornerOrb';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -116,34 +119,44 @@ export default function LoginPage() {
 
   return (
     <div className="max-w-md mx-auto my-10 px-4 space-y-6">
-      <div className="text-center space-y-2">
-        <div className="w-14 h-14 rounded-3xl bg-white border border-black/[0.08] mx-auto flex items-center justify-center text-[#0071e3] shadow-sm">
-          <Lock className="w-7 h-7 text-[#0071e3]" />
+      {/* Brand Header */}
+      <div className="text-center space-y-3">
+        <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/40 mx-auto flex items-center justify-center text-cyan-400 shadow-[0_0_25px_rgba(0,229,255,0.25)]">
+          <Shield className="w-8 h-8 text-cyan-400" />
+          <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f]">Sign In to iLock</h1>
-        <p className="text-xs text-[#6e6e73]">
-          Zero-knowledge remote authorization & lock control for your Windows PC
-        </p>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-100">
+            Sign In to <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">iLock</span>
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Zero-knowledge workstation access control & remote lock command center
+          </p>
+        </div>
       </div>
 
       {!isConfigured && (
-        <div className="p-3.5 rounded-2xl bg-[#0071e3]/10 border border-[#0071e3]/20 text-xs text-[#0071e3] space-y-1">
+        <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-300 space-y-1">
           <p className="font-semibold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#0071e3] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
             Instant Sandbox Mode Active
           </p>
-          <p className="text-[#6e6e73] text-[11px]">
-            Supabase is in local sandbox mode. You can click &quot;Launch Instant Demo Mode&quot; below or enter any credentials to proceed.
+          <p className="text-slate-400 text-[11px] leading-relaxed">
+            Local demo sandbox mode is active. You can launch instant demo mode or enter any credentials to proceed.
           </p>
         </div>
       )}
 
-      <div className="p-7 rounded-3xl glass-card space-y-5 shadow-sm border border-black/[0.06]">
-        <form onSubmit={handleLogin} className="space-y-4">
+      <div className="relative p-7 rounded-3xl glass-card space-y-5 border border-cyber-border overflow-hidden">
+        <CornerOrb variant="cyan" />
+
+        <form onSubmit={handleLogin} className="space-y-4 relative z-10">
           <div>
-            <label className="block text-xs font-semibold text-[#1d1d1f] mb-1.5">Official Email</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5 font-mono">
+              Official Email Address
+            </label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-[#86868b]" />
+              <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500" />
               <input
                 type="email"
                 required
@@ -153,21 +166,23 @@ export default function LoginPage() {
                   setEmail(e.target.value);
                   if (error) setError(null);
                 }}
-                placeholder="your.name@company.com"
-                className="w-full pl-10 pr-3.5 py-2.5 apple-input text-sm text-[#1d1d1f]"
+                placeholder="operator@security.local"
+                className="w-full pl-10 pr-3.5 py-2.5 cyber-input text-sm text-slate-100 placeholder-slate-500"
               />
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-[#1d1d1f]">Password</label>
-              <Link href="/forgot-password" className="text-[11px] text-[#0071e3] hover:underline font-medium">
+              <label className="block text-xs font-semibold text-slate-300 font-mono">
+                Master Password
+              </label>
+              <Link href="/forgot-password" className="text-[11px] text-cyan-400 hover:text-cyan-300 hover:underline">
                 Forgot password?
               </Link>
             </div>
             <div className="relative">
-              <KeyRound className="w-4 h-4 absolute left-3.5 top-3.5 text-[#86868b]" />
+              <KeyRound className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
@@ -178,12 +193,12 @@ export default function LoginPage() {
                   if (error) setError(null);
                 }}
                 placeholder="••••••••••••"
-                className="w-full pl-10 pr-10 py-2.5 apple-input text-sm text-[#1d1d1f]"
+                className="w-full pl-10 pr-10 py-2.5 cyber-input text-sm text-slate-100 placeholder-slate-500"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-3.5 text-[#86868b] hover:text-[#1d1d1f] transition-colors"
+                className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-300 transition-colors"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -191,21 +206,21 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Error Banner - Directly above the submit button */}
+          {/* Error Banner */}
           {error && (
-            <div className="flex items-start gap-2.5 p-3.5 text-xs bg-[#ff3b30]/10 border border-[#ff3b30]/25 text-[#ff3b30] rounded-2xl animate-shake">
+            <div className="flex items-start gap-2.5 p-3.5 text-xs bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-2xl animate-shake">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <div className="space-y-0.5">
-                <p className="font-semibold">Sign In Failed</p>
-                <p className="text-[11px] text-[#ff3b30]/90 leading-relaxed">{error}</p>
+                <p className="font-semibold">Authentication Failed</p>
+                <p className="text-[11px] text-rose-400/90 leading-relaxed">{error}</p>
               </div>
             </div>
           )}
 
           {/* Success Banner */}
           {successMessage && (
-            <div className="flex items-center gap-2.5 p-3.5 text-xs bg-[#34c759]/10 border border-[#34c759]/25 text-[#248a3d] rounded-2xl">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[#34c759]" />
+            <div className="flex items-center gap-2.5 p-3.5 text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-2xl">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
               <p className="font-medium">{successMessage}</p>
             </div>
           )}
@@ -213,38 +228,38 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 rounded-full text-xs font-semibold text-white apple-btn-primary disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm transition-all"
+            className="w-full py-3 rounded-xl text-xs font-bold text-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Signing In...</span>
+                <span>Verifying Credentials...</span>
               </>
             ) : (
               <>
-                <span>Sign In</span>
+                <span>Sign In to Command Center</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
 
           {/* Quick Demo Mode Login */}
-          <div className="pt-2 border-t border-black/[0.06]">
+          <div className="pt-2 border-t border-cyber-border/60">
             <button
               type="button"
               onClick={handleDemoLogin}
-              className="w-full py-2.5 rounded-full text-xs font-medium text-[#248a3d] bg-[#34c759]/10 hover:bg-[#34c759]/20 border border-[#34c759]/30 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all flex items-center justify-center gap-2"
             >
-              <ShieldCheck className="w-4 h-4" />
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
               Launch Instant Demo Mode (Vidarbh)
             </button>
           </div>
         </form>
       </div>
 
-      <p className="text-center text-xs text-[#6e6e73]">
+      <p className="text-center text-xs text-slate-400">
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="text-[#0071e3] hover:underline font-semibold">
+        <Link href="/signup" className="text-cyan-400 hover:text-cyan-300 hover:underline font-semibold">
           Create Account
         </Link>
       </p>

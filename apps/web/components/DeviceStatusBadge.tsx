@@ -1,48 +1,57 @@
+'use client';
+
 import React from 'react';
 import type { DeviceStatus } from '@ilock/shared';
 
 interface Props {
   status: DeviceStatus;
   className?: string;
+  showPing?: boolean;
 }
 
-export function DeviceStatusBadge({ status, className = '' }: Props) {
-  const configs: Record<DeviceStatus, { label: string; bg: string; text: string; dot: string }> = {
+export function DeviceStatusBadge({ status, className = '', showPing = true }: Props) {
+  const configs: Record<DeviceStatus, { label: string; bg: string; text: string; dot: string; glow: string }> = {
     online: {
-      label: 'Online',
-      bg: 'bg-[#34c759]/10 border-[#34c759]/25',
-      text: 'text-[#248a3d]',
-      dot: 'bg-[#34c759] shadow-[0_0_6px_rgba(52,199,89,0.6)] animate-pulse',
+      label: 'ONLINE',
+      bg: 'bg-[#10b981]/10 border-[#10b981]/30',
+      text: 'text-[#10b981]',
+      dot: 'bg-[#10b981]',
+      glow: 'shadow-[0_0_10px_#10b981]',
     },
     offline: {
-      label: 'Offline',
-      bg: 'bg-black/[0.04] border-black/[0.08]',
-      text: 'text-[#6e6e73]',
-      dot: 'bg-[#86868b]',
+      label: 'OFFLINE',
+      bg: 'bg-white/[0.04] border-white/[0.08]',
+      text: 'text-[#8b949e]',
+      dot: 'bg-[#6b7280]',
+      glow: '',
     },
     connecting: {
-      label: 'Connecting',
-      bg: 'bg-[#ff9500]/10 border-[#ff9500]/25',
-      text: 'text-[#b26a00]',
-      dot: 'bg-[#ff9500] animate-ping',
+      label: 'CONNECTING',
+      bg: 'bg-[#f59e0b]/10 border-[#f59e0b]/30',
+      text: 'text-[#f59e0b]',
+      dot: 'bg-[#f59e0b]',
+      glow: 'shadow-[0_0_10px_#f59e0b]',
     },
     auth_failed: {
-      label: 'Auth Failed',
-      bg: 'bg-[#ff3b30]/10 border-[#ff3b30]/25',
-      text: 'text-[#d70015]',
-      dot: 'bg-[#ff3b30]',
+      label: 'AUTH FAILED',
+      bg: 'bg-[#f43f5e]/10 border-[#f43f5e]/30',
+      text: 'text-[#fb7185]',
+      dot: 'bg-[#f43f5e]',
+      glow: 'shadow-[0_0_10px_#f43f5e]',
     },
     outdated: {
-      label: 'Agent Outdated',
-      bg: 'bg-[#ffcc00]/15 border-[#ffcc00]/30',
-      text: 'text-[#8f7200]',
-      dot: 'bg-[#ffcc00]',
+      label: 'AGENT OUTDATED',
+      bg: 'bg-[#eab308]/15 border-[#eab308]/30',
+      text: 'text-[#fde047]',
+      dot: 'bg-[#eab308]',
+      glow: '',
     },
     revoked: {
-      label: 'Revoked',
-      bg: 'bg-[#ff3b30]/10 border-[#ff3b30]/25',
-      text: 'text-[#d70015]',
-      dot: 'bg-[#ff3b30]',
+      label: 'REVOKED',
+      bg: 'bg-[#f43f5e]/10 border-[#f43f5e]/30',
+      text: 'text-[#fb7185]',
+      dot: 'bg-[#f43f5e]',
+      glow: '',
     },
   };
 
@@ -50,9 +59,14 @@ export function DeviceStatusBadge({ status, className = '' }: Props) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${current.bg} ${current.text} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider border backdrop-blur-md ${current.bg} ${current.text} ${className}`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${current.dot}`} />
+      <span className="relative flex h-2 w-2">
+        {showPing && status === 'online' && (
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10b981] opacity-75" />
+        )}
+        <span className={`relative inline-flex rounded-full h-2 w-2 ${current.dot} ${current.glow}`} />
+      </span>
       {current.label}
     </span>
   );

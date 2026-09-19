@@ -1,8 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Shield, User, Smartphone, ExternalLink, LogOut, Loader2, CheckCircle2 } from 'lucide-react';
+import {
+  Settings,
+  Shield,
+  User,
+  Smartphone,
+  ExternalLink,
+  LogOut,
+  Loader2,
+  CheckCircle2,
+  Key,
+  Terminal,
+  Fingerprint,
+  Radio,
+} from 'lucide-react';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase-client';
+import { CornerOrb } from '@/components/CornerOrb';
 
 export default function SettingsPage() {
   const [demoMode, setDemoMode] = useState(false);
@@ -73,27 +87,35 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] flex items-center gap-2">
-          <Settings className="w-6 h-6 text-[#0071e3]" />
-          Settings & Account Security
-        </h1>
-        <p className="text-xs text-[#6e6e73] mt-0.5">
-          Manage your security preferences, active sessions, and authorized owner credentials
-        </p>
+      {/* Header */}
+      <div className="relative glass-card p-6 rounded-3xl border border-cyber-border overflow-hidden">
+        <CornerOrb variant="cyan" />
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,229,255,0.15)]">
+            <Settings className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
+              System Settings & Identity
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Manage cryptographic authority, WebAuthn passkeys, and account authentication parameters
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Account Profile Card */}
-      <div className="p-5 glass-card space-y-4">
+      <div className="p-6 glass-card rounded-3xl space-y-5 border border-cyber-border">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-[#1d1d1f] flex items-center gap-2">
-            <User className="w-4 h-4 text-[#0071e3]" />
-            Owner Profile
+          <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+            <User className="w-4 h-4 text-cyan-400" />
+            Authenticated Operator Profile
           </h2>
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-[#ff3b30] bg-[#ff3b30]/10 hover:bg-[#ff3b30]/20 border border-[#ff3b30]/25 transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 transition-all disabled:opacity-50"
           >
             {isLoggingOut ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -105,27 +127,29 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <div className="p-3.5 rounded-2xl bg-black/[0.02] border border-black/[0.06] space-y-1">
-            <span className="text-[#6e6e73]">Email Address</span>
+          <div className="p-4 rounded-2xl bg-slate-950/50 border border-cyber-border space-y-1.5">
+            <span className="text-slate-400">Registered Email</span>
             {isLoadingUser ? (
-              <div className="h-5 w-32 bg-black/[0.06] rounded animate-pulse" />
+              <div className="h-5 w-32 bg-slate-800 rounded animate-pulse" />
             ) : (
-              <p className="font-semibold text-[#1d1d1f] truncate" title={userEmail || ''}>
+              <p className="font-semibold text-slate-100 font-mono truncate" title={userEmail || ''}>
                 {userEmail || 'demo@ilock.security'}
               </p>
             )}
           </div>
-          <div className="p-3.5 rounded-2xl bg-black/[0.02] border border-black/[0.06] space-y-1">
-            <span className="text-[#6e6e73]">Account Status</span>
+
+          <div className="p-4 rounded-2xl bg-slate-950/50 border border-cyber-border space-y-1.5">
+            <span className="text-slate-400">Authority Enclave</span>
             {isLoadingUser ? (
-              <div className="h-5 w-24 bg-black/[0.06] rounded animate-pulse" />
+              <div className="h-5 w-24 bg-slate-800 rounded animate-pulse" />
             ) : isDemoUser ? (
-              <p className="font-semibold text-[#ff9500] flex items-center gap-1">
-                Demo Sandbox Mode
+              <p className="font-semibold text-amber-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                Demo Sandbox Authority
               </p>
             ) : (
-              <p className="font-semibold text-[#248a3d] flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#34c759]" />
+              <p className="font-semibold text-emerald-400 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
                 Primary Owner (Verified)
               </p>
             )}
@@ -134,24 +158,24 @@ export default function SettingsPage() {
       </div>
 
       {/* Demo Sandbox Mode */}
-      <div className="p-5 glass-card space-y-3 border border-[#34c759]/25">
-        <div className="flex items-center justify-between">
+      <div className="relative p-6 glass-card rounded-3xl space-y-3 border border-emerald-500/30 overflow-hidden">
+        <CornerOrb variant="emerald" />
+        <div className="flex items-center justify-between relative z-10">
           <div>
-            <h3 className="text-sm font-semibold text-[#248a3d] flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-emerald-400 flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              Developer & Demo Sandbox Mode
+              Developer & Sandbox Testing Mode
             </h3>
-            <p className="text-xs text-[#6e6e73] mt-0.5 max-w-md">
-              Allows testing authorization creation, active countdowns, and instant revocation
-              without modifying real Windows user credentials.
+            <p className="text-xs text-slate-400 mt-1 max-w-md leading-relaxed">
+              Allows simulating remote locking, live countdown timers, and kill-switch revocation without altering Windows credential providers.
             </p>
           </div>
           <button
             onClick={() => setDemoMode(!demoMode)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold font-mono transition-all border ${
               demoMode
-                ? 'bg-[#34c759]/15 text-[#248a3d] border-[#34c759]/40 shadow-[0_0_12px_rgba(52,199,89,0.2)]'
-                : 'apple-btn-secondary'
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-slate-200'
             }`}
           >
             {demoMode ? 'ENABLED' : 'DISABLED'}
@@ -160,40 +184,46 @@ export default function SettingsPage() {
       </div>
 
       {/* Multi-Factor Authentication Architecture */}
-      <div className="p-5 glass-card space-y-3">
+      <div className="p-6 glass-card rounded-3xl space-y-3 border border-cyber-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Smartphone className="w-4 h-4 text-[#0071e3]" />
-            <h3 className="text-sm font-semibold text-[#1d1d1f]">Two-Factor Authentication (MFA / Passkeys)</h3>
+            <Smartphone className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-sm font-semibold text-slate-100">FIDO2 Passkeys & Biometric Security</h3>
           </div>
-          <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/20">
-            Passkey Ready
+          <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/25">
+            WebAuthn Enclave
           </span>
         </div>
-        <p className="text-xs text-[#6e6e73] leading-relaxed">
-          iLock database and API schemas are architected for WebAuthn, FIDO2, and biometric
-          confirmation when approving temporary access requests.
+        <p className="text-xs text-slate-400 leading-relaxed">
+          iLock integrates hardware biometric authentication (Windows Hello, Touch ID, Face ID) to issue cryptographically signed unlock commands to enrolled workstations.
         </p>
         <button
           onClick={() => setMfaReady(!mfaReady)}
-          className="px-4 py-2 rounded-full text-xs font-medium apple-btn-secondary transition-colors"
+          className={`px-4 py-2 rounded-xl text-xs font-medium transition-all border ${
+            mfaReady
+              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+              : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-cyan-500/40'
+          }`}
         >
-          {mfaReady ? '✓ WebAuthn Device Enrolled' : 'Configure Hardware Passkey / WebAuthn'}
+          {mfaReady ? '✓ Hardware Passkey Enrolled' : 'Configure Hardware Passkey / WebAuthn'}
         </button>
       </div>
 
       {/* Documentation Links */}
-      <div className="p-5 glass-card space-y-2">
-        <h3 className="text-sm font-semibold text-[#1d1d1f]">System Documentation</h3>
-        <ul className="text-xs text-[#6e6e73] space-y-1.5">
+      <div className="p-6 glass-card rounded-3xl space-y-3 border border-cyber-border">
+        <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-cyan-400" />
+          Technical Documentation & Architecture
+        </h3>
+        <ul className="text-xs text-slate-400 space-y-2 font-mono">
           <li>
             <a
               href="https://github.com/Vidarbh14/iLock"
               target="_blank"
               rel="noreferrer"
-              className="text-[#0071e3] hover:underline flex items-center gap-1 font-medium"
+              className="text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1.5 transition-colors"
             >
-              Architecture & Threat Model <ExternalLink className="w-3 h-3" />
+              Zero-Trust Architecture & Threat Model <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </li>
           <li>
@@ -201,9 +231,9 @@ export default function SettingsPage() {
               href="https://github.com/Vidarbh14/iLock"
               target="_blank"
               rel="noreferrer"
-              className="text-[#0071e3] hover:underline flex items-center gap-1 font-medium"
+              className="text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1.5 transition-colors"
             >
-              Windows Agent .NET Service Setup Guide <ExternalLink className="w-3 h-3" />
+              Windows Agent .NET 8 Background Service Guide <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </li>
         </ul>

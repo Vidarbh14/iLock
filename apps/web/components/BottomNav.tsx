@@ -9,7 +9,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   const items = [
-    { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+    { href: '/dashboard', label: 'Command', icon: LayoutDashboard },
     { href: '/devices', label: 'My PCs', icon: Laptop },
     { href: '/access', label: 'Grant', icon: KeyRound },
     { href: '/sessions', label: 'Sessions', icon: History },
@@ -17,7 +17,7 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-black/[0.06] bg-white/90 backdrop-blur-2xl pb-safe">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-[#08090d]/90 backdrop-blur-2xl pb-safe">
       <div className="flex items-center justify-around h-16 px-2">
         {items.map((item) => {
           const Icon = item.icon;
@@ -27,17 +27,17 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
-                isActive ? 'text-[#0071e3] font-semibold' : 'text-[#6e6e73] hover:text-[#1d1d1f]'
+                isActive ? 'text-[#00e5ff] font-semibold' : 'text-[#8b949e] hover:text-[#f0f3f6]'
               }`}
             >
               <div
                 className={`p-1.5 rounded-xl transition-all ${
-                  isActive ? 'bg-[#0071e3]/10 text-[#0071e3]' : ''
+                  isActive ? 'bg-[#00e5ff]/15 text-[#00e5ff] shadow-[0_0_12px_rgba(0,229,255,0.3)]' : ''
                 }`}
               >
                 <Icon className="w-4 h-4" />
               </div>
-              <span className="text-[10px] mt-1 tracking-tight">{item.label}</span>
+              <span className="text-[10px] mt-1 font-mono tracking-tight">{item.label}</span>
             </Link>
           );
         })}

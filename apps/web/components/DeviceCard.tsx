@@ -2,9 +2,27 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Laptop, Lock, Shield, Cpu, HardDrive, Battery, Clock, KeyRound, ChevronRight, Fingerprint, Wifi, Zap } from 'lucide-react';
+import {
+  Laptop,
+  Lock,
+  Unlock,
+  Shield,
+  Cpu,
+  HardDrive,
+  Battery,
+  Clock,
+  KeyRound,
+  ChevronRight,
+  Fingerprint,
+  Wifi,
+  Zap,
+  Activity,
+  Loader2,
+} from 'lucide-react';
 import type { Device } from '@ilock/shared';
 import { DeviceStatusBadge } from './DeviceStatusBadge';
+import { CornerOrb } from './CornerOrb';
+import { TelemetryGauge } from './TelemetryGauge';
 import { parseDeviceTelemetry } from '@/lib/telemetry-helper';
 
 interface Props {
@@ -18,6 +36,7 @@ interface Props {
 export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking = false }: Props) {
   const telemetry = device.device_status?.[0];
   const isOnline = device.status === 'online';
+  const isLocked = telemetry?.workstation_locked ?? false;
   const parsedTel = parseDeviceTelemetry(telemetry, device);
 
   const formatLastSeen = (isoString: string) => {
@@ -29,42 +48,70 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
   };
 
   return (
-    <div className="glass-card p-5 transition-all duration-300 flex flex-col justify-between group">
-      {/* Top row */}
+    <div className="glass-card p-5 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+      {/* Signature iLock Bubble Corner Elements */}
+      <CornerOrb
+        position="top-right"
+        variant={isLocking ? 'rose' : isLocked ? 'amber' : isOnline ? 'cyan' : 'blue'}
+        size="md"
+        active={isOnline}
+      />
+      <CornerOrb
+        position="bottom-left"
+        variant={isOnline ? 'purple' : 'blue'}
+        size="sm"
+        active={isOnline}
+      />
+
+      {/* Top Header */}
       <div>
-        <div className="flex items-start justify-between gap-2 mb-3.5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-black/[0.04] border border-black/[0.08] flex items-center justify-center text-[#1d1d1f] shadow-sm group-hover:border-black/[0.16] transition-colors">
-              <Laptop className="w-5 h-5 text-[#1d1d1f]" />
+        <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Centerpiece Device Avatar with Orbital Ring */}
+            <div className="relative">
+              <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.1] flex items-center justify-center text-[#00e5ff] shadow-inner group-hover:border-[#00e5ff]/40 transition-all">
+                <Laptop className="w-6 h-6 text-[#00e5ff]" />
+              </div>
+              {/* Status Indicator Pip */}
+              <div
+                className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-[#0d111a] flex items-center justify-center ${
+                  isOnline ? 'bg-[#10b981]' : 'bg-[#6b7280]'
+                }`}
+              >
+                {isOnline && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-semibold tracking-tight text-[#1d1d1f] flex items-center gap-2">
+
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold tracking-tight text-[#f0f3f6] flex items-center gap-2 truncate">
                 {device.deviceName}
               </h3>
-              <p className="text-xs text-[#6e6e73]">
+              <p className="text-xs text-[#8b949e] font-mono truncate">
                 {device.hostname || 'Windows Workstation'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+
+          {/* Badges: Online & Lock State */}
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
             <DeviceStatusBadge status={device.status} />
             {isOnline && telemetry && (
               <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border ${
-                  telemetry.workstation_locked
-                    ? 'bg-[#ff9500]/10 border-[#ff9500]/25 text-[#b26a00]'
-                    : 'bg-[#34c759]/10 border-[#34c759]/25 text-[#248a3d]'
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider border ${
+                  isLocked
+                    ? 'bg-[#f59e0b]/15 border-[#f59e0b]/35 text-[#fbbf24]'
+                    : 'bg-[#10b981]/15 border-[#10b981]/35 text-[#34d399]'
                 }`}
               >
-                {telemetry.workstation_locked ? (
+                {isLocked ? (
                   <>
                     <Lock className="w-2.5 h-2.5" />
-                    Locked
+                    LOCKED
                   </>
                 ) : (
                   <>
                     <Shield className="w-2.5 h-2.5" />
-                    Active
+                    ACTIVE
                   </>
                 )}
               </span>
@@ -72,56 +119,117 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
           </div>
         </div>
 
-        {/* Telemetry info */}
-        <div className="grid grid-cols-3 gap-2 my-2.5 p-2 rounded-xl bg-black/[0.02] border border-black/[0.05] text-[11px] text-[#6e6e73] font-mono">
-          <div className="flex items-center gap-1.5 truncate" title={`CPU: ${parsedTel.cpuUsagePct}%`}>
-            <Cpu className="w-3.5 h-3.5 text-[#0071e3] shrink-0" />
-            <span>{parsedTel.cpuUsagePct}%</span>
+        {/* Telemetry Visualizers Grid */}
+        <div className="grid grid-cols-3 gap-2 my-3 relative z-10">
+          {/* CPU Gauge */}
+          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[10px] text-[#8b949e]">
+              <span className="flex items-center gap-1 font-mono">
+                <Cpu className="w-3 h-3 text-[#00e5ff]" /> CPU
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className="text-base font-bold font-mono text-[#f0f3f6]">
+                {parsedTel.cpuUsagePct}%
+              </span>
+              <span className="text-[9px] text-[#8b949e] font-mono">Load</span>
+            </div>
+            {/* Visual mini bar */}
+            <div className="w-full h-1 bg-white/[0.08] rounded-full overflow-hidden mt-1.5">
+              <div
+                className="h-full bg-gradient-to-r from-[#0066ff] to-[#00e5ff] rounded-full transition-all duration-700"
+                style={{ width: `${Math.min(100, parsedTel.cpuUsagePct)}%` }}
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 truncate" title={`RAM: ${parsedTel.ramUsagePct}% (${parsedTel.ramUsedGb}G)`}>
-            <HardDrive className="w-3.5 h-3.5 text-[#6e6e73] shrink-0" />
-            <span>{parsedTel.ramUsagePct}%</span>
+
+          {/* RAM Gauge */}
+          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[10px] text-[#8b949e]">
+              <span className="flex items-center gap-1 font-mono">
+                <HardDrive className="w-3 h-3 text-[#a855f7]" /> RAM
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className="text-base font-bold font-mono text-[#f0f3f6]">
+                {parsedTel.ramUsagePct}%
+              </span>
+              <span className="text-[9px] text-[#8b949e] font-mono">{parsedTel.ramUsedGb}G</span>
+            </div>
+            {/* Visual mini bar */}
+            <div className="w-full h-1 bg-white/[0.08] rounded-full overflow-hidden mt-1.5">
+              <div
+                className="h-full bg-gradient-to-r from-[#8b5cf6] to-[#c084fc] rounded-full transition-all duration-700"
+                style={{ width: `${Math.min(100, parsedTel.ramUsagePct)}%` }}
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 truncate" title={`Battery: ${parsedTel.batteryPct}%`}>
-            <Battery className="w-3.5 h-3.5 text-[#34c759] shrink-0" />
-            <span>{parsedTel.batteryPct}%</span>
-            {parsedTel.isCharging && <Zap className="w-2.5 h-2.5 text-[#ff9500] fill-[#ff9500] shrink-0" />}
+
+          {/* Battery Gauge */}
+          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[10px] text-[#8b949e]">
+              <span className="flex items-center gap-1 font-mono">
+                <Battery className="w-3 h-3 text-[#10b981]" /> PWR
+              </span>
+              {parsedTel.isCharging && <Zap className="w-2.5 h-2.5 text-[#f59e0b] fill-[#f59e0b]" />}
+            </div>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className="text-base font-bold font-mono text-[#f0f3f6]">
+                {parsedTel.batteryPct}%
+              </span>
+              <span className="text-[9px] text-[#8b949e] font-mono">
+                {parsedTel.isCharging ? 'Charge' : 'Batt'}
+              </span>
+            </div>
+            {/* Visual mini bar */}
+            <div className="w-full h-1 bg-white/[0.08] rounded-full overflow-hidden mt-1.5">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${
+                  parsedTel.batteryPct > 20
+                    ? 'bg-gradient-to-r from-[#10b981] to-[#34d399]'
+                    : 'bg-[#f43f5e]'
+                }`}
+                style={{ width: `${Math.min(100, parsedTel.batteryPct)}%` }}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Wi-Fi & IP banner */}
-        <div className="flex items-center justify-between text-[11px] text-[#6e6e73] mb-3 px-1">
-          <span className="flex items-center gap-1.5 text-[#1d1d1f] font-medium truncate max-w-[140px]" title={parsedTel.wifiSsid}>
-            <Wifi className="w-3 h-3 text-[#0071e3] shrink-0" />
-            {parsedTel.wifiSsid}
+        {/* Network & Local Telemetry Strip */}
+        <div className="flex items-center justify-between text-[11px] text-[#8b949e] mb-3 px-1 font-mono">
+          <span className="flex items-center gap-1.5 text-[#f0f3f6] font-medium truncate max-w-[150px]" title={parsedTel.wifiSsid}>
+            <Wifi className="w-3 h-3 text-[#00e5ff] shrink-0" />
+            <span className="truncate">{parsedTel.wifiSsid}</span>
           </span>
-          <span className="font-mono text-[10px] text-[#86868b]">{parsedTel.localIp}</span>
+          <span className="text-[10px] text-[#8b949e]">{parsedTel.localIp}</span>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-[#6e6e73] mb-4 px-1">
+        <div className="flex items-center justify-between text-xs text-[#8b949e] mb-4 px-1 font-mono text-[10px]">
           <span className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" />
+            <Clock className="w-3 h-3 text-[#8b949e]" />
             {formatLastSeen(device.lastSeen)}
           </span>
-          <span className="font-mono text-[11px] text-[#86868b]">v{device.agentVersion}</span>
+          <span>v{device.agentVersion}</span>
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-2 pt-3 border-t border-black/[0.06]">
+      {/* Cybersecurity Command Action Buttons */}
+      <div className="flex items-center gap-2 pt-3 border-t border-white/[0.07] relative z-10">
+        {/* Grant Access Button */}
         <button
           onClick={() => onGrantAccess(device)}
           disabled={!isOnline}
-          className={`flex-1 py-2 px-3 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 px-3 rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
             isOnline
               ? 'apple-btn-secondary'
-              : 'bg-black/[0.02] text-[#86868b]/50 cursor-not-allowed border border-black/[0.04]'
+              : 'bg-white/[0.02] text-[#8b949e]/40 cursor-not-allowed border border-white/[0.04]'
           }`}
         >
-          <KeyRound className="w-3.5 h-3.5 text-[#0071e3]" />
-          Grant
+          <KeyRound className="w-3.5 h-3.5 text-[#00e5ff]" />
+          <span>Grant Access</span>
         </button>
 
+        {/* Biometric Unlock Button */}
         {onUnlock && (
           <button
             onClick={() => onUnlock(device)}
@@ -129,28 +237,34 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
             title="Unlock PC via Mobile Biometrics"
             className={`py-2 px-3.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 border ${
               isOnline
-                ? 'bg-[#34c759]/15 border-[#34c759]/30 text-[#248a3d] hover:bg-[#34c759]/25 shadow-sm'
-                : 'bg-black/[0.02] text-[#86868b]/50 cursor-not-allowed border-black/[0.04]'
+                ? 'bg-[#10b981]/15 border-[#10b981]/35 text-[#34d399] hover:bg-[#10b981]/25 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                : 'bg-white/[0.02] text-[#8b949e]/40 cursor-not-allowed border-white/[0.04]'
             }`}
           >
-            <Fingerprint className="w-3.5 h-3.5" />
+            <Fingerprint className="w-3.5 h-3.5 text-[#34d399]" />
             <span>Unlock</span>
           </button>
         )}
 
+        {/* Quick Lock Button */}
         <button
           onClick={() => onLock(device.id)}
           disabled={isLocking || !isOnline}
-          title="Instant Workstation Lock"
-          className="p-2 rounded-full apple-btn-secondary text-[#6e6e73] hover:text-[#1d1d1f] disabled:opacity-40"
+          title={isLocking ? 'Locking...' : 'Lock Workstation'}
+          className="p-2 rounded-full apple-btn-secondary text-[#f0f3f6] hover:text-[#00e5ff] disabled:opacity-40"
         >
-          <Lock className={`w-3.5 h-3.5 ${isLocking ? 'animate-spin text-[#0071e3]' : ''}`} />
+          {isLocking ? (
+            <Loader2 className="w-3.5 h-3.5 text-[#00e5ff] animate-spin" />
+          ) : (
+            <Lock className="w-3.5 h-3.5" />
+          )}
         </button>
 
+        {/* Details Link */}
         <Link
           href={`/devices/${device.id}`}
-          className="p-2 rounded-full apple-btn-secondary text-[#6e6e73] hover:text-[#1d1d1f]"
-          title="Device Details"
+          className="p-2 rounded-full apple-btn-secondary text-[#8b949e] hover:text-[#f0f3f6]"
+          title="Device Security Audit"
         >
           <ChevronRight className="w-3.5 h-3.5" />
         </Link>

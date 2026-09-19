@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { History, Lock, Shield, RefreshCw, Clock } from 'lucide-react';
+import { History, Lock, Shield, RefreshCw, Clock, Radio, AlertCircle } from 'lucide-react';
 import type { AccessSession, Device } from '@ilock/shared';
 import { SessionCountdown } from '@/components/SessionCountdown';
 import { ConfirmRevokeModal } from '@/components/ConfirmRevokeModal';
+import { CornerOrb } from '@/components/CornerOrb';
 
 export default function SessionsPage() {
   const [sessions, setSessions] = useState<AccessSession[]>([]);
@@ -47,30 +48,31 @@ export default function SessionsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return 'bg-[#34c759]/15 text-[#248a3d] border-[#34c759]/30';
+        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
       case 'EXPIRING':
-        return 'bg-[#ff9500]/15 text-[#c97500] border-[#ff9500]/30 animate-pulse';
+        return 'bg-amber-500/10 text-amber-400 border-amber-500/30 animate-pulse';
       case 'AUTHORIZED':
-        return 'bg-[#0071e3]/15 text-[#0071e3] border-[#0071e3]/30';
+        return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30';
       case 'EXPIRED':
-        return 'bg-black/[0.05] text-[#6e6e73] border-black/[0.08]';
+        return 'bg-slate-800 text-slate-400 border-slate-700';
       case 'REVOKED':
-        return 'bg-[#ff3b30]/15 text-[#ff3b30] border-[#ff3b30]/30';
+        return 'bg-rose-500/10 text-rose-400 border-rose-500/30';
       default:
-        return 'bg-black/[0.05] text-[#6e6e73] border-black/[0.08]';
+        return 'bg-slate-800 text-slate-400 border-slate-700';
     }
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] flex items-center gap-2">
-            <History className="w-6 h-6 text-[#0071e3]" />
-            Access Sessions & History
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2.5">
+            <History className="w-6 h-6 text-cyan-400" />
+            Authorization Registry & Sessions
           </h1>
-          <p className="text-xs text-[#6e6e73] mt-0.5">
-            Real-time authorization lifecycle tracking and revocation registry
+          <p className="text-xs text-slate-400 mt-1">
+            Real-time policy lifecycle tracking, deterministic expiration, and emergency kill-switch registry
           </p>
         </div>
 
@@ -80,23 +82,24 @@ export default function SessionsPage() {
               setIsRefreshing(true);
               fetchData();
             }}
-            className="p-2 rounded-full apple-btn-secondary"
+            className="p-2.5 rounded-xl glass-card border border-cyber-border text-slate-400 hover:text-cyan-400 transition-colors"
+            title="Refresh Sessions"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 p-1 rounded-full bg-black/[0.04] border border-black/[0.08] max-w-md">
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl glass-card border border-cyber-border max-w-md">
         {['ALL', 'ACTIVE', 'EXPIRED', 'REVOKED'].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`flex-1 py-1.5 px-3 rounded-full text-xs font-semibold transition-all ${
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all ${
               filter === f
-                ? 'bg-[#0071e3] text-white shadow-[0_2px_8px_rgba(0,113,227,0.3)]'
-                : 'text-[#6e6e73] hover:text-[#1d1d1f]'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold shadow-[0_0_12px_rgba(0,229,255,0.3)]'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             {f}
@@ -107,16 +110,17 @@ export default function SessionsPage() {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 rounded-2xl glass-card animate-pulse" />
+            <div key={i} className="h-28 rounded-2xl glass-card border border-cyber-border animate-pulse" />
           ))}
         </div>
       ) : filteredSessions.length === 0 ? (
-        <div className="text-center py-12 rounded-3xl glass-card">
-          <Clock className="w-10 h-10 text-[#86868b] mx-auto mb-2" />
-          <p className="text-xs text-[#6e6e73]">No sessions match your filter.</p>
+        <div className="text-center py-16 rounded-3xl glass-card border border-cyber-border space-y-2">
+          <Clock className="w-12 h-12 text-slate-600 mx-auto mb-2" />
+          <p className="text-sm font-semibold text-slate-300">No authorization sessions found</p>
+          <p className="text-xs text-slate-400">There are no sessions matching the &quot;{filter}&quot; filter.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {filteredSessions.map((session) => {
             const dev = devices.find((d) => d.id === session.deviceId);
             const isLive = session.status === 'ACTIVE' || session.status === 'EXPIRING';
@@ -124,13 +128,20 @@ export default function SessionsPage() {
             return (
               <div
                 key={session.id}
-                className="p-4 rounded-2xl glass-card space-y-3"
+                className="relative p-5 md:p-6 rounded-3xl glass-card space-y-4 border border-cyber-border overflow-hidden"
               >
-                <div className="flex items-start justify-between gap-2">
+                {isLive && (
+                  <CornerOrb
+                    variant={session.status === 'EXPIRING' ? 'amber' : 'emerald'}
+                    pulse={true}
+                  />
+                )}
+
+                <div className="flex items-start justify-between gap-4 relative z-10">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-[#1d1d1f]">
-                        {dev?.deviceName || 'Windows PC'}
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="text-sm font-bold text-slate-100">
+                        {dev?.deviceName || 'Windows Workstation'}
                       </span>
                       <span
                         className={`text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full border ${getStatusBadge(
@@ -139,35 +150,44 @@ export default function SessionsPage() {
                       >
                         {session.status}
                       </span>
+                      <span className="text-xs font-mono text-cyan-400">
+                        {session.durationMinutes}m Window
+                      </span>
                     </div>
-                    <p className="text-xs text-[#6e6e73] mt-0.5">
-                      {String(session.metadata?.purpose || 'Temporary authorization')} • Duration:{' '}
-                      {session.durationMinutes}m
+                    <p className="text-xs text-slate-400 mt-1">
+                      {String(session.metadata?.purpose || 'Temporary remote authorization')}
                     </p>
                   </div>
 
                   {isLive && (
                     <button
                       onClick={() => setSessionToRevoke(session)}
-                      className="px-3.5 py-1.5 rounded-full text-xs font-medium apple-btn-danger flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all flex items-center gap-1.5 shadow-[0_0_10px_rgba(244,63,94,0.15)]"
                     >
-                      <Lock className="w-3.5 h-3.5 text-[#ff3b30]" />
+                      <Lock className="w-3.5 h-3.5 text-rose-400" />
                       Revoke
                     </button>
                   )}
                 </div>
 
                 {isLive && (
-                  <SessionCountdown
-                    expiresAt={session.expiresAt}
-                    totalDurationMinutes={session.durationMinutes}
-                    onExpire={fetchData}
-                  />
+                  <div className="relative z-10">
+                    <SessionCountdown
+                      expiresAt={session.expiresAt}
+                      totalDurationMinutes={session.durationMinutes}
+                      onExpire={fetchData}
+                    />
+                  </div>
                 )}
 
-                <div className="pt-1 flex items-center justify-between text-[11px] text-[#86868b] font-mono border-t border-black/[0.06]">
-                  <span>Created: {new Date(session.createdAt).toLocaleTimeString()}</span>
-                  <span>Expires: {new Date(session.expiresAt).toLocaleTimeString()}</span>
+                <div className="pt-2 flex items-center justify-between text-[11px] text-slate-400 font-mono border-t border-cyber-border/60 relative z-10">
+                  <span>Issued: {new Date(session.createdAt).toLocaleTimeString()}</span>
+                  <span>
+                    Deterministic Expiry:{' '}
+                    <span className="text-slate-200">
+                      {new Date(session.expiresAt).toLocaleTimeString()}
+                    </span>
+                  </span>
                 </div>
               </div>
             );

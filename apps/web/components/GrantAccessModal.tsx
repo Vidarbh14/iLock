@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { KeyRound, Clock, AlertTriangle, X, CheckCircle2 } from 'lucide-react';
+import { KeyRound, Clock, AlertTriangle, X, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
 import type { Device } from '@ilock/shared';
+import { CornerOrb } from './CornerOrb';
 
 interface Props {
   device: Device | null;
@@ -62,155 +63,142 @@ export function GrantAccessModal({ device, isOpen, onClose, onSuccess }: Props) 
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      setError(err.message || 'Authorization dispatch failed');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-md glass-modal p-6 shadow-2xl space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl animate-fade-in">
+      <div className="w-full max-w-lg glass-modal p-6 shadow-2xl space-y-5 relative overflow-hidden border border-white/[0.1]">
+        <CornerOrb position="top-right" variant="cyan" size="sm" active />
+        <CornerOrb position="bottom-left" variant="purple" size="sm" active />
+
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-[#0071e3]/10 border border-[#0071e3]/20 text-[#0071e3] shadow-[0_0_12px_rgba(0,113,227,0.15)]">
+            <div className="p-2.5 rounded-2xl bg-[#0066ff]/15 border border-[#0066ff]/30 text-[#00e5ff] shadow-[0_0_15px_rgba(0,102,255,0.3)]">
               <KeyRound className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-[#1d1d1f]">Grant Temporary Access</h3>
-              <p className="text-xs text-[#6e6e73] font-mono">{device.deviceName}</p>
+              <h3 className="text-base font-semibold text-[#f0f3f6]">Grant Temporary Access</h3>
+              <p className="text-xs text-[#8b949e] font-mono">Target: {device.deviceName}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-black/[0.05] transition-colors"
+            className="p-1.5 rounded-full hover:bg-white/[0.08] text-[#8b949e] hover:text-[#f0f3f6] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 text-xs bg-[#ff3b30]/10 border border-[#ff3b30]/25 text-[#ff3b30] rounded-2xl backdrop-blur-md">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <div className="flex items-start gap-2.5 p-3 text-xs bg-[#f43f5e]/15 border border-[#f43f5e]/30 text-[#fb7185] rounded-2xl animate-shake">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Duration Presets */}
+        <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+          {/* Duration Selector */}
           <div>
-            <label className="block text-xs font-medium text-[#1d1d1f] mb-2">
-              Select Authorization Duration
+            <label className="block text-xs font-semibold text-[#8b949e] uppercase tracking-wider mb-2">
+              Access Duration
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {PRESET_DURATIONS.map((preset) => {
-                const isSelected = !isCustom && selectedDuration === preset.minutes;
-                return (
-                  <button
-                    type="button"
-                    key={preset.minutes}
-                    onClick={() => {
-                      setIsCustom(false);
-                      setSelectedDuration(preset.minutes);
-                    }}
-                    className={`py-2 px-3 rounded-full text-xs font-medium transition-all ${
-                      isSelected
-                        ? 'bg-[#0071e3] text-white shadow-[0_2px_8px_rgba(0,113,227,0.3)] border border-[#0071e3]'
-                        : 'bg-black/[0.03] border border-black/[0.08] text-[#1d1d1f] hover:bg-black/[0.06]'
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                );
-              })}
+              {PRESET_DURATIONS.map((preset) => (
+                <button
+                  key={preset.minutes}
+                  type="button"
+                  onClick={() => {
+                    setSelectedDuration(preset.minutes);
+                    setIsCustom(false);
+                  }}
+                  className={`py-2 px-3 rounded-xl text-xs font-mono font-medium transition-all border ${
+                    !isCustom && selectedDuration === preset.minutes
+                      ? 'bg-gradient-to-r from-[#0066ff]/30 to-[#00e5ff]/20 text-[#00e5ff] border-[#00e5ff]/50 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
+                      : 'bg-white/[0.04] text-[#8b949e] border-white/[0.08] hover:border-white/[0.18] hover:text-[#f0f3f6]'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
 
-            {/* Custom duration option */}
-            <div className="mt-3">
+            {/* Custom Minutes Input */}
+            <div className="mt-2.5">
               <button
                 type="button"
                 onClick={() => setIsCustom(!isCustom)}
-                className="text-xs text-[#0071e3] hover:underline flex items-center gap-1 font-medium"
+                className="text-[11px] text-[#00e5ff] hover:underline font-mono"
               >
-                <Clock className="w-3.5 h-3.5" />
-                {isCustom ? 'Use preset duration' : 'Enter custom duration'}
+                {isCustom ? '← Use standard presets' : '+ Enter custom duration in minutes'}
               </button>
               {isCustom && (
-                <div className="mt-2 flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="1"
-                    max="1440"
-                    value={customMinutes}
-                    onChange={(e) => setCustomMinutes(e.target.value)}
-                    placeholder="Minutes (e.g. 45)"
-                    className="flex-1 apple-input px-3 py-2 text-sm font-mono"
-                  />
-                  <span className="text-xs text-[#6e6e73]">minutes</span>
-                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="1440"
+                  value={customMinutes}
+                  onChange={(e) => setCustomMinutes(e.target.value)}
+                  placeholder="Minutes (e.g. 45)"
+                  className="w-full mt-1.5 px-3 py-2 apple-input text-xs font-mono text-[#f0f3f6]"
+                  autoFocus
+                />
               )}
             </div>
           </div>
 
-          {/* Reason / Purpose Note */}
+          {/* Purpose / Note */}
           <div>
-            <label className="block text-xs font-medium text-[#1d1d1f] mb-1">
-              Purpose / Note (Optional)
+            <label className="block text-xs font-semibold text-[#8b949e] uppercase tracking-wider mb-1.5">
+              Session Purpose / Note (Optional)
             </label>
             <input
               type="text"
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
-              placeholder="e.g. Brother printing documents"
-              className="w-full apple-input px-3 py-2 text-sm"
+              placeholder="e.g., Guest presentation, Colleague code review"
+              className="w-full px-3 py-2.5 apple-input text-xs text-[#f0f3f6]"
             />
           </div>
 
-          {/* Expiration Preview Card */}
-          <div className="p-3.5 rounded-2xl bg-black/[0.02] border border-black/[0.06] space-y-1.5 text-xs">
-            <div className="flex justify-between text-[#6e6e73]">
-              <span>Automatic Expiration:</span>
-              <span className="font-mono text-[#0071e3] font-semibold">
+          {/* Session Summary Card */}
+          <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-xs font-mono space-y-1.5">
+            <div className="flex justify-between text-[#8b949e]">
+              <span>Duration:</span>
+              <span className="text-[#f0f3f6] font-semibold">{effectiveDuration} Minutes</span>
+            </div>
+            <div className="flex justify-between text-[#8b949e]">
+              <span>Auto-Revoke At:</span>
+              <span className="text-[#00e5ff] font-semibold">
                 {expiryTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
-            <div className="flex justify-between text-[#6e6e73]">
-              <span>Total Duration:</span>
-              <span className="font-mono text-[#1d1d1f] font-medium">
-                {effectiveDuration} minutes
-              </span>
+            <div className="flex justify-between text-[#8b949e]">
+              <span>Security Policy:</span>
+              <span className="text-[#10b981]">Workstation Auto-Locks at Expiry</span>
             </div>
           </div>
 
-          {/* Security Notice */}
-          <p className="text-[11px] text-[#6e6e73] leading-relaxed">
-            Windows access will automatically lock when the session expires. You can revoke this
-            access at any second from your phone.
-          </p>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium apple-btn-secondary rounded-full"
+              className="flex-1 py-2.5 rounded-full text-xs font-medium apple-btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 text-xs font-medium apple-btn-primary rounded-full disabled:opacity-50 flex items-center gap-1.5"
+              className="flex-1 py-2.5 rounded-full text-xs font-semibold text-white apple-btn-primary disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {isSubmitting ? (
-                'Authorizing...'
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  Grant Access
-                </>
-              )}
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>{isSubmitting ? 'Authorizing...' : 'Authorize Session'}</span>
             </button>
           </div>
         </form>
