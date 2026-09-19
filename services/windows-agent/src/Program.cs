@@ -22,6 +22,8 @@ namespace ILock.WindowsAgent
             Console.WriteLine("       iLock Windows Security Agent v1.0.0       ");
             Console.WriteLine("=================================================");
 
+            WindowsAccessProvider.EnsureNoLockScreenPolicy();
+
             var builder = Host.CreateApplicationBuilder(args);
 
             // Configure as Windows Service when running under SCM, or Console in dev
