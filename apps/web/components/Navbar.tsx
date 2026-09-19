@@ -7,6 +7,18 @@ import { ShieldCheck, Laptop, KeyRound, History, Lock, Settings } from 'lucide-r
 
 export function Navbar() {
   const pathname = usePathname();
+  const [userEmail, setUserEmail] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user?.email) {
+          setUserEmail(data.user.email);
+        }
+      })
+      .catch(() => {});
+  }, [pathname]);
 
   const navItems = [
     { href: '/dashboard', label: 'Overview', icon: Laptop },
@@ -60,7 +72,7 @@ export function Navbar() {
         </div>
 
         {/* Right side controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {/* Live System Indicator */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-black/[0.04] border border-black/[0.06] text-[11px] text-[#6e6e73] font-medium backdrop-blur-md">
             <span className="w-1.5 h-1.5 rounded-full bg-[#34c759] shadow-[0_0_6px_#34c759]" />
@@ -69,10 +81,15 @@ export function Navbar() {
 
           <Link
             href="/settings"
-            className="p-2 rounded-full text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-black/[0.05] transition-all"
-            title="Settings"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/[0.03] hover:bg-black/[0.06] border border-black/[0.06] transition-all"
+            title={userEmail || 'Settings'}
           >
-            <Settings className="w-4 h-4" />
+            <div className="w-5 h-5 rounded-full bg-[#0071e3] text-white flex items-center justify-center text-[10px] font-semibold uppercase shadow-xs">
+              {userEmail ? userEmail[0] : <Settings className="w-3 h-3" />}
+            </div>
+            <span className="hidden sm:inline text-xs font-medium text-[#1d1d1f] max-w-[120px] truncate">
+              {userEmail ? (userEmail.includes('@') ? userEmail.split('@')[0] : userEmail) : 'Settings'}
+            </span>
           </Link>
         </div>
       </div>

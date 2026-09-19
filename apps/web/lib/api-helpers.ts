@@ -45,7 +45,33 @@ export async function getAuthenticatedUserId(): Promise<string | null> {
     }
 
     return user.id;
-  } catch (err) {
+  } catch {
     return DEMO_USER_ID;
   }
 }
+
+/**
+ * Extracts authenticated user details (id, email, isDemo) from the request session.
+ */
+export async function getAuthenticatedUser(): Promise<{ id: string; email: string; isDemo: boolean }> {
+  if (!isSupabaseConfigured()) {
+    return { id: DEMO_USER_ID, email: 'demo@ilock.security', isDemo: true };
+  }
+
+  try {
+    const supabase = createServerClient();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      return { id: DEMO_USER_ID, email: 'demo@ilock.security', isDemo: true };
+    }
+
+    return { id: user.id, email: user.email || 'owner@ilock.security', isDemo: false };
+  } catch {
+    return { id: DEMO_USER_ID, email: 'demo@ilock.security', isDemo: true };
+  }
+}
+
