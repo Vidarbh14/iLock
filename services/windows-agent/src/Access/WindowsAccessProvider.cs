@@ -192,6 +192,11 @@ namespace ILock.WindowsAgent.Access
         private const int TokenSessionId = 7;
         private const uint PROCESS_QUERY_INFORMATION = 0x0400;
 
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint SetThreadExecutionState(uint esFlags);
+        private const uint ES_SYSTEM_REQUIRED = 0x00000001;
+        private const uint ES_DISPLAY_REQUIRED = 0x00000002;
+
         private const uint KEYEVENTF_KEYUP = 0x0002;
         private const uint MOUSEEVENTF_MOVE = 0x0001;
         private const byte VK_SPACE = 0x20;
@@ -199,6 +204,7 @@ namespace ILock.WindowsAgent.Access
         private const byte VK_RETURN = 0x0D;
         private const byte VK_SHIFT = 0x10;
         private const byte VK_ESCAPE = 0x1B;
+        private const byte VK_UP = 0x26;
 
         public WindowsAccessProvider(ILogger<WindowsAccessProvider> logger, SecureCredentialVault vault)
         {
@@ -648,47 +654,57 @@ namespace ILock.WindowsAgent.Access
                     {
                         if (!isRetry)
                         {
-                            log?.Invoke($"[{attemptLabel}] 1. Waking display with mouse movement and Shift key...");
-                            mouse_event(MOUSEEVENTF_MOVE, 0, 2, 0, UIntPtr.Zero);
-                            Thread.Sleep(15);
-                            mouse_event(MOUSEEVENTF_MOVE, 0, -2, 0, UIntPtr.Zero);
+                            log?.Invoke($"[{attemptLabel}] 1. Waking display hardware (SetThreadExecutionState, mouse, Shift)...");
+                            try
+                            {
+                                SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED);
+                            }
+                            catch { }
+
+                            mouse_event(MOUSEEVENTF_MOVE, 0, 5, 0, UIntPtr.Zero);
                             Thread.Sleep(20);
+                            mouse_event(MOUSEEVENTF_MOVE, 0, -5, 0, UIntPtr.Zero);
+                            Thread.Sleep(30);
 
                             byte shiftScan = (byte)MapVirtualKey(VK_SHIFT, 0);
                             keybd_event(VK_SHIFT, shiftScan, 0, UIntPtr.Zero);
-                            Thread.Sleep(20);
+                            Thread.Sleep(30);
                             keybd_event(VK_SHIFT, shiftScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                            Thread.Sleep(40);
 
-                            log?.Invoke($"[{attemptLabel}] 2. Dismissing lock screen overlay curtain with Space key...");
+                            // Allow physical display driver and DWM to complete wake from standby
+                            log?.Invoke($"[{attemptLabel}] 2. Waiting 500ms for display backlight & DWM wake-up...");
+                            Thread.Sleep(500);
+
+                            log?.Invoke($"[{attemptLabel}] 3. Dismissing lock screen wallpaper curtain with Space and Up-Arrow...");
                             byte spaceScan = (byte)MapVirtualKey(VK_SPACE, 0);
                             keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
-                            Thread.Sleep(25);
+                            Thread.Sleep(30);
                             keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                            Thread.Sleep(50);
+                            Thread.Sleep(80);
 
-                            // Second tap ensures overlay slides up even if screen was waking from standby
-                            keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
-                            Thread.Sleep(25);
-                            keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                            // Up-Arrow acts as the swipe-up gesture for the Windows 11 lock curtain
+                            byte upScan = (byte)MapVirtualKey(VK_UP, 0);
+                            keybd_event(VK_UP, upScan, 0, UIntPtr.Zero);
+                            Thread.Sleep(30);
+                            keybd_event(VK_UP, upScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
 
-                            log?.Invoke($"[{attemptLabel}] 3. Waiting 1150ms for Windows 11 lock screen slide animation to focus PIN box...");
-                            Thread.Sleep(1150);
+                            log?.Invoke($"[{attemptLabel}] 4. Waiting 1200ms for lock screen slide animation to focus PIN box...");
+                            Thread.Sleep(1200);
                         }
                         else
                         {
-                            log?.Invoke($"[{attemptLabel}] 1. Secondary retry: Dismissing any error banner with Escape key...");
+                            log?.Invoke($"[{attemptLabel}] 1. Secondary recovery: Dismissing any error banner with Escape key...");
                             byte escScan = (byte)MapVirtualKey(VK_ESCAPE, 0);
                             keybd_event(VK_ESCAPE, escScan, 0, UIntPtr.Zero);
                             Thread.Sleep(30);
                             keybd_event(VK_ESCAPE, escScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                            Thread.Sleep(300);
+                            Thread.Sleep(400);
                         }
 
                         // NOTE: In Windows 11, the PIN box is automatically focused when the overlay slides up.
                         // Do NOT simulate mouse clicks, which de-focus the PIN box on Windows 11.
 
-                        log?.Invoke($"[{attemptLabel}] 4. Clearing input field with 8 backspaces...");
+                        log?.Invoke($"[{attemptLabel}] 5. Clearing input field with 8 backspaces...");
                         byte backScan = (byte)MapVirtualKey(VK_BACK, 0);
                         for (int i = 0; i < 8; i++)
                         {
@@ -697,9 +713,9 @@ namespace ILock.WindowsAgent.Access
                             keybd_event(VK_BACK, backScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
                             Thread.Sleep(15);
                         }
-                        Thread.Sleep(50);
+                        Thread.Sleep(60);
 
-                        log?.Invoke($"[{attemptLabel}] 5. Typing {sequencePin.Length} PIN digits with hardware scan codes...");
+                        log?.Invoke($"[{attemptLabel}] 6. Typing {sequencePin.Length} PIN digits with hardware scan codes...");
                         foreach (char c in sequencePin)
                         {
                             byte vk = (byte)c;
@@ -710,15 +726,15 @@ namespace ILock.WindowsAgent.Access
                             Thread.Sleep(25);
                         }
 
-                        log?.Invoke($"[{attemptLabel}] 6. Submitting PIN with Enter key...");
-                        Thread.Sleep(40);
+                        log?.Invoke($"[{attemptLabel}] 7. Submitting PIN with Enter key...");
+                        Thread.Sleep(50);
                         byte enterScan = (byte)MapVirtualKey(VK_RETURN, 0);
                         keybd_event(VK_RETURN, enterScan, 0, UIntPtr.Zero);
                         Thread.Sleep(25);
                         keybd_event(VK_RETURN, enterScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
                     }
 
-                    // Attempt 1: Full sequence with 1150ms curtain transition
+                    // Attempt 1: Full sequence with 500ms wake stabilization and 1200ms curtain slide
                     PerformTypeSequence(pin, "Attempt-1", isRetry: false);
 
                     // Responsive polling: Windows Hello switches desktop from Winlogon to Default in ~150ms to 400ms
@@ -736,7 +752,7 @@ namespace ILock.WindowsAgent.Access
 
                     if (stillLocked)
                     {
-                        log?.Invoke("Workstation still locked after Attempt-1. Initiating clean secondary retry attempt...");
+                        log?.Invoke("Workstation still locked after Attempt-1. Initiating clean secondary retry attempt on active password page...");
                         PerformTypeSequence(pin, "Attempt-2", isRetry: true);
                         for (int i = 0; i < 25; i++)
                         {
