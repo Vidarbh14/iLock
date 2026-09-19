@@ -108,23 +108,29 @@ export function GrantAccessModal({ device, isOpen, onClose, onSuccess }: Props) 
               Access Duration
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {PRESET_DURATIONS.map((preset) => (
-                <button
-                  key={preset.minutes}
-                  type="button"
-                  onClick={() => {
-                    setSelectedDuration(preset.minutes);
-                    setIsCustom(false);
-                  }}
-                  className={`py-2 px-3 rounded-xl text-xs font-mono font-medium transition-all border ${
-                    !isCustom && selectedDuration === preset.minutes
-                      ? 'bg-gradient-to-r from-[#0066ff]/30 to-[#00e5ff]/20 text-[#00e5ff] border-[#00e5ff]/50 shadow-[0_0_12px_rgba(0,229,255,0.25)]'
-                      : 'bg-white/[0.04] text-[#8b949e] border-white/[0.08] hover:border-white/[0.18] hover:text-[#f0f3f6]'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
+              {PRESET_DURATIONS.map((preset) => {
+                const isSelected = !isCustom && selectedDuration === preset.minutes;
+                return (
+                  <button
+                    key={preset.minutes}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDuration(preset.minutes);
+                      setIsCustom(false);
+                    }}
+                    className={`relative py-2.5 px-3 rounded-xl text-xs font-mono font-medium transition-all duration-200 active:scale-95 border ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-[#0066ff]/35 to-[#00e5ff]/25 text-[#00e5ff] border-[#00e5ff]/60 shadow-[0_0_15px_rgba(0,229,255,0.3)] scale-[1.02]'
+                        : 'bg-white/[0.04] text-[#8b949e] border-white/[0.08] hover:border-white/[0.2] hover:text-[#f0f3f6]'
+                    }`}
+                  >
+                    {isSelected && (
+                      <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#00e5ff] shadow-[0_0_6px_#00e5ff] animate-pulse" />
+                    )}
+                    {preset.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Custom Minutes Input */}

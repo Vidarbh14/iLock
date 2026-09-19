@@ -50,7 +50,7 @@ export function Navbar() {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation with Micro-Interactions (Requirement 10) */}
           <nav className="hidden md:flex items-center gap-1.5 ml-2">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -59,14 +59,19 @@ export function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-gradient-to-r from-[#0066ff]/25 to-[#00e5ff]/20 text-[#00e5ff] border border-[#00e5ff]/35 shadow-[0_0_15px_rgba(0,229,255,0.2)]'
-                      : 'text-[#8b949e] hover:text-[#f0f3f6] hover:bg-white/[0.04]'
+                      ? 'bg-gradient-to-r from-[#0066ff]/25 to-[#00e5ff]/20 text-[#00e5ff] border border-[#00e5ff]/40 shadow-[0_0_15px_rgba(0,229,255,0.25)]'
+                      : 'text-[#8b949e] hover:text-[#f0f3f6] hover:bg-white/[0.05] hover:border-white/[0.1] border border-transparent'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  {item.label}
+                  <Icon className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:scale-110" />
+                  <span className="transition-transform duration-200 group-hover:translate-x-0.5">
+                    {item.label}
+                  </span>
+                  {isActive && (
+                    <span className="w-1 h-1 rounded-full bg-[#00e5ff] shadow-[0_0_6px_#00e5ff] animate-pulse" />
+                  )}
                 </Link>
               );
             })}

@@ -80,22 +80,29 @@ export function CornerOrb({
 
   return (
     <div
-      className={`absolute ${positionClasses} pointer-events-none z-10 flex items-center justify-center ${className}`}
+      className={`absolute ${positionClasses} pointer-events-none z-10 flex items-center justify-center transition-all duration-500 ease-out group-hover:scale-115 ${className}`}
       aria-hidden="true"
     >
+      {/* Active Expansion Ring (Requirement 4: On active interaction, ring appears) */}
+      {isGlowing && (
+        <div
+          className={`absolute rounded-full border border-current ${glowSizeClasses} ${colorConfig.border} animate-ping opacity-30 duration-1000`}
+        />
+      )}
+
       {/* Ambient Atmospheric Blur Halo */}
       <div
         className={`absolute rounded-full blur-md ${glowSizeClasses} ${colorConfig.glow} transition-all duration-700 ${
-          isGlowing ? 'scale-125 opacity-100' : 'scale-100 opacity-60'
-        }`}
+          isGlowing ? 'scale-130 opacity-90' : 'scale-100 opacity-60'
+        } group-hover:opacity-100 group-hover:scale-140`}
       />
 
-      {/* Floating Orb Core */}
+      {/* Floating Orb Core with subtle scale & opacity breathing */}
       <div
-        className={`relative rounded-full bg-gradient-to-br ${colorConfig.core} border ${colorConfig.border} ${colorConfig.shadow} ${sizeClasses} transition-transform duration-500 animate-orb-float`}
+        className={`relative rounded-full bg-gradient-to-br ${colorConfig.core} border ${colorConfig.border} ${colorConfig.shadow} ${sizeClasses} transition-all duration-500 animate-orb-float group-hover:shadow-[0_0_20px_rgba(0,229,255,0.8)]`}
       >
         {/* Specular Highlight */}
-        <div className="absolute top-0.5 left-0.5 w-1/3 h-1/3 rounded-full bg-white/70 blur-[0.5px]" />
+        <div className="absolute top-0.5 left-0.5 w-1/3 h-1/3 rounded-full bg-white/75 blur-[0.4px]" />
       </div>
     </div>
   );

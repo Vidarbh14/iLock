@@ -60,40 +60,48 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Primary Command Button - Electric Blue to Cyan */
+/* Primary Command Button - Electric Blue to Cyan with Physical Micro-Interactions */
 .apple-btn-primary {
   background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
   color: #ffffff;
   border: 1px solid rgba(0, 229, 255, 0.35);
   box-shadow: 0 2px 14px 0 rgba(0, 102, 255, 0.38), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
 }
 
 .apple-btn-primary:hover {
   background: linear-gradient(135deg, #0077ed 0%, #0066ff 100%);
-  box-shadow: 0 4px 20px 0 rgba(0, 229, 255, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 24px 0 rgba(0, 229, 255, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1.5px) scale(1.015);
 }
 
 .apple-btn-primary:active {
-  transform: translateY(0);
+  transform: scale(0.97) translateY(0);
+  box-shadow: 0 2px 10px 0 rgba(0, 102, 255, 0.3);
 }
 
-/* Secondary Action Button - Deep Graphite Translucent */
+/* Secondary Action Button - Deep Graphite Translucent with Physical Micro-Interactions */
 .apple-btn-secondary {
   background: rgba(255, 255, 255, 0.05);
   color: #f0f3f6;
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, border-color, box-shadow;
 }
 
 .apple-btn-secondary:hover {
   background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(0, 229, 255, 0.3);
+  border-color: rgba(0, 229, 255, 0.35);
   color: #ffffff;
-  box-shadow: 0 0 15px -3px rgba(0, 229, 255, 0.15);
+  box-shadow: 0 4px 18px -2px rgba(0, 229, 255, 0.2);
+  transform: translateY(-1.5px) scale(1.015);
+}
+
+.apple-btn-secondary:active {
+  transform: scale(0.97) translateY(0);
 }
 
 /* Danger / Emergency Revoke Button */
@@ -103,14 +111,20 @@ body {
   border: 1px solid rgba(244, 63, 94, 0.28);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, border-color, box-shadow;
 }
 
 .apple-btn-danger:hover {
   background: rgba(244, 63, 94, 0.22);
-  border-color: rgba(244, 63, 94, 0.45);
+  border-color: rgba(244, 63, 94, 0.55);
   color: #ffffff;
-  box-shadow: 0 0 20px -3px rgba(244, 63, 94, 0.35);
+  box-shadow: 0 4px 22px -2px rgba(244, 63, 94, 0.4);
+  transform: translateY(-1.5px) scale(1.015);
+}
+
+.apple-btn-danger:active {
+  transform: scale(0.97) translateY(0);
 }
 
 /* Modals */
@@ -122,6 +136,19 @@ body {
   box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.8), 0 0 30px -5px rgba(0, 102, 255, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
   border-radius: 1.5rem;
   color: #f0f3f6;
+  animation: modalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes modalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* Dark Cybersecurity Inputs */
@@ -174,6 +201,93 @@ body {
 
 .animate-fade-in {
   animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Coordinated Page Entrance Sequences (Requirement 1) */
+.entry-seq-0 {
+  animation: enterUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0ms backwards;
+}
+.entry-seq-1 {
+  animation: enterUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) 100ms backwards;
+}
+.entry-seq-2 {
+  animation: enterUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) 200ms backwards;
+}
+.entry-seq-3 {
+  animation: enterUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) 300ms backwards;
+}
+.entry-seq-4 {
+  animation: enterUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) 400ms backwards;
+}
+.entry-seq-5 {
+  animation: enterUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) 500ms backwards;
+}
+
+/* Staggered Items Animation (Requirement 16) */
+.stagger-item-1 { animation: enterSlideLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) 40ms backwards; }
+.stagger-item-2 { animation: enterSlideLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) 80ms backwards; }
+.stagger-item-3 { animation: enterSlideLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) 120ms backwards; }
+.stagger-item-4 { animation: enterSlideLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) 160ms backwards; }
+.stagger-item-5 { animation: enterSlideLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) 200ms backwards; }
+.stagger-item-6 { animation: enterSlideLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) 240ms backwards; }
+
+@keyframes enterSlideLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Continuous Online Status Breathing Pulse (Requirement 6) */
+@keyframes breathingPulseRing {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.85);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.85);
+    opacity: 0;
+  }
+}
+
+.animate-breathing-ring {
+  animation: breathingPulseRing 2.6s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+/* Command Transmit Pulse along conduit (Requirement 12) */
+@keyframes commandWave {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.animate-command-wave {
+  animation: commandWave 1.4s ease-in-out infinite;
+}
+
+/* Accessibility: Respect Reduced Motion (Requirement 23) */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 /* iOS Safe Area Support */

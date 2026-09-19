@@ -76,7 +76,8 @@ export function SessionCountdown({
 
   if (safeTimeMs <= 0) {
     return (
-      <div className={`font-mono text-xs font-semibold text-slate-500 ${className}`}>
+      <div className={`font-mono text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-400 inline-flex items-center gap-1.5 animate-fade-in ${className}`}>
+        <span className="w-1.5 h-1.5 rounded-full bg-rose-500/70" />
         EXPIRED
       </div>
     );
@@ -85,14 +86,17 @@ export function SessionCountdown({
   return (
     <div className={`space-y-1.5 ${className}`}>
       <div className="flex items-center justify-between text-xs font-mono">
-        <span className="text-slate-400">Time Remaining:</span>
-        <span className={`font-mono font-bold tracking-widest text-sm ${colorClass}`}>
+        <span className="text-slate-400 flex items-center gap-1.5">
+          <span className={`w-1.5 h-1.5 rounded-full ${minutes < 3 ? 'bg-rose-400 animate-ping' : minutes < 10 ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+          Time Remaining:
+        </span>
+        <span className={`font-mono font-bold tracking-widest text-sm transition-colors duration-500 ${colorClass}`}>
           {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
         </span>
       </div>
       <div className="w-full h-1.5 bg-slate-800/80 rounded-full overflow-hidden">
         <div
-          className={`h-full ${barColor} transition-all duration-1000 rounded-full`}
+          className={`h-full ${barColor} transition-all duration-1000 ease-linear rounded-full`}
           style={{ width: `${progressPct}%` }}
         />
       </div>

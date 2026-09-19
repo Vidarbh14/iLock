@@ -61,9 +61,9 @@ export function DeviceStatusBadge({ status, className = '', showPing = true }: P
     <span
       className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider border backdrop-blur-md ${current.bg} ${current.text} ${className}`}
     >
-      <span className="relative flex h-2 w-2">
+      <span className="relative flex h-2 w-2 items-center justify-center">
         {showPing && status === 'online' && (
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10b981] opacity-75" />
+          <span className="animate-breathing-ring absolute inline-flex h-3.5 w-3.5 rounded-full bg-[#10b981]" />
         )}
         <span className={`relative inline-flex rounded-full h-2 w-2 ${current.dot} ${current.glow}`} />
       </span>

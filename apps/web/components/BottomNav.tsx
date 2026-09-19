@@ -26,18 +26,23 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200 active:scale-95 ${
                 isActive ? 'text-[#00e5ff] font-semibold' : 'text-[#8b949e] hover:text-[#f0f3f6]'
               }`}
             >
               <div
-                className={`p-1.5 rounded-xl transition-all ${
-                  isActive ? 'bg-[#00e5ff]/15 text-[#00e5ff] shadow-[0_0_12px_rgba(0,229,255,0.3)]' : ''
+                className={`p-1.5 rounded-xl transition-all duration-300 ${
+                  isActive
+                    ? 'bg-[#00e5ff]/20 text-[#00e5ff] shadow-[0_0_15px_rgba(0,229,255,0.4)] scale-105 border border-[#00e5ff]/30'
+                    : 'hover:bg-white/[0.05]'
                 }`}
               >
                 <Icon className="w-4 h-4" />
               </div>
-              <span className="text-[10px] mt-1 font-mono tracking-tight">{item.label}</span>
+              <span className="text-[10px] mt-1 font-mono tracking-tight flex items-center gap-1">
+                {item.label}
+                {isActive && <span className="w-1 h-1 rounded-full bg-[#00e5ff]" />}
+              </span>
             </Link>
           );
         })}

@@ -48,7 +48,7 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
   };
 
   return (
-    <div className="glass-card p-5 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+    <div className="glass-card p-5 transition-all duration-300 ease-out flex flex-col justify-between group relative overflow-hidden hover:-translate-y-1 hover:border-[#00e5ff]/35 hover:shadow-[0_16px_45px_rgba(0,0,0,0.6),0_0_24px_rgba(0,229,255,0.14)]">
       {/* Signature iLock Bubble Corner Elements */}
       <CornerOrb
         position="top-right"
@@ -67,12 +67,18 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
       <div>
         <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
           <div className="flex items-center gap-3 min-w-0">
-            {/* Centerpiece Device Avatar with Orbital Ring */}
+            {/* Centerpiece Device Avatar with Orbital Ring & Lock Ring (Requirements 5 & 12) */}
             <div className="relative">
-              <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.1] flex items-center justify-center text-[#00e5ff] shadow-inner group-hover:border-[#00e5ff]/40 transition-all">
-                <Laptop className="w-6 h-6 text-[#00e5ff]" />
+              {/* Expanding Security Ring on Lock Command (Requirement 12) */}
+              {isLocking && (
+                <div className="absolute inset-0 rounded-2xl border-2 border-rose-500 animate-ring-expand pointer-events-none" />
+              )}
+
+              <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.1] flex items-center justify-center text-[#00e5ff] shadow-inner group-hover:border-[#00e5ff]/50 group-hover:scale-105 transition-all duration-300">
+                <Laptop className="w-6 h-6 text-[#00e5ff] transition-transform duration-300 group-hover:scale-110" />
               </div>
-              {/* Status Indicator Pip */}
+
+              {/* Status Indicator Pip with Breathing Ring */}
               <div
                 className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-[#0d111a] flex items-center justify-center ${
                   isOnline ? 'bg-[#10b981]' : 'bg-[#6b7280]'
@@ -83,7 +89,7 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
             </div>
 
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold tracking-tight text-[#f0f3f6] flex items-center gap-2 truncate">
+              <h3 className="text-sm font-semibold tracking-tight text-[#f0f3f6] flex items-center gap-2 truncate group-hover:text-white transition-colors">
                 {device.deviceName || (device as any).device_name || 'Windows Workstation'}
               </h3>
               <p className="text-xs text-[#8b949e] font-mono truncate">
@@ -97,7 +103,7 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
             <DeviceStatusBadge status={device.status} />
             {isOnline && telemetry && (
               <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider border ${
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider border transition-all duration-300 ${
                   isLocked
                     ? 'bg-[#f59e0b]/15 border-[#f59e0b]/35 text-[#fbbf24]'
                     : 'bg-[#10b981]/15 border-[#10b981]/35 text-[#34d399]'
@@ -105,12 +111,12 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
               >
                 {isLocked ? (
                   <>
-                    <Lock className="w-2.5 h-2.5" />
+                    <Lock className="w-2.5 h-2.5 text-amber-400" />
                     LOCKED
                   </>
                 ) : (
                   <>
-                    <Activity className="w-2.5 h-2.5" />
+                    <Activity className="w-2.5 h-2.5 text-emerald-400" />
                     IN USE
                   </>
                 )}
@@ -119,10 +125,10 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
           </div>
         </div>
 
-        {/* Telemetry Visualizers Grid */}
+        {/* Telemetry Visualizers Grid with Staggered Entrance (Requirement 5) */}
         <div className="grid grid-cols-3 gap-2 my-3 relative z-10">
           {/* CPU Gauge */}
-          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] flex flex-col justify-between">
+          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] flex flex-col justify-between transition-all duration-200">
             <div className="flex items-center justify-between text-[10px] text-[#8b949e]">
               <span className="flex items-center gap-1 font-mono">
                 <Cpu className="w-3 h-3 text-[#00e5ff]" /> CPU
@@ -144,7 +150,7 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
           </div>
 
           {/* RAM Gauge */}
-          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] flex flex-col justify-between">
+          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] flex flex-col justify-between transition-all duration-200">
             <div className="flex items-center justify-between text-[10px] text-[#8b949e]">
               <span className="flex items-center gap-1 font-mono">
                 <HardDrive className="w-3 h-3 text-[#a855f7]" /> RAM
@@ -166,7 +172,7 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
           </div>
 
           {/* Battery Gauge */}
-          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] flex flex-col justify-between">
+          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] flex flex-col justify-between transition-all duration-200">
             <div className="flex items-center justify-between text-[10px] text-[#8b949e]">
               <span className="flex items-center gap-1 font-mono">
                 <Battery className="w-3 h-3 text-[#10b981]" /> PWR

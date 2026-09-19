@@ -98,8 +98,8 @@ export default function DevicesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+      {/* Page Header (Requirement 1: entry-seq-2) */}
+      <div className="entry-seq-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#00e5ff] shadow-[0_0_10px_#00e5ff] animate-pulse" />
@@ -122,7 +122,7 @@ export default function DevicesPage() {
               setIsRefreshing(true);
               fetchDevices();
             }}
-            className="p-2.5 rounded-2xl apple-btn-secondary"
+            className="p-2.5 rounded-2xl apple-btn-secondary active:scale-95"
             title="Refresh Devices"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#00e5ff]' : 'text-[#8b949e]'}`} />
@@ -138,8 +138,8 @@ export default function DevicesPage() {
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="relative">
+      {/* Search & Filter Bar (Requirement 1: entry-seq-3) */}
+      <div className="entry-seq-3 relative">
         <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-[#8b949e]" />
         <input
           type="text"
@@ -150,7 +150,7 @@ export default function DevicesPage() {
         />
       </div>
 
-      {/* Grid of Devices */}
+      {/* Grid of Devices (Requirement 1 & 5: entry-seq-4) */}
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
@@ -158,7 +158,7 @@ export default function DevicesPage() {
           ))}
         </div>
       ) : filteredDevices.length === 0 ? (
-        <div className="text-center py-16 px-4 rounded-3xl glass-card space-y-4 border border-white/[0.08] relative overflow-hidden">
+        <div className="entry-seq-4 text-center py-16 px-4 rounded-3xl glass-card space-y-4 border border-white/[0.08] relative overflow-hidden">
           <CornerOrb position="top-right" variant="cyan" size="sm" active />
           <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-[#00e5ff] mx-auto shadow-inner">
             <Laptop className="w-7 h-7" />
@@ -183,15 +183,16 @@ export default function DevicesPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDevices.map((device) => (
-            <DeviceCard
-              key={device.id}
-              device={device}
-              onGrantAccess={(dev) => setSelectedDeviceForGrant(dev)}
-              onLock={handleLock}
-              onUnlock={(dev) => setSelectedDeviceForUnlock(dev)}
-            />
+        <div className="entry-seq-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredDevices.map((device, idx) => (
+            <div key={device.id} className={`stagger-item-${(idx % 6) + 1}`}>
+              <DeviceCard
+                device={device}
+                onGrantAccess={(dev) => setSelectedDeviceForGrant(dev)}
+                onLock={handleLock}
+                onUnlock={(dev) => setSelectedDeviceForUnlock(dev)}
+              />
+            </div>
           ))}
         </div>
       )}

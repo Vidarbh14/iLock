@@ -23,9 +23,10 @@ interface Props {
   onSuccess: () => void;
 }
 
+type UnlockStage = 'IDLE' | 'AUTHORIZING' | 'VERIFIED' | 'UNLOCKING' | 'UNLOCKED';
+
 export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Props) {
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [authSuccess, setAuthSuccess] = useState(false);
+  const [stage, setStage] = useState<UnlockStage>('IDLE');
   const [error, setError] = useState<string | null>(null);
   const [biometricSupported, setBiometricSupported] = useState<boolean>(true);
 
@@ -42,14 +43,14 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
   useEffect(() => {
     if (isOpen) {
       setError(null);
-      setAuthSuccess(false);
+      setStage('IDLE');
     }
   }, [isOpen]);
 
   if (!isOpen || !device) return null;
 
   const triggerBiometricAuth = async () => {
-    setIsAuthenticating(true);
+    setStage('AUTHORIZING');
     setError(null);
 
     let biometricVerified = false;
@@ -91,6 +92,13 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
     }
 
     try {
+      // Step 2: Transition to VERIFIED (Requirement 13)
+      setStage('VERIFIED');
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
+      // Step 3: Transition to UNLOCKING (Requirement 13)
+      setStage('UNLOCKING');
+
       const res = await fetch(`/api/devices/${device.id}/unlock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,20 +110,23 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
         throw new Error(data.error?.message || 'Remote unlock command dispatch failed');
       }
 
-      setAuthSuccess(true);
+      // Step 4: Transition to UNLOCKED (Requirement 13)
+      setStage('UNLOCKED');
       setTimeout(() => {
         onSuccess();
         onClose();
-      }, 1200);
+      }, 1000);
     } catch (err: any) {
       setError(err.message || 'Unlock dispatch failed. Verify internet connection.');
-    } finally {
-      setIsAuthenticating(false);
+      setStage('IDLE');
     }
   };
 
+  const isWorking = stage === 'AUTHORIZING' || stage === 'VERIFIED' || stage === 'UNLOCKING';
+  const isDone = stage === 'UNLOCKED';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
       <div className="w-full max-w-md glass-modal p-6 shadow-2xl space-y-6 relative overflow-hidden border border-white/[0.1]">
         {/* Corner Orbs */}
         <CornerOrb position="top-right" variant="emerald" size="sm" active />
@@ -140,32 +151,44 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
           </button>
         </div>
 
-        {/* Interactive Biometric Scanner Target */}
+        {/* Interactive Biometric Scanner Target (Requirement 13) */}
         <div className="text-center py-6 space-y-4 relative z-10">
           <div className="relative inline-flex items-center justify-center">
-            {/* Radar Pulse Rings */}
+            {/* Concentric Biometric Radar Rings */}
             <div
-              className={`absolute w-32 h-32 rounded-full border border-[#00e5ff]/20 animate-ping opacity-30 ${
-                isAuthenticating ? 'duration-700' : 'duration-1000'
+              className={`absolute w-32 h-32 rounded-full border border-[#00e5ff]/30 animate-ping opacity-30 ${
+                isWorking ? 'duration-700' : 'duration-1000'
               }`}
             />
-            <div className="absolute w-24 h-24 rounded-full bg-gradient-to-br from-[#0066ff]/15 to-[#00e5ff]/15 blur-xl" />
+            {isWorking && (
+              <div className="absolute w-28 h-28 rounded-full border border-[#10b981]/40 animate-ping opacity-50 duration-700" />
+            )}
+            <div className="absolute w-24 h-24 rounded-full bg-gradient-to-br from-[#0066ff]/20 to-[#00e5ff]/20 blur-xl" />
 
-            {/* Center Biometric Target Button */}
+            {/* Center Biometric Target Button with Scan Effect */}
             <button
               onClick={triggerBiometricAuth}
-              disabled={isAuthenticating || authSuccess}
-              className={`relative z-10 w-24 h-24 rounded-3xl flex flex-col items-center justify-center transition-all duration-300 shadow-2xl border ${
-                authSuccess
-                  ? 'bg-[#10b981]/25 border-[#10b981] text-[#34d399] shadow-[0_0_30px_rgba(16,185,129,0.5)] scale-105'
-                  : isAuthenticating
-                  ? 'bg-[#0066ff]/25 border-[#00e5ff] text-[#00e5ff] shadow-[0_0_30px_rgba(0,229,255,0.4)] animate-pulse'
+              disabled={isWorking || isDone}
+              className={`relative z-10 w-24 h-24 rounded-3xl flex flex-col items-center justify-center transition-all duration-300 shadow-2xl border overflow-hidden ${
+                isDone
+                  ? 'bg-[#10b981]/25 border-[#10b981] text-[#34d399] shadow-[0_0_35px_rgba(16,185,129,0.6)] scale-105'
+                  : stage === 'VERIFIED'
+                  ? 'bg-[#00e5ff]/25 border-[#00e5ff] text-[#00e5ff] shadow-[0_0_30px_rgba(0,229,255,0.5)] scale-105'
+                  : isWorking
+                  ? 'bg-[#0066ff]/20 border-[#00e5ff] text-[#00e5ff] shadow-[0_0_30px_rgba(0,229,255,0.4)] animate-pulse'
                   : 'bg-white/[0.05] border-white/[0.15] text-[#f0f3f6] hover:border-[#00e5ff]/60 hover:text-[#00e5ff] hover:scale-105'
               }`}
             >
-              {authSuccess ? (
+              {/* Luminous Biometric Scan Line during authorization */}
+              {isWorking && (
+                <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#00e5ff] to-transparent shadow-[0_0_12px_#00e5ff] animate-scan-line pointer-events-none" />
+              )}
+
+              {isDone ? (
                 <CheckCircle2 className="w-10 h-10 text-[#34d399] animate-bounce" />
-              ) : isAuthenticating ? (
+              ) : stage === 'VERIFIED' ? (
+                <ShieldCheck className="w-10 h-10 text-[#00e5ff] animate-pulse" />
+              ) : isWorking ? (
                 <Loader2 className="w-10 h-10 text-[#00e5ff] animate-spin" />
               ) : (
                 <Fingerprint className="w-10 h-10" />
@@ -174,16 +197,26 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
           </div>
 
           <div className="space-y-1">
-            <h4 className="text-sm font-semibold text-[#f0f3f6]">
-              {authSuccess
-                ? 'Authorization Granted! Workstation Unlocked'
-                : isAuthenticating
-                ? 'Evaluating Biometric Authorization...'
-                : 'Touch to Authorize Unlock'}
+            <h4 className="text-sm font-semibold text-[#f0f3f6] transition-all">
+              {stage === 'UNLOCKED'
+                ? 'WORKSTATION UNLOCKED'
+                : stage === 'UNLOCKING'
+                ? 'UNLOCKING...'
+                : stage === 'VERIFIED'
+                ? 'VERIFIED'
+                : stage === 'AUTHORIZING'
+                ? 'AUTHORIZING...'
+                : 'Touch to Authorize'}
             </h4>
             <p className="text-xs text-[#8b949e] max-w-xs mx-auto font-mono">
-              {authSuccess
-                ? 'Secured session restored on target computer'
+              {stage === 'UNLOCKED'
+                ? 'Desktop unlocked and active'
+                : stage === 'UNLOCKING'
+                ? 'Dispatched signed cryptographic unlock token'
+                : stage === 'VERIFIED'
+                ? 'Biometric signature verified via secure platform enclave'
+                : stage === 'AUTHORIZING'
+                ? 'Authenticating biometric credentials...'
                 : biometricSupported
                 ? 'Uses your phone fingerprint / Face ID platform authenticator'
                 : 'Sends signed owner unlock command to Windows Agent'}
@@ -203,18 +236,28 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
         <div className="space-y-2 relative z-10">
           <button
             onClick={triggerBiometricAuth}
-            disabled={isAuthenticating || authSuccess}
+            disabled={isWorking || isDone}
             className="w-full py-3 rounded-full text-xs font-semibold text-white apple-btn-primary disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg transition-all"
           >
-            {isAuthenticating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Verifying Biometric Key...</span>
-              </>
-            ) : authSuccess ? (
+            {stage === 'UNLOCKED' ? (
               <>
                 <Unlock className="w-4 h-4" />
-                <span>Workstation Unlocked</span>
+                <span>UNLOCKED</span>
+              </>
+            ) : stage === 'UNLOCKING' ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>UNLOCKING WORKSTATION...</span>
+              </>
+            ) : stage === 'VERIFIED' ? (
+              <>
+                <ShieldCheck className="w-4 h-4 text-[#34d399]" />
+                <span>VERIFIED — DISPATCHING...</span>
+              </>
+            ) : stage === 'AUTHORIZING' ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>AUTHORIZING...</span>
               </>
             ) : (
               <>

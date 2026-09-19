@@ -56,8 +56,8 @@ export default function SecurityAuditPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header (Requirement 1: entry-seq-2) */}
+      <div className="entry-seq-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2.5">
             <ShieldCheck className="w-6 h-6 text-cyan-400" />
@@ -73,16 +73,16 @@ export default function SecurityAuditPage() {
             setIsRefreshing(true);
             fetchLogs();
           }}
-          className="p-2.5 rounded-xl glass-card border border-cyber-border text-slate-400 hover:text-cyan-400 transition-colors"
+          className="p-2.5 rounded-xl glass-card border border-cyber-border text-slate-400 hover:text-cyan-400 transition-all active:scale-95"
           title="Refresh Audit Log"
         >
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
         </button>
       </div>
 
-      {/* Security Architecture Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="relative p-5 rounded-3xl glass-card space-y-2 border border-cyber-border overflow-hidden">
+      {/* Security Architecture Cards (Requirement 1: entry-seq-3) */}
+      <div className="entry-seq-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="relative p-5 rounded-3xl glass-card space-y-2 border border-cyber-border overflow-hidden hover:-translate-y-1 transition-all duration-300 group">
           <CornerOrb variant="cyan" />
           <span className="text-[11px] text-cyan-400 font-semibold flex items-center gap-1.5 uppercase font-mono">
             <Key className="w-3.5 h-3.5" /> Zero Credential Storage
@@ -92,7 +92,7 @@ export default function SecurityAuditPage() {
           </p>
         </div>
 
-        <div className="relative p-5 rounded-3xl glass-card space-y-2 border border-cyber-border overflow-hidden">
+        <div className="relative p-5 rounded-3xl glass-card space-y-2 border border-cyber-border overflow-hidden hover:-translate-y-1 transition-all duration-300 group">
           <CornerOrb variant="emerald" />
           <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1.5 uppercase font-mono">
             <ShieldCheck className="w-3.5 h-3.5" /> Asymmetric Enclave
@@ -102,7 +102,7 @@ export default function SecurityAuditPage() {
           </p>
         </div>
 
-        <div className="relative p-5 rounded-3xl glass-card space-y-2 border border-cyber-border overflow-hidden">
+        <div className="relative p-5 rounded-3xl glass-card space-y-2 border border-cyber-border overflow-hidden hover:-translate-y-1 transition-all duration-300 group">
           <CornerOrb variant="rose" />
           <span className="text-[11px] text-rose-400 font-semibold flex items-center gap-1.5 uppercase font-mono">
             <Lock className="w-3.5 h-3.5" /> Replay & Drift Shield
@@ -113,16 +113,16 @@ export default function SecurityAuditPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl glass-card border border-cyber-border max-w-md">
+      {/* Filter Tabs (Requirement 1: entry-seq-4) */}
+      <div className="entry-seq-4 flex items-center gap-1.5 p-1.5 rounded-2xl glass-card border border-cyber-border max-w-md">
         {['ALL', 'ACCESS', 'DEVICE', 'SECURITY'].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all ${
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 ${
               filter === f
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold shadow-[0_0_12px_rgba(0,229,255,0.3)]'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
             }`}
           >
             {f}
@@ -130,8 +130,8 @@ export default function SecurityAuditPage() {
         ))}
       </div>
 
-      {/* Log Feed */}
-      <div className="p-6 glass-card rounded-3xl border border-cyber-border space-y-4">
+      {/* Log Feed (Requirement 1 & 16: entry-seq-5 & Staggered Timeline Animation) */}
+      <div className="entry-seq-5 p-6 glass-card rounded-3xl border border-cyber-border space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-cyber-border/60">
           <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
             <Shield className="w-4 h-4 text-cyan-400" />
@@ -163,7 +163,7 @@ export default function SecurityAuditPage() {
           <p className="text-xs text-slate-400 text-center py-10">No audit records found matching this filter.</p>
         ) : (
           <div className="divide-y divide-cyber-border/60 text-xs">
-            {filteredLogs.map((log) => {
+            {filteredLogs.map((log, idx) => {
               const eventType = String(log.eventType || (log as any).event_type || 'UNKNOWN');
               const ipHash = log.ipHash || (log as any).ip_hash || 'Local Agent (127.0.0.1)';
               const rawTimestamp = log.timestamp || (log as any).created_at;
@@ -173,7 +173,10 @@ export default function SecurityAuditPage() {
               const timeStr = isValidDate ? dateObj.toLocaleTimeString() : '';
 
               return (
-                <div key={log.id} className="py-3.5 flex items-start justify-between gap-4 hover:bg-slate-900/30 px-2 rounded-xl transition-colors">
+                <div
+                  key={log.id}
+                  className={`py-3.5 flex items-start justify-between gap-4 hover:bg-slate-900/30 px-2 rounded-xl transition-colors stagger-item-${(idx % 6) + 1}`}
+                >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2.5">
                       <span

@@ -59,6 +59,12 @@ const config: Config = {
         'pulse-subtle': 'pulseSubtle 3s ease-in-out infinite',
         'radar-sweep': 'radarSweep 4s linear infinite',
         'shimmer': 'shimmer 2.5s linear infinite',
+        'ambient-drift-slow': 'ambientDriftSlow 18s ease-in-out infinite alternate',
+        'ambient-drift-rev': 'ambientDriftRev 22s ease-in-out infinite alternate',
+        'scan-line': 'scanLine 2s ease-in-out infinite',
+        'conduit-flow': 'conduitFlow 2.8s linear infinite',
+        'ring-expand': 'ringExpand 2s cubic-bezier(0, 0.2, 0.8, 1) infinite',
+        'enter-up': 'enterUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       },
       keyframes: {
         orbFloat: {
@@ -76,6 +82,34 @@ const config: Config = {
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
+        },
+        ambientDriftSlow: {
+          '0%': { transform: 'translate(0px, 0px) scale(1)' },
+          '50%': { transform: 'translate(60px, 40px) scale(1.12)' },
+          '100%': { transform: 'translate(-40px, 80px) scale(0.95)' },
+        },
+        ambientDriftRev: {
+          '0%': { transform: 'translate(0px, 0px) scale(1)' },
+          '50%': { transform: 'translate(-70px, -35px) scale(1.08)' },
+          '100%': { transform: 'translate(50px, -60px) scale(0.92)' },
+        },
+        scanLine: {
+          '0%': { transform: 'translateY(-100%)', opacity: '0' },
+          '30%': { opacity: '0.8' },
+          '70%': { opacity: '0.8' },
+          '100%': { transform: 'translateY(250%)', opacity: '0' },
+        },
+        conduitFlow: {
+          '0%': { strokeDashoffset: '60' },
+          '100%': { strokeDashoffset: '0' },
+        },
+        ringExpand: {
+          '0%': { transform: 'scale(0.8)', opacity: '0.9' },
+          '100%': { transform: 'scale(2.2)', opacity: '0' },
+        },
+        enterUp: {
+          '0%': { opacity: '0', transform: 'translateY(18px) scale(0.98)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
       },
     },

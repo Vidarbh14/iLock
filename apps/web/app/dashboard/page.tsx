@@ -55,6 +55,9 @@ export default function DashboardPage() {
   const [selectedSessionForRevoke, setSelectedSessionForRevoke] = useState<AccessSession | null>(null);
   const [isPairModalOpen, setIsPairModalOpen] = useState(false);
   const [lockingDeviceId, setLockingDeviceId] = useState<string | null>(null);
+  const [isHeartbeating, setIsHeartbeating] = useState(false);
+  const [spotlightMouse, setSpotlightMouse] = useState({ x: 0, y: 0 });
+  const prevLastSeenRef = React.useRef<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -71,7 +74,17 @@ export default function DashboardPage() {
         auditRes.json(),
       ]);
 
-      if (devData.devices) setDevices(devData.devices);
+      if (devData.devices) {
+        setDevices(devData.devices);
+        const primary = devData.devices[0];
+        const currentSeen = primary?.lastSeen || primary?.last_seen;
+        if (currentSeen && prevLastSeenRef.current && currentSeen !== prevLastSeenRef.current) {
+          // Heartbeat detected from agent (Requirement 7)
+          setIsHeartbeating(true);
+          setTimeout(() => setIsHeartbeating(false), 900);
+        }
+        if (currentSeen) prevLastSeenRef.current = currentSeen;
+      }
       if (sessData.activeSessions) setActiveSessions(sessData.activeSessions);
       if (auditData.logs) setRecentLogs(auditData.logs.slice(0, 6));
     } catch (err: any) {
@@ -177,8 +190,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Hero Header: Cybersecurity Command Center */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2">
+      {/* Hero Header: Cybersecurity Command Center (Requirement 1: 200ms entry sequence) */}
+      <div className="entry-seq-2 flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#00e5ff] shadow-[0_0_10px_#00e5ff] animate-pulse" />
@@ -223,12 +236,15 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Network Cryptographic Pipeline Visualizer */}
-      <ConnectionVisualizer
-        deviceOnline={isPrimaryOnline}
-        isWorkstationLocked={isPrimaryLocked}
-        deviceName={primaryDevice?.deviceName || 'VIDHU Laptop'}
-      />
+      {/* Network Cryptographic Pipeline Visualizer (Requirement 1 & 7: 300ms entry & heartbeat/command pulse) */}
+      <div className="entry-seq-3">
+        <ConnectionVisualizer
+          deviceOnline={isPrimaryOnline}
+          isWorkstationLocked={isPrimaryLocked}
+          deviceName={primaryDevice?.deviceName || 'VIDHU Laptop'}
+          isTransacting={isHeartbeating || !!lockingDeviceId}
+        />
+      </div>
 
       {/* Error notification */}
       {error && (
@@ -299,9 +315,28 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* SPOTLIGHT: PRIMARY COMPUTER CENTERPIECE & DETAILED RADAR (If computers exist) */}
+      {/* SPOTLIGHT: PRIMARY COMPUTER CENTERPIECE & DETAILED RADAR (Requirement 1 & 5 & 20) */}
       {primaryDevice && primaryTel && (
-        <div className="glass-card p-6 rounded-3xl relative overflow-hidden border border-white/[0.09] shadow-2xl">
+        <div
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setSpotlightMouse({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+          }}
+          className="entry-seq-4 glass-card p-6 rounded-3xl relative overflow-hidden border border-white/[0.09] shadow-2xl group transition-all duration-300 hover:border-[#00e5ff]/30"
+        >
+          {/* Subtle Pointer-Following Cursor Glow (Requirement 20) */}
+          <div
+            className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+            style={{
+              background: `radial-gradient(380px circle at ${spotlightMouse.x}px ${spotlightMouse.y}px, rgba(0, 229, 255, 0.08), transparent 80%)`,
+            }}
+          />
+
+          {/* Expanding Security Ring on Lock Command (Requirement 12) */}
+          {lockingDeviceId === primaryDevice.id && (
+            <div className="absolute inset-0 rounded-3xl border-2 border-rose-500/60 animate-ring-expand pointer-events-none z-20" />
+          )}
+
           <CornerOrb position="top-right" variant={isPrimaryLocked ? 'amber' : isPrimaryOnline ? 'cyan' : 'blue'} size="lg" active={isPrimaryOnline} />
           <CornerOrb position="bottom-left" variant="purple" size="sm" active />
 
@@ -311,7 +346,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2.5">
                 <DeviceStatusBadge status={primaryDevice.status} />
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider border ${
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider border transition-all duration-300 ${
                     isPrimaryLocked
                       ? 'bg-[#f59e0b]/15 border-[#f59e0b]/35 text-[#fbbf24]'
                       : 'bg-[#10b981]/15 border-[#10b981]/35 text-[#34d399]'
@@ -319,12 +354,12 @@ export default function DashboardPage() {
                 >
                   {isPrimaryLocked ? (
                     <>
-                      <Lock className="w-2.5 h-2.5" />
+                      <Lock className="w-2.5 h-2.5 text-amber-400" />
                       LOCKED
                     </>
                   ) : (
                     <>
-                      <Activity className="w-2.5 h-2.5" />
+                      <Activity className="w-2.5 h-2.5 text-emerald-400" />
                       IN USE
                     </>
                   )}
@@ -333,7 +368,7 @@ export default function DashboardPage() {
 
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#f0f3f6] flex items-center gap-3">
-                  <Laptop className="w-7 h-7 text-[#00e5ff]" />
+                  <Laptop className="w-7 h-7 text-[#00e5ff] transition-transform duration-300 group-hover:scale-105" />
                   <span>{primaryDevice.deviceName}</span>
                 </h2>
                 <p className="text-xs text-[#8b949e] font-mono mt-1">
@@ -383,29 +418,35 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Live Circular/Radial Telemetry Rings */}
+          {/* Live Circular/Radial Telemetry Rings with Staggered Entrance */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-6 pt-5 border-t border-white/[0.08] relative z-10">
-            <TelemetryGauge
-              label="CPU Performance"
-              value={primaryTel.cpuUsagePct}
-              subtitle={`${primaryTel.cpuCores} Cores`}
-              icon={Cpu}
-              variant="cyan"
-            />
-            <TelemetryGauge
-              label="Memory Allocation"
-              value={primaryTel.ramUsagePct}
-              subtitle={`${primaryTel.ramUsedGb} GB / ${primaryTel.ramTotalGb} GB`}
-              icon={HardDrive}
-              variant="purple"
-            />
-            <TelemetryGauge
-              label={primaryTel.isCharging ? 'AC Power Connected' : 'Battery Reserve'}
-              value={primaryTel.batteryPct}
-              subtitle={primaryTel.isCharging ? 'Charging' : 'Discharging'}
-              icon={Battery}
-              variant={primaryTel.batteryPct > 20 ? 'emerald' : 'amber'}
-            />
+            <div className="stagger-item-1">
+              <TelemetryGauge
+                label="CPU Performance"
+                value={primaryTel.cpuUsagePct}
+                subtitle={`${primaryTel.cpuCores} Cores`}
+                icon={Cpu}
+                variant="cyan"
+              />
+            </div>
+            <div className="stagger-item-2">
+              <TelemetryGauge
+                label="Memory Allocation"
+                value={primaryTel.ramUsagePct}
+                subtitle={`${primaryTel.ramUsedGb} GB / ${primaryTel.ramTotalGb} GB`}
+                icon={HardDrive}
+                variant="purple"
+              />
+            </div>
+            <div className="stagger-item-3">
+              <TelemetryGauge
+                label={primaryTel.isCharging ? 'AC Power Connected' : 'Battery Reserve'}
+                value={primaryTel.batteryPct}
+                subtitle={primaryTel.isCharging ? 'Charging' : 'Discharging'}
+                icon={Battery}
+                variant={primaryTel.batteryPct > 20 ? 'emerald' : 'amber'}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -469,10 +510,10 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* SECURITY STATUS CONSOLE & AUDIT TRAIL */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Security Health Card */}
-        <div className="p-5 glass-card rounded-3xl space-y-3 border border-white/[0.08] relative overflow-hidden">
+      {/* SECURITY STATUS CONSOLE & AUDIT TRAIL (Requirement 1 & 16 & 17: 500ms entry sequence) */}
+      <div className="entry-seq-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Security Health Card (Requirement 17: Sequential Security Checks) */}
+        <div className="p-5 glass-card rounded-3xl space-y-3 border border-white/[0.08] relative overflow-hidden group">
           <CornerOrb position="top-right" variant="emerald" size="sm" active />
           
           <div className="flex items-center justify-between">
@@ -485,26 +526,34 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-2 pt-1 font-mono text-xs">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-              <span className="text-[#8b949e]">Device Authority</span>
+            <div className="stagger-item-1 flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:border-white/[0.12] transition-colors">
+              <span className="text-[#8b949e] flex items-center gap-1.5">
+                <span className="text-emerald-400">✓</span> Device Authority
+              </span>
               <span className="text-[#f0f3f6]">Verified Owner</span>
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-              <span className="text-[#8b949e]">Cryptography</span>
+            <div className="stagger-item-2 flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:border-white/[0.12] transition-colors">
+              <span className="text-[#8b949e] flex items-center gap-1.5">
+                <span className="text-[#00e5ff]">✓</span> Cryptography
+              </span>
               <span className="text-[#00e5ff]">RSA-4096 / SHA-256</span>
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-              <span className="text-[#8b949e]">Kernel Hook</span>
+            <div className="stagger-item-3 flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:border-white/[0.12] transition-colors">
+              <span className="text-[#8b949e] flex items-center gap-1.5">
+                <span className="text-emerald-400">✓</span> Kernel Hook
+              </span>
               <span className="text-[#34d399]">Win32 WorkStation</span>
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-              <span className="text-[#8b949e]">Vault Storage</span>
+            <div className="stagger-item-4 flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:border-white/[0.12] transition-colors">
+              <span className="text-[#8b949e] flex items-center gap-1.5">
+                <span className="text-purple-400">✓</span> Vault Storage
+              </span>
               <span className="text-[#a855f7]">DPAPI Protected</span>
             </div>
           </div>
         </div>
 
-        {/* Audit Trail Timeline */}
+        {/* Audit Trail Timeline (Requirement 16: Staggered Timeline Animation) */}
         <div className="lg:col-span-2 p-5 glass-card rounded-3xl space-y-3.5 border border-white/[0.08]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -522,8 +571,11 @@ export default function DashboardPage() {
             <p className="text-xs text-[#8b949e] py-4">No security events recorded yet.</p>
           ) : (
             <div className="divide-y divide-white/[0.06] text-xs font-mono">
-              {recentLogs.map((log) => (
-                <div key={log.id} className="py-2.5 flex items-center justify-between gap-4">
+              {recentLogs.map((log, idx) => (
+                <div
+                  key={log.id}
+                  className={`py-2.5 flex items-center justify-between gap-4 stagger-item-${(idx % 6) + 1} hover:bg-white/[0.02] px-1 rounded-lg transition-colors`}
+                >
                   <div className="flex items-center gap-3 min-w-0">
                     <span
                       className={`w-2 h-2 rounded-full shrink-0 ${

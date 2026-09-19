@@ -64,8 +64,8 @@ export default function SessionsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header (Requirement 1: entry-seq-2) */}
+      <div className="entry-seq-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2.5">
             <History className="w-6 h-6 text-cyan-400" />
@@ -82,7 +82,7 @@ export default function SessionsPage() {
               setIsRefreshing(true);
               fetchData();
             }}
-            className="p-2.5 rounded-xl glass-card border border-cyber-border text-slate-400 hover:text-cyan-400 transition-colors"
+            className="p-2.5 rounded-xl glass-card border border-cyber-border text-slate-400 hover:text-cyan-400 transition-all active:scale-95"
             title="Refresh Sessions"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
@@ -90,16 +90,16 @@ export default function SessionsPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl glass-card border border-cyber-border max-w-md">
+      {/* Filter Tabs (Requirement 1: entry-seq-3) */}
+      <div className="entry-seq-3 flex items-center gap-1.5 p-1.5 rounded-2xl glass-card border border-cyber-border max-w-md">
         {['ALL', 'ACTIVE', 'EXPIRED', 'REVOKED'].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all ${
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 ${
               filter === f
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold shadow-[0_0_12px_rgba(0,229,255,0.3)]'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
             }`}
           >
             {f}
@@ -114,21 +114,21 @@ export default function SessionsPage() {
           ))}
         </div>
       ) : filteredSessions.length === 0 ? (
-        <div className="text-center py-16 rounded-3xl glass-card border border-cyber-border space-y-2">
+        <div className="entry-seq-4 text-center py-16 rounded-3xl glass-card border border-cyber-border space-y-2">
           <Clock className="w-12 h-12 text-slate-600 mx-auto mb-2" />
           <p className="text-sm font-semibold text-slate-300">No authorization sessions found</p>
           <p className="text-xs text-slate-400">There are no sessions matching the &quot;{filter}&quot; filter.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredSessions.map((session) => {
+        <div className="entry-seq-4 space-y-4">
+          {filteredSessions.map((session, idx) => {
             const dev = devices.find((d) => d.id === session.deviceId);
             const isLive = session.status === 'ACTIVE' || session.status === 'EXPIRING';
 
             return (
               <div
                 key={session.id}
-                className="relative p-5 md:p-6 rounded-3xl glass-card space-y-4 border border-cyber-border overflow-hidden"
+                className={`relative p-5 md:p-6 rounded-3xl glass-card space-y-4 border border-cyber-border overflow-hidden hover:-translate-y-0.5 hover:border-cyan-500/30 transition-all duration-300 group stagger-item-${(idx % 6) + 1}`}
               >
                 {isLive && (
                   <CornerOrb
@@ -162,7 +162,7 @@ export default function SessionsPage() {
                   {isLive && (
                     <button
                       onClick={() => setSessionToRevoke(session)}
-                      className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all flex items-center gap-1.5 shadow-[0_0_10px_rgba(244,63,94,0.15)]"
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all active:scale-95 flex items-center gap-1.5 shadow-[0_0_10px_rgba(244,63,94,0.15)]"
                     >
                       <Lock className="w-3.5 h-3.5 text-rose-400" />
                       Revoke

@@ -119,8 +119,8 @@ export default function LoginPage() {
 
   return (
     <div className="max-w-md mx-auto my-10 px-4 space-y-6">
-      {/* Brand Header */}
-      <div className="text-center space-y-3">
+      {/* Brand Header (Requirement 1: entry-seq-1) */}
+      <div className="entry-seq-1 text-center space-y-3">
         <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/40 mx-auto flex items-center justify-center text-cyan-400 shadow-[0_0_25px_rgba(0,229,255,0.25)]">
           <Shield className="w-8 h-8 text-cyan-400" />
           <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
@@ -136,7 +136,7 @@ export default function LoginPage() {
       </div>
 
       {!isConfigured && (
-        <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-300 space-y-1">
+        <div className="entry-seq-2 p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-300 space-y-1">
           <p className="font-semibold flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
             Instant Sandbox Mode Active
@@ -147,7 +147,7 @@ export default function LoginPage() {
         </div>
       )}
 
-      <div className="relative p-7 rounded-3xl glass-card space-y-5 border border-cyber-border overflow-hidden">
+      <div className="entry-seq-2 relative p-7 rounded-3xl glass-card space-y-5 border border-cyber-border overflow-hidden">
         <CornerOrb variant="cyan" />
 
         <form onSubmit={handleLogin} className="space-y-4 relative z-10">
@@ -228,7 +228,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 rounded-xl text-xs font-bold text-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl text-xs font-bold text-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -248,7 +248,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={handleDemoLogin}
-              className="w-full py-2.5 rounded-xl text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               Launch Instant Demo Mode (Vidarbh)
@@ -257,7 +257,7 @@ export default function LoginPage() {
         </form>
       </div>
 
-      <p className="text-center text-xs text-slate-400">
+      <p className="entry-seq-3 text-center text-xs text-slate-400">
         Don&apos;t have an account?{' '}
         <Link href="/signup" className="text-cyan-400 hover:text-cyan-300 hover:underline font-semibold">
           Create Account

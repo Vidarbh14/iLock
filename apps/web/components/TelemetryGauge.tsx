@@ -24,7 +24,38 @@ export function TelemetryGauge({
   size = 'md',
   isAlert = false,
 }: TelemetryGaugeProps) {
-  const clampedValue = Math.min(100, Math.max(0, value));
+  const targetValue = Math.min(100, Math.max(0, Number(value) || 0));
+  const [displayValue, setDisplayValue] = React.useState<number>(0);
+  const [radialOffset, setRadialOffset] = React.useState<number>(100);
+
+  // Short smooth count-up on load/change (Requirement 9)
+  React.useEffect(() => {
+    let startTimestamp: number | null = null;
+    const startVal = displayValue;
+    const duration = 650; // ms
+
+    let animFrameId: number;
+
+    const step = (timestamp: number) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      // Ease out cubic
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const currentVal = Math.round(startVal + (targetValue - startVal) * easeOut);
+      setDisplayValue(currentVal);
+
+      if (progress < 1) {
+        animFrameId = requestAnimationFrame(step);
+      } else {
+        setDisplayValue(targetValue);
+      }
+    };
+
+    animFrameId = requestAnimationFrame(step);
+    setRadialOffset(targetValue);
+
+    return () => cancelAnimationFrame(animFrameId);
+  }, [targetValue]);
 
   const variantStyles = {
     cyan: {
@@ -68,21 +99,21 @@ export function TelemetryGauge({
   const radius = size === 'sm' ? 24 : size === 'lg' ? 38 : 30;
   const strokeWidth = size === 'sm' ? 4 : 5;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (clampedValue / 100) * circumference;
+  const strokeDashoffset = circumference - (radialOffset / 100) * circumference;
   const svgSize = (radius + strokeWidth) * 2;
 
   return (
-    <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.07] hover:border-white/[0.15] transition-all flex items-center justify-between gap-3 group">
+    <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.07] hover:border-white/[0.2] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition-all duration-300 flex items-center justify-between gap-3 group">
       <div className="space-y-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <Icon className={`w-3.5 h-3.5 ${variantStyles.text}`} />
-          <span className="text-[11px] font-semibold text-[#8b949e] uppercase tracking-wider">
+          <Icon className={`w-3.5 h-3.5 ${variantStyles.text} group-hover:scale-110 transition-transform`} />
+          <span className="text-[11px] font-semibold text-[#8b949e] uppercase tracking-wider group-hover:text-slate-300 transition-colors">
             {label}
           </span>
         </div>
         <div className="flex items-baseline gap-1">
           <span className="text-lg font-bold font-mono text-[#f0f3f6] tracking-tight">
-            {clampedValue}
+            {displayValue}
           </span>
           <span className="text-xs font-mono text-[#8b949e]">{unit}</span>
         </div>
@@ -105,7 +136,7 @@ export function TelemetryGauge({
             strokeWidth={strokeWidth}
             className={variantStyles.bgRing}
           />
-          {/* Active Radial Progress */}
+          {/* Active Radial Progress with Smooth Transition */}
           <circle
             cx={svgSize / 2}
             cy={svgSize / 2}
@@ -116,11 +147,14 @@ export function TelemetryGauge({
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            style={{ filter: variantStyles.glow, transition: 'stroke-dashoffset 0.8s ease' }}
+            style={{
+              filter: variantStyles.glow,
+              transition: 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
           />
         </svg>
         <span className="absolute text-[10px] font-mono font-semibold text-[#f0f3f6]">
-          {Math.round(clampedValue)}%
+          {Math.round(displayValue)}%
         </span>
       </div>
     </div>
