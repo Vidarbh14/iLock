@@ -299,7 +299,7 @@ namespace ILock.WindowsAgent.Access
                 if (!launchedOnWinlogon)
                 {
                     _logger.LogInformation("Falling back to active desktop input simulation...");
-                    await Task.Run(() => SimulateUnlock(pin), ct);
+                    await Task.Run(() => SimulateUnlock(pin, msg => _logger.LogInformation(msg)), ct);
                 }
 
                 lock (_lock)
@@ -556,10 +556,10 @@ namespace ILock.WindowsAgent.Access
 
                     // 1. Wake display / power management with mouse movement
                     log?.Invoke("Waking display with mouse movement...");
-                    mouse_event(MOUSEEVENTF_MOVE, 0, 1, 0, UIntPtr.Zero);
+                    mouse_event(MOUSEEVENTF_MOVE, 0, 5, 0, UIntPtr.Zero);
                     Thread.Sleep(50);
-                    mouse_event(MOUSEEVENTF_MOVE, 0, -1, 0, UIntPtr.Zero);
-                    Thread.Sleep(100);
+                    mouse_event(MOUSEEVENTF_MOVE, 0, -5, 0, UIntPtr.Zero);
+                    Thread.Sleep(200);
 
                     // 2. Dismiss lock screen wallpaper overlay (Space key with scan code)
                     log?.Invoke("Dismissing lock screen overlay with Space key...");
@@ -567,49 +567,53 @@ namespace ILock.WindowsAgent.Access
                     keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
                     Thread.Sleep(50);
                     keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                    Thread.Sleep(300);
 
-                    // Second tap ensures dismissal even if first tap only woke a sleeping monitor
-                    keybd_event(VK_SPACE, spaceScan, 0, UIntPtr.Zero);
+                    // Wait 2500ms for Windows 11 lock screen animation to slide up and focus the PIN box
+                    log?.Invoke("Waiting 2500ms for Windows 11 lock screen to fully transition...");
+                    Thread.Sleep(2500);
+
+                    // 3. Click directly on the PIN box area (normalized 50% X, 60% Y) to guarantee keyboard focus
+                    log?.Invoke("Focusing PIN input field with centered click...");
+                    // 0x8000 = MOUSEEVENTF_ABSOLUTE, 0x0001 = MOUSEEVENTF_MOVE, 0x0002 = LEFTDOWN, 0x0004 = LEFTUP
+                    mouse_event(0x8000 | 0x0001, 32767, 39000, 0, UIntPtr.Zero);
                     Thread.Sleep(50);
-                    keybd_event(VK_SPACE, spaceScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                    mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
+                    Thread.Sleep(50);
+                    mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+                    Thread.Sleep(200);
 
-                    // Wait 1200ms for Windows 11 lock screen animation to slide up and focus the PIN box
-                    log?.Invoke("Waiting for lock screen animation to slide up...");
-                    Thread.Sleep(1200);
-
-                    // 3. Clear any partial or accidental characters in PIN prompt
+                    // 4. Clear any partial or accidental characters in PIN prompt with 8 backspaces
                     log?.Invoke("Clearing existing input field with backspaces...");
                     byte backScan = (byte)MapVirtualKey(VK_BACK, 0);
                     for (int i = 0; i < 8; i++)
                     {
                         keybd_event(VK_BACK, backScan, 0, UIntPtr.Zero);
-                        Thread.Sleep(30);
+                        Thread.Sleep(40);
                         keybd_event(VK_BACK, backScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                        Thread.Sleep(30);
+                        Thread.Sleep(40);
                     }
-                    Thread.Sleep(150);
+                    Thread.Sleep(200);
 
-                    // 4. Type each digit of the PIN with both VK and hardware scan code
+                    // 5. Type each digit of the PIN with human-natural debounced timing (60ms down, 80ms up)
                     log?.Invoke($"Typing {pin.Length} PIN digits...");
                     foreach (char c in pin)
                     {
                         byte vk = (byte)c;
                         byte scan = (byte)MapVirtualKey(vk, 0);
                         keybd_event(vk, scan, 0, UIntPtr.Zero);
-                        Thread.Sleep(50);
+                        Thread.Sleep(60);
                         keybd_event(vk, scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                        Thread.Sleep(50);
+                        Thread.Sleep(80);
                     }
 
-                    // 5. Press Enter to submit
+                    // 6. Wait 500ms for Windows Hello verification, then submit with Enter
                     log?.Invoke("Submitting PIN with Enter key...");
-                    Thread.Sleep(300);
+                    Thread.Sleep(500);
                     byte enterScan = (byte)MapVirtualKey(VK_RETURN, 0);
                     keybd_event(VK_RETURN, enterScan, 0, UIntPtr.Zero);
-                    Thread.Sleep(50);
+                    Thread.Sleep(60);
                     keybd_event(VK_RETURN, enterScan, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                    Thread.Sleep(200);
+                    Thread.Sleep(300);
 
                     log?.Invoke("SimulateUnlock completed successfully.");
                 }
