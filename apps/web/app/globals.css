@@ -3,60 +3,63 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 245, 245, 247;
-  --background-rgb: 10, 13, 20;
+  --foreground-rgb: 29, 29, 31;
+  --background-rgb: 245, 245, 247;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background-color: #0a0d14;
+  background-color: #f5f5f7;
   background-image: 
-    radial-gradient(circle at 50% -12%, rgba(41, 151, 255, 0.12), transparent 45%),
-    radial-gradient(circle at 85% 15%, rgba(191, 90, 242, 0.05), transparent 35%);
+    radial-gradient(circle at 50% -12%, rgba(0, 113, 227, 0.07), transparent 45%),
+    radial-gradient(circle at 85% 15%, rgba(175, 82, 222, 0.04), transparent 35%);
   background-attachment: fixed;
   min-height: 100vh;
 }
 
-/* Apple Frosted Glass Utilities */
+/* Apple Light Frosted Glass Utilities */
 .glass-card {
-  background: rgba(18, 22, 34, 0.65);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 6px 24px -4px rgba(0, 0, 0, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
   border-radius: 1.25rem;
+  color: #1d1d1f;
 }
 
 .glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 #ffffff;
 }
 
 .glass-panel {
-  background: rgba(14, 18, 28, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06);
+  color: #1d1d1f;
 }
 
 .glass-pill {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.04);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .apple-btn-primary {
-  background: linear-gradient(180deg, #2997ff 0%, #0071e3 100%);
+  background: #0071e3;
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 14px 0 rgba(41, 151, 255, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px 0 rgba(0, 113, 227, 0.28);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .apple-btn-primary:hover {
-  background: linear-gradient(180deg, #38a1ff 0%, #0077ed 100%);
-  box-shadow: 0 6px 20px 0 rgba(41, 151, 255, 0.45);
+  background: #0077ed;
+  box-shadow: 0 4px 14px 0 rgba(0, 113, 227, 0.38);
   transform: translateY(-1px);
 }
 
@@ -65,51 +68,58 @@ body {
 }
 
 .apple-btn-secondary {
-  background: rgba(255, 255, 255, 0.06);
-  color: #f5f5f7;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.04);
+  color: #1d1d1f;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   transition: all 0.2s ease;
 }
 
+.apple-btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.14);
+  color: #000000;
+}
+
 .apple-btn-danger {
-  background: rgba(255, 69, 58, 0.15);
-  color: #ff6961;
-  border: 1px solid rgba(255, 69, 58, 0.3);
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  border: 1px solid rgba(255, 59, 48, 0.2);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   transition: all 0.2s ease;
 }
 
 .apple-btn-danger:hover {
-  background: rgba(255, 69, 58, 0.25);
-  border-color: rgba(255, 69, 58, 0.45);
-  color: #ffffff;
+  background: rgba(255, 59, 48, 0.18);
+  border-color: rgba(255, 59, 48, 0.3);
+  color: #d70015;
 }
 
 .glass-modal {
-  background: rgba(18, 22, 34, 0.88);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.18), inset 0 1px 0 0 #ffffff;
   border-radius: 1.5rem;
+  color: #1d1d1f;
 }
 
 .apple-input {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 0.75rem;
-  color: #f5f5f7;
+  color: #1d1d1f;
   transition: all 0.2s ease;
 }
 
 .apple-input:focus {
   outline: none;
-  border-color: #2997ff;
-  box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.25);
-  background: rgba(255, 255, 255, 0.07);
+  border-color: #0071e3;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+  background: #ffffff;
 }
 
 /* iOS Safe Area Support */
@@ -132,12 +142,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.16);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 @keyframes fadeIn {

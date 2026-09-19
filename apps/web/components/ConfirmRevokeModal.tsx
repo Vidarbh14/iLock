@@ -43,37 +43,37 @@ export function ConfirmRevokeModal({ session, isOpen, onClose, onSuccess }: Prop
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-fade-in">
       <div className="w-full max-w-md glass-modal p-6 shadow-2xl space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-[#ff453a]/15 border border-[#ff453a]/25 text-[#ff6961] shadow-[0_0_12px_rgba(255,69,58,0.2)]">
+            <div className="p-2.5 rounded-2xl bg-[#ff3b30]/10 border border-[#ff3b30]/20 text-[#ff3b30] shadow-[0_0_12px_rgba(255,59,48,0.15)]">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white">Emergency Revoke Access</h3>
-              <p className="text-xs text-slate-400">Immediate Session Termination</p>
+              <h3 className="text-base font-semibold text-[#1d1d1f]">Emergency Revoke Access</h3>
+              <p className="text-xs text-[#6e6e73]">Immediate Session Termination</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+            className="p-1.5 rounded-full text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-black/[0.05] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 text-xs bg-[#ff453a]/10 border border-[#ff453a]/25 text-[#ff6961] rounded-2xl backdrop-blur-md">
+          <div className="flex items-center gap-2 p-3 text-xs bg-[#ff3b30]/10 border border-[#ff3b30]/25 text-[#ff3b30] rounded-2xl backdrop-blur-md">
             <AlertTriangle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-xs text-slate-300 space-y-2">
-          <p className="font-semibold text-white">Are you sure you want to revoke this session?</p>
-          <ul className="list-disc pl-4 space-y-1.5 text-slate-400">
+        <div className="p-4 rounded-2xl bg-black/[0.02] border border-black/[0.06] text-xs text-[#1d1d1f] space-y-2">
+          <p className="font-semibold text-[#1d1d1f]">Are you sure you want to revoke this session?</p>
+          <ul className="list-disc pl-4 space-y-1.5 text-[#6e6e73]">
             <li>The remote authorization will be invalidated instantly.</li>
             <li>The Windows workstation will be immediately locked via Win32 LockWorkStation.</li>
             <li>This action is permanent and cannot be undone.</li>

@@ -17,22 +17,22 @@ export function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-[#0a0d14]/75 backdrop-blur-2xl">
+    <header className="sticky top-0 z-40 w-full border-b border-black/[0.06] bg-white/80 backdrop-blur-2xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-b from-white/20 via-white/10 to-transparent border border-white/20 flex items-center justify-center text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3)] group-hover:border-white/40 transition-all">
+            <div className="w-9 h-9 rounded-2xl bg-[#0071e3] flex items-center justify-center text-white shadow-[0_2px_8px_rgba(0,113,227,0.3)] group-hover:scale-105 transition-all">
               <Lock className="w-4 h-4 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="text-base font-semibold tracking-tight text-[#f5f5f7] flex items-center gap-2">
+              <span className="text-base font-semibold tracking-tight text-[#1d1d1f] flex items-center gap-2">
                 iLock
-                <span className="text-[10px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-[#a1a1a6] border border-white/[0.1]">
+                <span className="text-[10px] tracking-wider uppercase font-mono px-2 py-0.5 rounded-full bg-black/[0.05] text-[#6e6e73] border border-black/[0.08]">
                   Cloud
                 </span>
               </span>
-              <span className="text-[10px] text-[#86868b] leading-none">Remote Zero-Knowledge Access</span>
+              <span className="text-[10px] text-[#6e6e73] leading-none">Remote Zero-Knowledge Access</span>
             </div>
           </Link>
 
@@ -47,8 +47,8 @@ export function Navbar() {
                   href={item.href}
                   className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                     isActive
-                      ? 'bg-white/[0.12] text-white border border-white/[0.16] shadow-sm backdrop-blur-md'
-                      : 'text-[#a1a1a6] hover:text-white hover:bg-white/[0.06]'
+                      ? 'bg-[#0071e3] text-white shadow-sm'
+                      : 'text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-black/[0.04]'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -62,14 +62,14 @@ export function Navbar() {
         {/* Right side controls */}
         <div className="flex items-center gap-3">
           {/* Live System Indicator */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] text-[#a1a1a6] font-medium backdrop-blur-md">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#30d158] shadow-[0_0_8px_#30d158]" />
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-black/[0.04] border border-black/[0.06] text-[11px] text-[#6e6e73] font-medium backdrop-blur-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#34c759] shadow-[0_0_6px_#34c759]" />
             Cloud Active
           </div>
 
           <Link
             href="/settings"
-            className="p-2 rounded-xl text-[#a1a1a6] hover:text-white hover:bg-white/[0.08] border border-transparent hover:border-white/[0.1] transition-all"
+            className="p-2 rounded-full text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-black/[0.05] transition-all"
             title="Settings"
           >
             <Settings className="w-4 h-4" />

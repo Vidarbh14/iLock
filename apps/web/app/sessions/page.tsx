@@ -47,17 +47,17 @@ export default function SessionsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+        return 'bg-[#34c759]/15 text-[#248a3d] border-[#34c759]/30';
       case 'EXPIRING':
-        return 'bg-amber-500/15 text-amber-400 border-amber-500/30 animate-pulse';
+        return 'bg-[#ff9500]/15 text-[#c97500] border-[#ff9500]/30 animate-pulse';
       case 'AUTHORIZED':
-        return 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30';
+        return 'bg-[#0071e3]/15 text-[#0071e3] border-[#0071e3]/30';
       case 'EXPIRED':
-        return 'bg-slate-800 text-slate-400 border-slate-700';
+        return 'bg-black/[0.05] text-[#6e6e73] border-black/[0.08]';
       case 'REVOKED':
-        return 'bg-rose-500/15 text-rose-400 border-rose-500/30';
+        return 'bg-[#ff3b30]/15 text-[#ff3b30] border-[#ff3b30]/30';
       default:
-        return 'bg-slate-800 text-slate-400 border-slate-700';
+        return 'bg-black/[0.05] text-[#6e6e73] border-black/[0.08]';
     }
   };
 
@@ -65,11 +65,11 @@ export default function SessionsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <History className="w-6 h-6 text-[#2997ff]" />
+          <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] flex items-center gap-2">
+            <History className="w-6 h-6 text-[#0071e3]" />
             Access Sessions & History
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-[#6e6e73] mt-0.5">
             Real-time authorization lifecycle tracking and revocation registry
           </p>
         </div>
@@ -88,15 +88,15 @@ export default function SessionsPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl max-w-md">
+      <div className="flex items-center gap-1.5 p-1 rounded-full bg-black/[0.04] border border-black/[0.08] max-w-md">
         {['ALL', 'ACTIVE', 'EXPIRED', 'REVOKED'].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`flex-1 py-1.5 px-3 rounded-full text-xs font-medium transition-all ${
+            className={`flex-1 py-1.5 px-3 rounded-full text-xs font-semibold transition-all ${
               filter === f
-                ? 'bg-[#2997ff] text-white shadow-[0_0_12px_rgba(41,151,255,0.4)]'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-[#0071e3] text-white shadow-[0_2px_8px_rgba(0,113,227,0.3)]'
+                : 'text-[#6e6e73] hover:text-[#1d1d1f]'
             }`}
           >
             {f}
@@ -112,8 +112,8 @@ export default function SessionsPage() {
         </div>
       ) : filteredSessions.length === 0 ? (
         <div className="text-center py-12 rounded-3xl glass-card">
-          <Clock className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-          <p className="text-xs text-slate-400">No sessions match your filter.</p>
+          <Clock className="w-10 h-10 text-[#86868b] mx-auto mb-2" />
+          <p className="text-xs text-[#6e6e73]">No sessions match your filter.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -129,7 +129,7 @@ export default function SessionsPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-white">
+                      <span className="text-sm font-semibold text-[#1d1d1f]">
                         {dev?.deviceName || 'Windows PC'}
                       </span>
                       <span
@@ -140,7 +140,7 @@ export default function SessionsPage() {
                         {session.status}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-[#6e6e73] mt-0.5">
                       {String(session.metadata?.purpose || 'Temporary authorization')} • Duration:{' '}
                       {session.durationMinutes}m
                     </p>
@@ -151,7 +151,7 @@ export default function SessionsPage() {
                       onClick={() => setSessionToRevoke(session)}
                       className="px-3.5 py-1.5 rounded-full text-xs font-medium apple-btn-danger flex items-center gap-1.5"
                     >
-                      <Lock className="w-3.5 h-3.5" />
+                      <Lock className="w-3.5 h-3.5 text-[#ff3b30]" />
                       Revoke
                     </button>
                   )}
@@ -165,7 +165,7 @@ export default function SessionsPage() {
                   />
                 )}
 
-                <div className="pt-1 flex items-center justify-between text-[11px] text-slate-500 font-mono border-t border-white/[0.06]">
+                <div className="pt-1 flex items-center justify-between text-[11px] text-[#86868b] font-mono border-t border-black/[0.06]">
                   <span>Created: {new Date(session.createdAt).toLocaleTimeString()}</span>
                   <span>Expires: {new Date(session.expiresAt).toLocaleTimeString()}</span>
                 </div>

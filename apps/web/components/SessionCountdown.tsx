@@ -35,20 +35,20 @@ export function SessionCountdown({ expiresAt, totalDurationMinutes = 30, onExpir
   const progressPct = Math.min(100, Math.max(0, (timeLeftMs / totalMs) * 100));
 
   // Color styling based on remaining duration
-  let colorClass = 'text-[#30d158]';
-  let barColor = 'bg-[#30d158]';
+  let colorClass = 'text-[#248a3d]';
+  let barColor = 'bg-[#34c759]';
 
   if (minutes < 5) {
-    colorClass = 'text-[#ff6961] animate-pulse';
-    barColor = 'bg-[#ff453a]';
+    colorClass = 'text-[#ff3b30] animate-pulse';
+    barColor = 'bg-[#ff3b30]';
   } else if (minutes < 15) {
-    colorClass = 'text-[#ff9f0a]';
-    barColor = 'bg-[#ff9f0a]';
+    colorClass = 'text-[#ff9500]';
+    barColor = 'bg-[#ff9500]';
   }
 
   if (timeLeftMs === 0) {
     return (
-      <div className={`font-mono text-xs font-semibold text-slate-500 ${className}`}>
+      <div className={`font-mono text-xs font-semibold text-[#86868b] ${className}`}>
         EXPIRED
       </div>
     );
@@ -57,12 +57,12 @@ export function SessionCountdown({ expiresAt, totalDurationMinutes = 30, onExpir
   return (
     <div className={`space-y-1.5 ${className}`}>
       <div className="flex items-center justify-between text-xs">
-        <span className="text-slate-400">Time Remaining:</span>
+        <span className="text-[#6e6e73]">Time Remaining:</span>
         <span className={`font-mono font-semibold tracking-wider ${colorClass}`}>
           {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
         </span>
       </div>
-      <div className="w-full h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-black/[0.07] rounded-full overflow-hidden">
         <div
           className={`h-full ${barColor} transition-all duration-1000 rounded-full`}
           style={{ width: `${progressPct}%` }}

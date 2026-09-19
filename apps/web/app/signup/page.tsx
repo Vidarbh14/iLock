@@ -71,40 +71,40 @@ export default function SignupPage() {
   return (
     <div className="max-w-md mx-auto my-12 space-y-6">
       <div className="text-center space-y-2">
-        <div className="w-14 h-14 rounded-3xl bg-gradient-to-b from-white/[0.15] to-white/[0.04] border border-white/[0.12] mx-auto flex items-center justify-center text-white shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
-          <Shield className="w-7 h-7 text-[#2997ff]" />
+        <div className="w-14 h-14 rounded-3xl bg-white border border-black/[0.08] mx-auto flex items-center justify-center text-[#0071e3] shadow-sm">
+          <Shield className="w-7 h-7 text-[#0071e3]" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Create Owner Account</h1>
-        <p className="text-xs text-slate-400">
+        <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f]">Create Owner Account</h1>
+        <p className="text-xs text-[#6e6e73]">
           Enforce zero-knowledge access authorization on your computers
         </p>
       </div>
 
       {!isConfigured && (
-        <div className="p-3.5 rounded-2xl bg-[#2997ff]/10 border border-[#2997ff]/25 text-xs text-[#2997ff] space-y-1 backdrop-blur-md">
+        <div className="p-3.5 rounded-2xl bg-[#0071e3]/10 border border-[#0071e3]/20 text-xs text-[#0071e3] space-y-1">
           <p className="font-semibold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#2997ff] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-[#0071e3] animate-pulse" />
             Instant Sandbox Mode Active
           </p>
-          <p className="text-slate-400 text-[11px]">
+          <p className="text-[#6e6e73] text-[11px]">
             Supabase database is not connected in Vercel. You can sign up with any test credentials to access the full interactive dashboard.
           </p>
         </div>
       )}
 
       {error && (
-        <div className="flex items-center gap-2 p-3 text-xs bg-[#ff453a]/10 border border-[#ff453a]/25 text-[#ff6961] rounded-2xl backdrop-blur-md">
+        <div className="flex items-center gap-2 p-3 text-xs bg-[#ff3b30]/10 border border-[#ff3b30]/25 text-[#ff3b30] rounded-2xl backdrop-blur-md">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {isEmailSent ? (
-        <div className="p-7 rounded-3xl glass-card text-center space-y-4 shadow-xl">
-          <CheckCircle2 className="w-12 h-12 text-[#30d158] mx-auto" />
-          <h3 className="text-base font-semibold text-white">Verification Email Sent</h3>
-          <p className="text-xs text-slate-400">
-            We sent a confirmation link to <span className="text-slate-200 font-semibold">{email}</span>. Please verify your email to activate your account.
+        <div className="p-7 rounded-3xl glass-card text-center space-y-4 shadow-sm">
+          <CheckCircle2 className="w-12 h-12 text-[#34c759] mx-auto" />
+          <h3 className="text-base font-semibold text-[#1d1d1f]">Verification Email Sent</h3>
+          <p className="text-xs text-[#6e6e73]">
+            We sent a confirmation link to <span className="text-[#1d1d1f] font-semibold">{email}</span>. Please verify your email to activate your account.
           </p>
           <div className="pt-2">
             <Link
@@ -118,46 +118,46 @@ export default function SignupPage() {
       ) : (
         <form onSubmit={handleSignup} className="p-7 rounded-3xl glass-card space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Email</label>
+            <label className="block text-xs font-medium text-[#1d1d1f] mb-1">Email</label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+              <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-[#86868b]" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="owner@example.com"
-                className="w-full pl-10 pr-3.5 py-2.5 apple-input text-sm text-white"
+                className="w-full pl-10 pr-3.5 py-2.5 apple-input text-sm text-[#1d1d1f]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Password</label>
+            <label className="block text-xs font-medium text-[#1d1d1f] mb-1">Password</label>
             <div className="relative">
-              <KeyRound className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+              <KeyRound className="w-4 h-4 absolute left-3.5 top-3.5 text-[#86868b]" />
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 8 characters"
-                className="w-full pl-10 pr-3.5 py-2.5 apple-input text-sm text-white"
+                className="w-full pl-10 pr-3.5 py-2.5 apple-input text-sm text-[#1d1d1f]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Confirm Password</label>
+            <label className="block text-xs font-medium text-[#1d1d1f] mb-1">Confirm Password</label>
             <div className="relative">
-              <KeyRound className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+              <KeyRound className="w-4 h-4 absolute left-3.5 top-3.5 text-[#86868b]" />
               <input
                 type="password"
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your password"
-                className="w-full pl-10 pr-3.5 py-2.5 apple-input text-sm text-white"
+                className="w-full pl-10 pr-3.5 py-2.5 apple-input text-sm text-[#1d1d1f]"
               />
             </div>
           </div>
@@ -172,11 +172,11 @@ export default function SignupPage() {
           </button>
 
           {/* Instant Sandbox Launch Button */}
-          <div className="pt-2 border-t border-white/[0.08]">
+          <div className="pt-2 border-t border-black/[0.06]">
             <button
               type="button"
               onClick={handleDemoAccess}
-              className="w-full py-2.5 rounded-full text-xs font-medium text-[#30d158] bg-[#30d158]/10 hover:bg-[#30d158]/20 border border-[#30d158]/30 transition-colors flex items-center justify-center gap-2 shadow-[0_0_12px_rgba(48,209,88,0.15)]"
+              className="w-full py-2.5 rounded-full text-xs font-medium text-[#248a3d] bg-[#34c759]/10 hover:bg-[#34c759]/20 border border-[#34c759]/30 transition-colors flex items-center justify-center gap-2"
             >
               <ShieldCheck className="w-4 h-4" />
               Launch Instant Demo Mode (Vidarbh)
@@ -185,9 +185,9 @@ export default function SignupPage() {
         </form>
       )}
 
-      <p className="text-center text-xs text-slate-400">
+      <p className="text-center text-xs text-[#6e6e73]">
         Already have an account?{' '}
-        <Link href="/login" className="text-[#2997ff] hover:underline font-medium">
+        <Link href="/login" className="text-[#0071e3] hover:underline font-medium">
           Sign In
         </Link>
       </p>

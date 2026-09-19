@@ -99,11 +99,11 @@ export default function DevicesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Laptop className="w-6 h-6 text-[#2997ff]" />
+          <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] flex items-center gap-2">
+            <Laptop className="w-6 h-6 text-[#0071e3]" />
             Registered Computers
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-[#6e6e73] mt-0.5">
             Manage your paired Windows workstations and security identities
           </p>
         </div>
@@ -130,13 +130,13 @@ export default function DevicesPage() {
 
       {/* Search Filter */}
       <div className="relative">
-        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+        <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#86868b]" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Filter by device name or hostname..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-2xl apple-input text-sm text-white placeholder-slate-500"
+          className="w-full pl-10 pr-4 py-2.5 rounded-2xl apple-input text-sm text-[#1d1d1f] placeholder-[#86868b]"
         />
       </div>
 
@@ -148,7 +148,7 @@ export default function DevicesPage() {
         </div>
       ) : filteredDevices.length === 0 ? (
         <div className="text-center py-12 rounded-3xl glass-card">
-          <p className="text-sm text-slate-400">No computers found matching your filter.</p>
+          <p className="text-sm text-[#6e6e73]">No computers found matching your filter.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

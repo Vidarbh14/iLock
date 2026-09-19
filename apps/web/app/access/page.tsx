@@ -86,17 +86,17 @@ export default function GrantAccessPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-          <KeyRound className="w-6 h-6 text-[#2997ff]" />
+        <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] flex items-center gap-2">
+          <KeyRound className="w-6 h-6 text-[#0071e3]" />
           Grant Temporary Authorization
         </h1>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className="text-xs text-[#6e6e73] mt-0.5">
           Generate an encrypted, short-lived session token for someone at your Windows PC
         </p>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-3.5 text-xs bg-[#ff453a]/10 border border-[#ff453a]/25 text-[#ff6961] rounded-2xl backdrop-blur-md">
+        <div className="flex items-center gap-2 p-3.5 text-xs bg-[#ff3b30]/10 border border-[#ff3b30]/25 text-[#ff3b30] rounded-2xl backdrop-blur-md">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -106,9 +106,9 @@ export default function GrantAccessPage() {
         <div className="h-72 rounded-3xl glass-card animate-pulse" />
       ) : devices.length === 0 ? (
         <div className="p-8 text-center rounded-3xl glass-card space-y-3">
-          <Laptop className="w-10 h-10 text-slate-500 mx-auto" />
-          <h3 className="text-sm font-semibold text-white">No paired computers found</h3>
-          <p className="text-xs text-slate-400">
+          <Laptop className="w-10 h-10 text-[#86868b] mx-auto" />
+          <h3 className="text-sm font-semibold text-[#1d1d1f]">No paired computers found</h3>
+          <p className="text-xs text-[#6e6e73]">
             You must pair at least one Windows PC before creating access authorizations.
           </p>
           <a
@@ -122,7 +122,7 @@ export default function GrantAccessPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* STEP 1: SELECT PC */}
           <div className="p-5 glass-card space-y-3">
-            <span className="text-xs uppercase font-mono tracking-wider text-[#2997ff] font-semibold">
+            <span className="text-xs uppercase font-mono tracking-wider text-[#0071e3] font-semibold">
               Step 1 • Target Computer
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -135,13 +135,13 @@ export default function GrantAccessPage() {
                     onClick={() => setSelectedDeviceId(device.id)}
                     className={`p-4 rounded-2xl border text-left transition-all flex items-start justify-between ${
                       isSelected
-                        ? 'bg-[#2997ff]/15 border-[#2997ff] text-white shadow-[0_0_16px_rgba(41,151,255,0.25)]'
-                        : 'bg-white/[0.03] border-white/[0.08] text-slate-300 hover:bg-white/[0.06]'
+                        ? 'bg-[#0071e3]/10 border-[#0071e3] text-[#1d1d1f] shadow-sm'
+                        : 'bg-black/[0.02] border-black/[0.06] text-[#1d1d1f] hover:bg-black/[0.04]'
                     }`}
                   >
                     <div>
-                      <h4 className="text-xs font-semibold text-white">{device.deviceName}</h4>
-                      <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                      <h4 className="text-xs font-semibold text-[#1d1d1f]">{device.deviceName}</h4>
+                      <p className="text-[11px] text-[#6e6e73] font-mono mt-0.5">
                         {device.hostname || 'Windows PC'}
                       </p>
                     </div>
@@ -154,7 +154,7 @@ export default function GrantAccessPage() {
 
           {/* STEP 2: DURATION */}
           <div className="p-5 glass-card space-y-3">
-            <span className="text-xs uppercase font-mono tracking-wider text-[#2997ff] font-semibold">
+            <span className="text-xs uppercase font-mono tracking-wider text-[#0071e3] font-semibold">
               Step 2 • Access Duration
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -170,8 +170,8 @@ export default function GrantAccessPage() {
                     }}
                     className={`py-2.5 px-3 rounded-full text-xs font-medium transition-all ${
                       isSelected
-                        ? 'bg-[#2997ff] text-white shadow-[0_0_12px_rgba(41,151,255,0.4)] border border-[#2997ff]'
-                        : 'bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:bg-white/[0.08]'
+                        ? 'bg-[#0071e3] text-white shadow-[0_2px_8px_rgba(0,113,227,0.3)] border border-[#0071e3]'
+                        : 'bg-black/[0.03] border border-black/[0.08] text-[#1d1d1f] hover:bg-black/[0.06]'
                     }`}
                   >
                     {preset.label}
@@ -184,7 +184,7 @@ export default function GrantAccessPage() {
               <button
                 type="button"
                 onClick={() => setIsCustom(!isCustom)}
-                className="text-xs text-[#2997ff] hover:underline flex items-center gap-1 font-medium"
+                className="text-xs text-[#0071e3] hover:underline flex items-center gap-1 font-medium"
               >
                 <Clock className="w-3.5 h-3.5" />
                 {isCustom ? 'Use standard duration' : 'Enter custom minutes'}
@@ -200,7 +200,7 @@ export default function GrantAccessPage() {
                     placeholder="Minutes"
                     className="apple-input px-3.5 py-2 text-sm font-mono w-32"
                   />
-                  <span className="text-xs text-slate-400">minutes (max 1440 / 24 hours)</span>
+                  <span className="text-xs text-[#6e6e73]">minutes (max 1440 / 24 hours)</span>
                 </div>
               )}
             </div>
@@ -208,7 +208,7 @@ export default function GrantAccessPage() {
 
           {/* STEP 3: NOTE / PURPOSE */}
           <div className="p-5 glass-card space-y-2">
-            <span className="text-xs uppercase font-mono tracking-wider text-[#2997ff] font-semibold">
+            <span className="text-xs uppercase font-mono tracking-wider text-[#0071e3] font-semibold">
               Step 3 • Authorization Purpose
             </span>
             <input
@@ -221,26 +221,26 @@ export default function GrantAccessPage() {
           </div>
 
           {/* REVIEW & CONFIRM */}
-          <div className="p-6 glass-panel rounded-3xl space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-[#30d158]" />
+          <div className="p-6 glass-card rounded-3xl space-y-4 border border-[#0071e3]/20 shadow-sm">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1d1d1f] flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-[#34c759]" />
               Review Authorization Details
             </h3>
 
-            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-1.5 text-xs">
-              <div className="flex justify-between text-slate-400">
+            <div className="p-4 rounded-2xl bg-black/[0.02] border border-black/[0.06] space-y-1.5 text-xs">
+              <div className="flex justify-between text-[#6e6e73]">
                 <span>Computer:</span>
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-[#1d1d1f]">
                   {selectedDevice?.deviceName || 'None selected'}
                 </span>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between text-[#6e6e73]">
                 <span>Duration:</span>
-                <span className="font-mono text-slate-200">{effectiveDuration} Minutes</span>
+                <span className="font-mono text-[#1d1d1f]">{effectiveDuration} Minutes</span>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between text-[#6e6e73]">
                 <span>Expires Authoritatively At:</span>
-                <span className="font-mono font-semibold text-[#2997ff]">
+                <span className="font-mono font-semibold text-[#0071e3]">
                   {expiryTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (
                   {expiryTime.toLocaleDateString()})
                 </span>
@@ -252,9 +252,9 @@ export default function GrantAccessPage() {
                 type="checkbox"
                 checked={isConfirmed}
                 onChange={(e) => setIsConfirmed(e.target.checked)}
-                className="mt-0.5 rounded border-white/20 bg-black/40 text-[#2997ff] focus:ring-0"
+                className="mt-0.5 rounded border-black/20 text-[#0071e3] focus:ring-0"
               />
-              <span className="text-xs text-slate-300 leading-relaxed">
+              <span className="text-xs text-[#1d1d1f] leading-relaxed">
                 I authorize this temporary access session. The Windows PC will automatically lock
                 upon expiration, or immediately if I hit Revoke.
               </span>
