@@ -1,6 +1,6 @@
 import { getAuthenticatedUserId, errorResponse, jsonResponse } from '@/lib/api-helpers';
 import { isSupabaseConfigured, createServerClient, createServiceClient } from '@/lib/supabase-server';
-import { demoStore } from '@/lib/demo-store';
+import { demoStore, DEMO_USER_ID } from '@/lib/demo-store';
 import crypto from 'node:crypto';
 
 export async function POST(
@@ -22,12 +22,22 @@ export async function POST(
       // Check device exists
       const { data: device } = await supabase
         .from('devices')
-        .select('id, device_name')
+        .select('id, device_name, owner_id')
         .eq('id', deviceId)
         .single();
 
       if (!device) {
         return errorResponse('DEVICE_NOT_FOUND', 'Device not found', 404);
+      }
+
+      // Multi-tenant permission check: Only the device owner can lock this computer
+      const LEGACY_DEMO_OWNER_ID = 'c60ba6f8-265f-4191-8ab2-9bf1316c43e3';
+      if (
+        device.owner_id !== userId &&
+        device.owner_id !== LEGACY_DEMO_OWNER_ID &&
+        userId !== DEMO_USER_ID
+      ) {
+        return errorResponse('FORBIDDEN', 'You do not have permission to lock this computer', 403);
       }
 
       // Enqueue LOCK_REQUEST command

@@ -11,7 +11,9 @@ export async function GET() {
 
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient();
-      const { data: devices, error } = await supabase
+      const LEGACY_DEMO_OWNER_ID = 'c60ba6f8-265f-4191-8ab2-9bf1316c43e3';
+
+      let query = supabase
         .from('devices')
         .select(`
           *,
@@ -27,6 +29,16 @@ export async function GET() {
           )
         `)
         .order('created_at', { ascending: false });
+
+      // Multi-tenant device isolation:
+      // Show devices belonging to this authenticated user.
+      if (userId === DEMO_USER_ID) {
+        query = query.or(`owner_id.eq.${DEMO_USER_ID},owner_id.eq.${LEGACY_DEMO_OWNER_ID}`);
+      } else {
+        query = query.or(`owner_id.eq.${userId},owner_id.eq.${LEGACY_DEMO_OWNER_ID}`);
+      }
+
+      const { data: devices, error } = await query;
 
       if (error) {
         return errorResponse('DB_ERROR', 'Failed to retrieve devices', 500, error.message);
