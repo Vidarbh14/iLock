@@ -84,7 +84,7 @@ export function DeviceCard({ device, onGrantAccess, onLock, onUnlock, isLocking 
 
             <div className="min-w-0">
               <h3 className="text-sm font-semibold tracking-tight text-[#f0f3f6] flex items-center gap-2 truncate">
-                {device.deviceName}
+                {device.deviceName || (device as any).device_name || 'Windows Workstation'}
               </h3>
               <p className="text-xs text-[#8b949e] font-mono truncate">
                 {device.hostname || 'Windows Workstation'}

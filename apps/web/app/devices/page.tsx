@@ -92,7 +92,7 @@ export default function DevicesPage() {
 
   const filteredDevices = devices.filter(
     (d) =>
-      d.deviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (d.deviceName || (d as any).device_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (d.hostname && d.hostname.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
