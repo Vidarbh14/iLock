@@ -38,7 +38,21 @@ export async function GET(
         return errorResponse('DEVICE_NOT_FOUND', 'Device not found or not owned by user', 404);
       }
 
-      return jsonResponse({ device });
+      const mappedDevice = {
+        ...device,
+        deviceName: device.device_name || device.deviceName || 'Windows PC',
+        deviceUuid: device.device_uuid || device.deviceUuid,
+        ownerId: device.owner_id || device.ownerId,
+        osVersion: device.os_version || device.osVersion,
+        agentVersion: device.agent_version || device.agentVersion,
+        publicKey: device.public_key || device.publicKey,
+        publicKeyAlgorithm: device.public_key_algorithm || device.publicKeyAlgorithm,
+        lastSeen: device.last_seen || device.lastSeen || new Date().toISOString(),
+        isTrusted: device.is_trusted !== undefined ? device.is_trusted : device.isTrusted,
+        device_status: Array.isArray(device.device_status) ? device.device_status : (device.device_status ? [device.device_status] : []),
+      };
+
+      return jsonResponse({ device: mappedDevice });
     }
 
     // Demo Mode Store

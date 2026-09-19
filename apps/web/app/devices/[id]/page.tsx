@@ -175,7 +175,9 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
     );
   }
 
-  const telemetry = device.device_status?.[0];
+  const telemetry = Array.isArray(device.device_status)
+    ? device.device_status[0]
+    : device.device_status;
   const sessions = device.access_sessions || [];
   const parsedTel = parseDeviceTelemetry(telemetry, device);
   const isOnline = device.status === 'online';
@@ -211,7 +213,9 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
               </div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-100">{device.deviceName}</h1>
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-100">
+                    {device.deviceName || (device as any).device_name || 'Windows Workstation'}
+                  </h1>
                   <DeviceStatusBadge status={device.status} />
                   {isOnline && (
                     <span
