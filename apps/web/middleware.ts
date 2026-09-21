@@ -16,8 +16,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/forgot-password') ||
     pathname === '/manifest.json' ||
     pathname === '/sw.js' ||
-    pathname === '/favicon.ico' ||
-    pathname === '/'
+    pathname === '/favicon.ico'
   ) {
     return NextResponse.next();
   }
