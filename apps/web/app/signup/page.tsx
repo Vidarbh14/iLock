@@ -179,6 +179,7 @@ export default function SignupPage() {
                   if (error) setError(null);
                 }}
                 placeholder="your.name@company.com"
+                style={{ backgroundColor: '#0b101b', color: '#00e5ff' }}
                 className={`w-full pl-10 pr-10 py-2.5 cyber-input text-sm text-[#00e5ff] font-mono bg-[#0b101b] placeholder-slate-500 rounded-xl focus:border-[#00e5ff] focus:outline-none transition-all ${
                   email.length > 0 && !isEmailValid ? 'border-rose-500/60 ring-1 ring-rose-500/30' : ''
                 }`}
@@ -218,6 +219,7 @@ export default function SignupPage() {
                   if (error) setError(null);
                 }}
                 placeholder="At least 8 characters"
+                style={{ backgroundColor: '#0b101b', color: '#00e5ff' }}
                 className={`w-full pl-10 pr-10 py-2.5 cyber-input text-sm text-[#00e5ff] font-mono bg-[#0b101b] placeholder-slate-500 rounded-xl focus:border-[#00e5ff] focus:outline-none transition-all ${
                   password.length > 0 && !isPasswordLongEnough ? 'border-amber-500/60 ring-1 ring-amber-500/30' : ''
                 }`}
@@ -255,6 +257,7 @@ export default function SignupPage() {
                   if (error) setError(null);
                 }}
                 placeholder="Re-enter password"
+                style={{ backgroundColor: '#0b101b', color: '#00e5ff' }}
                 className={`w-full pl-10 pr-10 py-2.5 cyber-input text-sm text-[#00e5ff] font-mono bg-[#0b101b] placeholder-slate-500 rounded-xl focus:border-[#00e5ff] focus:outline-none transition-all ${
                   confirmPassword.length > 0 && !doPasswordsMatch ? 'border-rose-500/60 ring-1 ring-rose-500/30' : ''
                 }`}

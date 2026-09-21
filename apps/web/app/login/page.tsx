@@ -164,6 +164,7 @@ export default function LoginPage() {
                   if (error) setError(null);
                 }}
                 placeholder="operator@security.local"
+                style={{ backgroundColor: '#0b101b', color: '#00e5ff' }}
                 className="w-full pl-10 pr-3.5 py-2.5 cyber-input text-sm text-[#00e5ff] font-mono bg-[#0b101b] placeholder-slate-500 rounded-xl focus:border-[#00e5ff] focus:outline-none focus:ring-1 focus:ring-[#00e5ff]/30"
               />
             </div>
@@ -190,6 +191,7 @@ export default function LoginPage() {
                   if (error) setError(null);
                 }}
                 placeholder="••••••••••••"
+                style={{ backgroundColor: '#0b101b', color: '#00e5ff' }}
                 className="w-full pl-10 pr-10 py-2.5 cyber-input text-sm text-[#00e5ff] font-mono bg-[#0b101b] placeholder-slate-500 rounded-xl focus:border-[#00e5ff] focus:outline-none focus:ring-1 focus:ring-[#00e5ff]/30"
               />
               <button
