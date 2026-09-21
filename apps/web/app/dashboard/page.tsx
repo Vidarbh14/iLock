@@ -237,15 +237,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Network Cryptographic Pipeline Visualizer (Requirement 1 & 7: 300ms entry & heartbeat/command pulse) */}
-      <div className="entry-seq-3">
-        <ConnectionVisualizer
-          deviceOnline={isPrimaryOnline}
-          isWorkstationLocked={isPrimaryLocked}
-          deviceName={primaryDevice?.deviceName || 'VIDHU Laptop'}
-          isTransacting={isHeartbeating || !!lockingDeviceId}
-        />
-      </div>
+      {/* Network Cryptographic Pipeline Visualizer */}
+      {primaryDevice && (
+        <div className="entry-seq-3">
+          <ConnectionVisualizer
+            deviceOnline={isPrimaryOnline}
+            isWorkstationLocked={isPrimaryLocked}
+            deviceName={primaryDevice.deviceName}
+            isTransacting={isHeartbeating || !!lockingDeviceId}
+          />
+        </div>
+      )}
 
       {/* Error notification */}
       {error && (
