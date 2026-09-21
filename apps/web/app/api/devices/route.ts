@@ -1,10 +1,9 @@
 import { getAuthenticatedUserId, errorResponse, jsonResponse } from '@/lib/api-helpers';
 import { isSupabaseConfigured, createServiceClient } from '@/lib/supabase-server';
-import { demoStore, DEMO_USER_ID } from '@/lib/demo-store';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const userId = await getAuthenticatedUserId();
+    const userId = await getAuthenticatedUserId(request);
     if (!userId) {
       return errorResponse('UNAUTHORIZED', 'Authentication required', 401);
     }
@@ -12,7 +11,9 @@ export async function GET() {
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient();
 
-      let query = supabase
+      // Strict Multi-tenant device isolation:
+      // Show ONLY devices belonging strictly to this authenticated user
+      const query = supabase
         .from('devices')
         .select(`
           *,
@@ -27,18 +28,8 @@ export async function GET() {
             last_heartbeat
           )
         `)
+        .eq('owner_id', userId)
         .order('created_at', { ascending: false });
-
-      const PRIMARY_OWNER_ID = 'a6b3545a-0e0e-4603-b038-af01e996dbec';
-      const LEGACY_DEMO_OWNER_ID = 'c60ba6f8-265f-4191-8ab2-9bf1316c43e3';
-
-      // Multi-tenant device isolation:
-      // Show devices belonging to this authenticated user or legacy/primary workstation owner
-      if (userId === DEMO_USER_ID || userId === PRIMARY_OWNER_ID || userId === LEGACY_DEMO_OWNER_ID) {
-        query = query.or(`owner_id.eq.${userId},owner_id.eq.${PRIMARY_OWNER_ID},owner_id.eq.${LEGACY_DEMO_OWNER_ID},owner_id.eq.${DEMO_USER_ID}`);
-      } else {
-        query = query.eq('owner_id', userId);
-      }
 
       const { data: devices, error } = await query;
 
@@ -84,16 +75,7 @@ export async function GET() {
       return jsonResponse({ devices: mappedDevices });
     }
 
-    // Demo Mode Store
-    const devices = demoStore.getDevices(userId).map((d) => {
-      const tel = demoStore.telemetry.get(d.id);
-      return {
-        ...d,
-        device_status: tel ? [tel] : [],
-      };
-    });
-
-    return jsonResponse({ devices });
+    return jsonResponse({ devices: [] });
   } catch (err: any) {
     return errorResponse('INTERNAL_SERVER_ERROR', err.message, 500);
   }

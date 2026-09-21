@@ -1,9 +1,7 @@
 import { errorResponse, jsonResponse } from '@/lib/api-helpers';
 import { isSupabaseConfigured, createServiceClient, createServerClient } from '@/lib/supabase-server';
-import { DEMO_USER_ID } from '@/lib/demo-store';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const LEGACY_DEMO_OWNER_ID = 'c60ba6f8-265f-4191-8ab2-9bf1316c43e3';
 
 export async function POST(request: Request) {
   try {
@@ -36,13 +34,7 @@ export async function POST(request: Request) {
 
     // Demo Mode Fallback
     if (!isSupabaseConfigured()) {
-      return jsonResponse({
-        success: true,
-        user: { id: DEMO_USER_ID, email: normalizedEmail },
-        session: null,
-        isDemo: true,
-        message: 'Sandbox account ready',
-      });
+      return errorResponse('SERVICE_UNAVAILABLE', 'Registration service not configured', 503);
     }
 
     const adminClient = createServiceClient();
@@ -80,23 +72,13 @@ export async function POST(request: Request) {
 
     const newUser = createdUser.user;
 
-    // Automatically associate existing laptop / devices to the newly registered primary owner
-    try {
-      await adminClient
-        .from('devices')
-        .update({ owner_id: newUser.id })
-        .eq('owner_id', LEGACY_DEMO_OWNER_ID);
-    } catch (claimErr) {
-      console.warn('[iLock Auth] Notice: Device reassignment skipped or failed:', claimErr);
-    }
-
     // Record audit event
     try {
       await adminClient.from('audit_logs').insert({
         user_id: newUser.id,
         event_type: 'USER_REGISTERED',
         success: true,
-        reason: `Owner registered: ${normalizedEmail}`,
+        reason: `User registered: ${normalizedEmail}`,
         details: { email: normalizedEmail, userId: newUser.id },
       });
     } catch (auditErr) {

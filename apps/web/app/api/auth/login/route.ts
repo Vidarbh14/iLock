@@ -1,8 +1,5 @@
 import { errorResponse, jsonResponse } from '@/lib/api-helpers';
 import { isSupabaseConfigured, createServerClient, createServiceClient } from '@/lib/supabase-server';
-import { DEMO_USER_ID } from '@/lib/demo-store';
-
-const LEGACY_DEMO_OWNER_ID = 'c60ba6f8-265f-4191-8ab2-9bf1316c43e3';
 
 export async function POST(request: Request) {
   try {
@@ -21,19 +18,12 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Instant Sandbox / Demo access
-    if (normalizedEmail === 'demo@ilock.security' || !isSupabaseConfigured()) {
-      return jsonResponse({
-        success: true,
-        user: { id: DEMO_USER_ID, email: 'demo@ilock.security' },
-        session: null,
-        isDemo: true,
-        message: 'Signed in as Demo Owner',
-      });
-    }
-
     if (!password || typeof password !== 'string') {
       return errorResponse('INVALID_PASSWORD', 'Password is required', 400);
+    }
+
+    if (!isSupabaseConfigured()) {
+      return errorResponse('SERVICE_UNAVAILABLE', 'Authentication service not configured', 503);
     }
 
     const serverClient = createServerClient();
@@ -52,23 +42,18 @@ export async function POST(request: Request) {
 
     const user = authData.user;
 
-    // Ensure devices belong to logged in owner if not already reassigned
+    // Record login audit event
     try {
       const adminClient = createServiceClient();
-      await adminClient
-        .from('devices')
-        .update({ owner_id: user.id })
-        .eq('owner_id', LEGACY_DEMO_OWNER_ID);
-
       await adminClient.from('audit_logs').insert({
         user_id: user.id,
         event_type: 'USER_LOGIN',
         success: true,
-        reason: `Owner signed in: ${normalizedEmail}`,
+        reason: `User signed in: ${normalizedEmail}`,
         details: { email: normalizedEmail, userId: user.id },
       });
     } catch (e) {
-      console.warn('[iLock Auth] Post-login hook notice:', e);
+      console.warn('[iLock Auth] Post-login audit log notice:', e);
     }
 
     return jsonResponse({

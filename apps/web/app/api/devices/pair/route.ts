@@ -1,13 +1,11 @@
-import { NextResponse } from 'next/server';
 import { CreatePairingRequestSchema } from '@ilock/shared';
 import { generatePairingCode, hashPairingCode, pairingRateLimiter } from '@ilock/security';
 import { getAuthenticatedUserId, errorResponse, jsonResponse } from '@/lib/api-helpers';
-import { isSupabaseConfigured, createServerClient, createServiceClient } from '@/lib/supabase-server';
-import { demoStore, DEMO_USER_ID } from '@/lib/demo-store';
+import { isSupabaseConfigured, createServiceClient } from '@/lib/supabase-server';
 
 export async function POST(request: Request) {
   try {
-    const userId = await getAuthenticatedUserId();
+    const userId = await getAuthenticatedUserId(request);
     if (!userId) {
       return errorResponse('UNAUTHORIZED', 'Authentication required to create a pairing code', 401);
     }
@@ -64,35 +62,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // Demo Mode Store
-    const reqId = crypto.randomUUID();
-    demoStore.pairingRequests.push({
-      id: reqId,
-      ownerId: userId,
-      deviceName,
-      pairingCode,
-      expiresAt,
-      isUsed: false,
-      usedAt: null,
-      createdAt: new Date().toISOString(),
-    });
-
-    demoStore.addAuditLog({
-      userId,
-      deviceId: null,
-      eventType: 'PAIRING_CREATED',
-      success: true,
-      reason: `Pairing code requested for '${deviceName}'`,
-      details: { deviceName, pairingCode },
-    });
-
-    return jsonResponse({
-      id: reqId,
-      deviceName,
-      pairingCode,
-      expiresAt,
-      expiresInSeconds: 600,
-    });
+    return errorResponse('NOT_SUPPORTED', 'Service unavailable', 503);
   } catch (err: any) {
     return errorResponse('INTERNAL_SERVER_ERROR', err.message || 'An unexpected error occurred', 500);
   }

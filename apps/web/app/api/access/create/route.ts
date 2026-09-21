@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
 
 export async function POST(request: Request) {
   try {
-    const userId = await getAuthenticatedUserId();
+    const userId = await getAuthenticatedUserId(request);
     if (!userId) {
       return errorResponse('UNAUTHORIZED', 'Authentication required', 401);
     }
@@ -31,9 +31,6 @@ export async function POST(request: Request) {
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient();
 
-      const PRIMARY_OWNER_ID = 'a6b3545a-0e0e-4603-b038-af01e996dbec';
-      const LEGACY_DEMO_OWNER_ID = 'c60ba6f8-265f-4191-8ab2-9bf1316c43e3';
-
       // Verify device ownership
       const { data: device, error: devError } = await supabase
         .from('devices')
@@ -45,13 +42,7 @@ export async function POST(request: Request) {
         return errorResponse('DEVICE_NOT_FOUND', 'Device not found', 404);
       }
 
-      if (
-        device.owner_id !== userId &&
-        device.owner_id !== PRIMARY_OWNER_ID &&
-        device.owner_id !== LEGACY_DEMO_OWNER_ID &&
-        userId !== DEMO_USER_ID &&
-        userId !== PRIMARY_OWNER_ID
-      ) {
+      if (device.owner_id !== userId) {
         return errorResponse('FORBIDDEN', 'You do not have permission to grant access on this computer', 403);
       }
 

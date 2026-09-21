@@ -113,9 +113,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoLogin = () => {
-    window.location.href = '/dashboard';
-  };
 
   return (
     <div className="max-w-md mx-auto my-10 px-4 space-y-6">
@@ -242,18 +239,6 @@ export default function LoginPage() {
               </>
             )}
           </button>
-
-          {/* Quick Demo Mode Login */}
-          <div className="pt-2 border-t border-cyber-border/60">
-            <button
-              type="button"
-              onClick={handleDemoLogin}
-              className="w-full py-2.5 rounded-xl text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Launch Instant Demo Mode (Vidarbh)
-            </button>
-          </div>
         </form>
       </div>
 

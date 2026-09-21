@@ -3,8 +3,7 @@
 // ==============================================================================
 
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured, createServerClient } from './supabase-server';
-import { DEMO_USER_ID } from './demo-store';
+import { isSupabaseConfigured, createServerClient, createServiceClient } from './supabase-server';
 
 export function jsonResponse<T>(data: T, status = 200) {
   return NextResponse.json(data, { status });
@@ -24,38 +23,54 @@ export function errorResponse(code: string, message: string, status = 400, detai
 }
 
 /**
- * Extracts authenticated user ID from the request session.
- * In Demo Mode or when Supabase is not configured, safely defaults to the DEMO_USER_ID.
+ * Extracts authenticated user ID from the request session or Authorization Bearer header.
+ * Returns null if not authenticated.
  */
-export async function getAuthenticatedUserId(): Promise<string | null> {
+export async function getAuthenticatedUserId(request?: Request): Promise<string | null> {
   if (!isSupabaseConfigured()) {
-    // Development Demo Mode fallback
-    return DEMO_USER_ID;
+    return null;
   }
 
   try {
+    // 1. Check cookies via Server Client
     const supabase = createServerClient();
     const {
       data: { user },
       error,
     } = await supabase.auth.getUser();
 
-    if (error || !user) {
-      return DEMO_USER_ID;
+    if (!error && user?.id) {
+      return user.id;
     }
 
-    return user.id;
+    // 2. Check Authorization Bearer header if passed
+    if (request) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+        const token = authHeader.substring(7).trim();
+        if (token) {
+          const serviceClient = createServiceClient();
+          const { data: jwtUser, error: jwtErr } = await serviceClient.auth.getUser(token);
+          if (!jwtErr && jwtUser?.user?.id) {
+            return jwtUser.user.id;
+          }
+        }
+      }
+    }
+
+    return null;
   } catch {
-    return DEMO_USER_ID;
+    return null;
   }
 }
 
 /**
  * Extracts authenticated user details (id, email, isDemo) from the request session.
+ * Returns null if not authenticated.
  */
-export async function getAuthenticatedUser(): Promise<{ id: string; email: string; isDemo: boolean }> {
+export async function getAuthenticatedUser(request?: Request): Promise<{ id: string; email: string; isDemo: boolean } | null> {
   if (!isSupabaseConfigured()) {
-    return { id: DEMO_USER_ID, email: 'demo@ilock.security', isDemo: true };
+    return null;
   }
 
   try {
@@ -65,13 +80,27 @@ export async function getAuthenticatedUser(): Promise<{ id: string; email: strin
       error,
     } = await supabase.auth.getUser();
 
-    if (error || !user) {
-      return { id: DEMO_USER_ID, email: 'demo@ilock.security', isDemo: true };
+    if (!error && user) {
+      return { id: user.id, email: user.email || '', isDemo: false };
     }
 
-    return { id: user.id, email: user.email || 'owner@ilock.security', isDemo: false };
+    if (request) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+        const token = authHeader.substring(7).trim();
+        if (token) {
+          const serviceClient = createServiceClient();
+          const { data: jwtUser, error: jwtErr } = await serviceClient.auth.getUser(token);
+          if (!jwtErr && jwtUser?.user) {
+            return { id: jwtUser.user.id, email: jwtUser.user.email || '', isDemo: false };
+          }
+        }
+      }
+    }
+
+    return null;
   } catch {
-    return { id: DEMO_USER_ID, email: 'demo@ilock.security', isDemo: true };
+    return null;
   }
 }
 

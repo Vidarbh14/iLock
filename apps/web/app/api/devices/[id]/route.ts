@@ -1,13 +1,12 @@
 import { getAuthenticatedUserId, errorResponse, jsonResponse } from '@/lib/api-helpers';
-import { isSupabaseConfigured, createServerClient, createServiceClient } from '@/lib/supabase-server';
-import { demoStore, DEMO_USER_ID } from '@/lib/demo-store';
+import { isSupabaseConfigured, createServiceClient } from '@/lib/supabase-server';
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const userId = await getAuthenticatedUserId();
+    const userId = await getAuthenticatedUserId(request);
     if (!userId) {
       return errorResponse('UNAUTHORIZED', 'Authentication required', 401);
     }
@@ -16,23 +15,17 @@ export async function GET(
 
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient();
-      const PRIMARY_OWNER_ID = 'a6b3545a-0e0e-4603-b038-af01e996dbec';
-      const LEGACY_DEMO_OWNER_ID = 'c60ba6f8-265f-4191-8ab2-9bf1316c43e3';
 
-      let query = supabase
+      const { data: device, error } = await supabase
         .from('devices')
         .select(`
           *,
           device_status (*),
           access_sessions (*)
         `)
-        .eq('id', deviceId);
-
-      if (userId !== DEMO_USER_ID && userId !== PRIMARY_OWNER_ID && userId !== LEGACY_DEMO_OWNER_ID) {
-        query = query.eq('owner_id', userId);
-      }
-
-      const { data: device, error } = await query.single();
+        .eq('id', deviceId)
+        .eq('owner_id', userId)
+        .single();
 
       if (error || !device) {
         return errorResponse('DEVICE_NOT_FOUND', 'Device not found or not owned by user', 404);
@@ -69,33 +62,18 @@ export async function GET(
       return jsonResponse({ device: mappedDevice });
     }
 
-    // Demo Mode Store
-    const device = demoStore.getDeviceById(deviceId);
-    if (!device || device.ownerId !== userId) {
-      return errorResponse('DEVICE_NOT_FOUND', 'Device not found', 404);
-    }
-
-    const tel = demoStore.telemetry.get(deviceId);
-    const sessions = demoStore.getSessions(userId).filter((s) => s.deviceId === deviceId);
-
-    return jsonResponse({
-      device: {
-        ...device,
-        device_status: tel ? [tel] : [],
-        access_sessions: sessions,
-      },
-    });
+    return errorResponse('NOT_SUPPORTED', 'Service unavailable', 503);
   } catch (err: any) {
     return errorResponse('INTERNAL_SERVER_ERROR', err.message, 500);
   }
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const userId = await getAuthenticatedUserId();
+    const userId = await getAuthenticatedUserId(request);
     if (!userId) {
       return errorResponse('UNAUTHORIZED', 'Authentication required', 401);
     }
@@ -142,13 +120,7 @@ export async function DELETE(
       return jsonResponse({ success: true, message: 'Device removed and sessions invalidated' });
     }
 
-    // Demo Mode Store
-    const removed = demoStore.removeDevice(deviceId, userId);
-    if (!removed) {
-      return errorResponse('DEVICE_NOT_FOUND', 'Device not found or not owned by user', 404);
-    }
-
-    return jsonResponse({ success: true, message: 'Device removed and sessions invalidated (Demo sandbox)' });
+    return errorResponse('NOT_SUPPORTED', 'Service unavailable', 503);
   } catch (err: any) {
     return errorResponse('INTERNAL_SERVER_ERROR', err.message, 500);
   }
