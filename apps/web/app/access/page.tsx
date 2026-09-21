@@ -231,7 +231,7 @@ export default function GrantAccessPage() {
                     value={customMinutes}
                     onChange={(e) => setCustomMinutes(e.target.value)}
                     placeholder="Minutes"
-                    className="cyber-input px-3.5 py-2 text-sm font-mono w-32"
+                    className="cyber-input px-3.5 py-2 text-sm font-mono w-32 bg-[#0b101b] text-[#00e5ff] rounded-xl focus:border-[#00e5ff] focus:outline-none"
                   />
                   <span className="text-xs text-slate-400">minutes (maximum 1440 min / 24 hours)</span>
                 </div>
@@ -250,7 +250,7 @@ export default function GrantAccessPage() {
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
               placeholder="e.g. Colleague accessing Adobe Creative Cloud or brother running updates"
-              className="w-full cyber-input px-4 py-3 text-sm text-slate-100"
+              className="w-full cyber-input px-4 py-3 text-sm text-[#00e5ff] bg-[#0b101b] placeholder-slate-500 rounded-xl focus:border-[#00e5ff] focus:outline-none"
             />
           </div>
 

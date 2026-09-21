@@ -164,7 +164,7 @@ export default function LoginPage() {
                   if (error) setError(null);
                 }}
                 placeholder="operator@security.local"
-                className="w-full pl-10 pr-3.5 py-2.5 cyber-input text-sm text-slate-100 placeholder-slate-500"
+                className="w-full pl-10 pr-3.5 py-2.5 cyber-input text-sm text-[#00e5ff] font-mono bg-[#0b101b] placeholder-slate-500 rounded-xl focus:border-[#00e5ff] focus:outline-none focus:ring-1 focus:ring-[#00e5ff]/30"
               />
             </div>
           </div>
@@ -190,7 +190,7 @@ export default function LoginPage() {
                   if (error) setError(null);
                 }}
                 placeholder="••••••••••••"
-                className="w-full pl-10 pr-10 py-2.5 cyber-input text-sm text-slate-100 placeholder-slate-500"
+                className="w-full pl-10 pr-10 py-2.5 cyber-input text-sm text-[#00e5ff] font-mono bg-[#0b101b] placeholder-slate-500 rounded-xl focus:border-[#00e5ff] focus:outline-none focus:ring-1 focus:ring-[#00e5ff]/30"
               />
               <button
                 type="button"
