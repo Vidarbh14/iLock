@@ -17,4 +17,5 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./crypto"), exports);
 __exportStar(require("./rate-limiter"), exports);
 __exportStar(require("./replay-protection"), exports);
+__exportStar(require("./totp"), exports);
 //# sourceMappingURL=index.js.map

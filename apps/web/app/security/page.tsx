@@ -81,7 +81,7 @@ export default function SecurityAuditPage() {
       </div>
 
       {/* Security Architecture Cards (Requirement 1: entry-seq-3) */}
-      <div className="entry-seq-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="entry-seq-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="relative p-5 rounded-3xl glass-card space-y-2 border border-cyber-border overflow-hidden hover:-translate-y-1 transition-all duration-300 group">
           <CornerOrb variant="cyan" />
           <span className="text-[11px] text-cyan-400 font-semibold flex items-center gap-1.5 uppercase font-mono">
@@ -103,6 +103,16 @@ export default function SecurityAuditPage() {
         </div>
 
         <div className="relative p-5 rounded-3xl glass-card space-y-2 border border-cyber-border overflow-hidden hover:-translate-y-1 transition-all duration-300 group">
+          <CornerOrb variant="purple" />
+          <span className="text-[11px] text-purple-400 font-semibold flex items-center gap-1.5 uppercase font-mono">
+            <Shield className="w-3.5 h-3.5" /> Offline TOTP Key
+          </span>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            RFC 6238 time-synchronized 6-digit emergency authorization permits zero-internet workstation unlocking during network outages.
+          </p>
+        </div>
+
+        <div className="relative p-5 rounded-3xl glass-card space-y-2 border border-cyber-border overflow-hidden hover:-translate-y-1 transition-all duration-300 group">
           <CornerOrb variant="rose" />
           <span className="text-[11px] text-rose-400 font-semibold flex items-center gap-1.5 uppercase font-mono">
             <Lock className="w-3.5 h-3.5" /> Replay & Drift Shield
@@ -112,6 +122,7 @@ export default function SecurityAuditPage() {
           </p>
         </div>
       </div>
+
 
       {/* Filter Tabs (Requirement 1: entry-seq-4) */}
       <div className="entry-seq-4 flex items-center gap-1.5 p-1.5 rounded-2xl glass-card border border-cyber-border max-w-md">

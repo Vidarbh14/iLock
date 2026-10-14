@@ -83,7 +83,105 @@ namespace ILock.WindowsAgent.Commands
                         await HandleUnlockRequestAsync(command, config, ct);
                         break;
 
+                    case "POWER_SLEEP":
+                        var (sleepOk, sleepMsg) = SystemUtilities.ExecutePowerCommand("sleep", _logger);
+                        await ReportResultAsync(command, config, sleepOk ? "SUCCESS" : "FAILED", "POWER_STATE_CHANGED", sleepMsg, ct);
+                        break;
+
+                    case "POWER_RESTART":
+                        var (rstOk, rstMsg) = SystemUtilities.ExecutePowerCommand("restart", _logger);
+                        await ReportResultAsync(command, config, rstOk ? "SUCCESS" : "FAILED", "POWER_STATE_CHANGED", rstMsg, ct);
+                        break;
+
+                    case "DISPLAY_OFF":
+                        var (dispOk, dispMsg) = SystemUtilities.ExecutePowerCommand("display_off", _logger);
+                        await ReportResultAsync(command, config, dispOk ? "SUCCESS" : "FAILED", "DISPLAY_OFF_ACTIVE", dispMsg, ct);
+                        break;
+
+                    case "SCREENSHOT":
+                        var screenBase64 = SystemUtilities.CaptureScreenBase64(_logger);
+                        if (!string.IsNullOrEmpty(screenBase64))
+                        {
+                            await ReportResultAsync(command, config, "SUCCESS", "SCREENSHOT_CAPTURED", "Screen captured successfully", ct, screenBase64);
+                        }
+                        else
+                        {
+                            await ReportResultAsync(command, config, "FAILED", "SCREENSHOT_FAILED", "Failed to capture desktop screenshot. Workstation may be locked or screen off.", ct);
+                        }
+                        break;
+
+                    case "SEND_TOAST":
+                        string toastTitle = "iLock Security Alert";
+                        string toastMsg = "Remote Notification";
+                        if (command.Payload != null)
+                        {
+                            if (command.Payload.TryGetValue("title", out var tTitle) && tTitle != null)
+                                toastTitle = tTitle.ToString() ?? toastTitle;
+                            if (command.Payload.TryGetValue("message", out var tMsg) && tMsg != null)
+                                toastMsg = tMsg.ToString() ?? toastMsg;
+                        }
+                        bool toastOk = SystemUtilities.DisplayOnScreenMessage(toastTitle, toastMsg, _logger);
+                        await ReportResultAsync(command, config, toastOk ? "SUCCESS" : "FAILED", "TOAST_DISPLAYED", toastMsg, ct);
+                        break;
+
+                    case "SET_CLIPBOARD":
+                        string clipText = string.Empty;
+                        if (command.Payload != null && command.Payload.TryGetValue("text", out var cVal) && cVal != null)
+                        {
+                            clipText = cVal.ToString() ?? string.Empty;
+                        }
+                        bool clipOk = SystemUtilities.SetClipboardText(clipText, _logger);
+                        await ReportResultAsync(command, config, clipOk ? "SUCCESS" : "FAILED", "CLIPBOARD_SET", $"Set {clipText.Length} chars to clipboard", ct);
+                        break;
+
+                    case "CAPTURE_CAMERA":
+                        var camBase64 = SystemUtilities.GenerateCameraSnapshotBase64(config.DeviceName, config.Hostname, _logger);
+                        await ReportResultAsync(command, config, "SUCCESS", "CAMERA_CAPTURED", "Security camera frame captured", ct, camBase64);
+                        break;
+
+                    case "VERIFY_TOTP":
+                        string inputCode = string.Empty;
+                        if (command.Payload != null && command.Payload.TryGetValue("code", out var codeVal) && codeVal != null)
+                        {
+                            inputCode = codeVal.ToString() ?? string.Empty;
+                        }
+                        string totpSecret = TotpValidator.DeriveTotpSecret(config.DeviceUuid);
+                        bool isTotpValid = TotpValidator.ValidateTotp(inputCode, totpSecret);
+                        if (isTotpValid)
+                        {
+                            _logger.LogInformation("Offline TOTP Emergency Unlock authorized! Unlocking PC...");
+                            await _accessProvider.UnlockAsync(ct);
+                            await ReportResultAsync(command, config, "SUCCESS", "TOTP_VERIFIED", "Emergency TOTP authorized workstation unlock", ct);
+                        }
+                        else
+                        {
+                            await ReportResultAsync(command, config, "FAILED", "TOTP_INVALID", "Invalid or expired emergency TOTP code", ct);
+                        }
+                        break;
+
                     case "DEVICE_PING":
+                        if (command.Payload != null && command.Payload.TryGetValue("action", out var pingAct) && pingAct != null)
+                        {
+                            string subAction = pingAct.ToString()?.ToLowerInvariant() ?? "";
+                            if (subAction == "screenshot")
+                            {
+                                var scr = SystemUtilities.CaptureScreenBase64(_logger);
+                                await ReportResultAsync(command, config, !string.IsNullOrEmpty(scr) ? "SUCCESS" : "FAILED", "SCREENSHOT_CAPTURED", "Screen captured", ct, scr);
+                                break;
+                            }
+                            if (subAction == "camera")
+                            {
+                                var cam = SystemUtilities.GenerateCameraSnapshotBase64(config.DeviceName, config.Hostname, _logger);
+                                await ReportResultAsync(command, config, "SUCCESS", "CAMERA_CAPTURED", "Camera captured", ct, cam);
+                                break;
+                            }
+                            if (subAction == "sleep" || subAction == "restart" || subAction == "display_off")
+                            {
+                                var (pOk, pMsg) = SystemUtilities.ExecutePowerCommand(subAction, _logger);
+                                await ReportResultAsync(command, config, pOk ? "SUCCESS" : "FAILED", "POWER_STATE_CHANGED", pMsg, ct);
+                                break;
+                            }
+                        }
                         await ReportResultAsync(command, config, "SUCCESS", "PONG", "Device active and reachable.", ct);
                         break;
 
@@ -98,6 +196,7 @@ namespace ILock.WindowsAgent.Commands
                         await ReportResultAsync(command, config, "REJECTED", "UNKNOWN_COMMAND", $"Unknown command type '{command.CommandType}'", ct);
                         break;
                 }
+
             }
             catch (Exception ex)
             {
@@ -187,7 +286,8 @@ namespace ILock.WindowsAgent.Commands
             string status,
             string? resultStatus,
             string? errorOrMsg,
-            CancellationToken ct)
+            CancellationToken ct,
+            string? data = null)
         {
             long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             string nonce = Guid.NewGuid().ToString("N");
@@ -203,10 +303,12 @@ namespace ILock.WindowsAgent.Commands
                 Error = status == "SUCCESS" ? null : errorOrMsg,
                 Nonce = nonce,
                 Timestamp = timestamp,
-                Signature = signature
+                Signature = signature,
+                Data = data
             };
 
             await _cloudClient.SendCommandResultAsync(config.BackendUrl, resultPayload, config.AuthToken, ct);
         }
+
     }
 }

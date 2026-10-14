@@ -29,15 +29,27 @@ import {
   Server,
   Key,
   Moon,
+  Monitor,
+  MessageSquare,
+  Power,
+  QrCode,
+  WifiOff,
 } from 'lucide-react';
 import type { Device, AccessSession } from '@ilock/shared';
 import { DeviceStatusBadge } from '@/components/DeviceStatusBadge';
 import { GrantAccessModal } from '@/components/GrantAccessModal';
 import { ConfirmRevokeModal } from '@/components/ConfirmRevokeModal';
 import { BiometricUnlockModal } from '@/components/BiometricUnlockModal';
+import { PowerControlsModal } from '@/components/PowerControlsModal';
+import { ScreenPreviewModal } from '@/components/ScreenPreviewModal';
+import { QuickMessageModal } from '@/components/QuickMessageModal';
+import { EmergencyTotpModal } from '@/components/EmergencyTotpModal';
+import { GuestRequestBanner } from '@/components/GuestRequestBanner';
+import { useAudioNotification } from '@/components/AudioNotificationProvider';
 import { CornerOrb } from '@/components/CornerOrb';
 import { TelemetryGauge } from '@/components/TelemetryGauge';
 import { parseDeviceTelemetry } from '@/lib/telemetry-helper';
+
 
 export default function DeviceDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -54,6 +66,11 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
   const [isGrantOpen, setIsGrantOpen] = useState(false);
   const [isUnlockOpen, setIsUnlockOpen] = useState(false);
   const [sessionToRevoke, setSessionToRevoke] = useState<AccessSession | null>(null);
+  const [isPowerOpen, setIsPowerOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isMessageOpen, setIsMessageOpen] = useState(false);
+  const [isTotpOpen, setIsTotpOpen] = useState(false);
+  const { showNotification } = useAudioNotification();
 
   const fetchDevice = async () => {
     try {
@@ -202,6 +219,9 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
         </span>
       </div>
 
+      {/* Guest Access Requests Banner */}
+      <GuestRequestBanner deviceId={deviceId} onSessionCreated={fetchDevice} />
+
       {/* Main Workstation Command Spotlight Header (Requirement 1 & 5: entry-seq-2) */}
       <div className="entry-seq-2 relative glass-card p-6 md:p-8 rounded-3xl border border-cyber-border overflow-hidden group hover:border-[#00e5ff]/30 transition-all duration-300">
         <CornerOrb variant={orbVariant} pulse={isOnline} />
@@ -253,11 +273,11 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
           </div>
 
           {/* Action Triggers */}
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setIsUnlockOpen(true)}
               disabled={!isOnline}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] disabled:opacity-40 disabled:pointer-events-none"
+              className="px-3.5 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] disabled:opacity-40 disabled:pointer-events-none"
             >
               <Fingerprint className="w-4 h-4" />
               Authorize & Unlock
@@ -265,22 +285,66 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
             <button
               onClick={handleLock}
               disabled={isLocking || !isOnline}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-amber-500/40 transition-all flex items-center gap-2 disabled:opacity-40"
+              className="px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-amber-500/40 transition-all flex items-center gap-1.5 disabled:opacity-40"
             >
               <Lock className="w-3.5 h-3.5 text-amber-400" />
-              {isLocking ? 'Sending Lock...' : 'Lock PC'}
+              {isLocking ? 'Locking...' : 'Lock'}
             </button>
             <button
               onClick={() => setIsGrantOpen(true)}
               disabled={!isOnline}
-              className="cyber-btn-cyan text-xs py-2.5 px-4 flex items-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+              className="cyber-btn-cyan text-xs py-2.5 px-3.5 flex items-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
             >
-              <KeyRound className="w-4 h-4" />
-              Grant Access
+              <KeyRound className="w-3.5 h-3.5" />
+              Grant
             </button>
+            <button
+              onClick={() => setIsPreviewOpen(true)}
+              className="px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-[#00e5ff]/40 transition-all flex items-center gap-1.5"
+              title="View live screen and webcam"
+            >
+              <Monitor className="w-3.5 h-3.5 text-[#00e5ff]" />
+              Visualizer
+            </button>
+            <button
+              onClick={() => setIsMessageOpen(true)}
+              disabled={!isOnline}
+              className="px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-indigo-500/40 transition-all flex items-center gap-1.5 disabled:opacity-40"
+              title="Send screen alert or push clipboard"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
+              Message
+            </button>
+            <button
+              onClick={() => setIsPowerOpen(true)}
+              disabled={!isOnline}
+              className="px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-amber-500/40 transition-all flex items-center gap-1.5 disabled:opacity-40"
+              title="Sleep, Restart, or Screen Sleep"
+            >
+              <Power className="w-3.5 h-3.5 text-amber-400" />
+              Power
+            </button>
+            <button
+              onClick={() => setIsTotpOpen(true)}
+              className="px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-emerald-500/40 transition-all flex items-center gap-1.5"
+              title="Offline 6-digit emergency key"
+            >
+              <WifiOff className="w-3.5 h-3.5 text-emerald-400" />
+              Offline Key
+            </button>
+            <Link
+              href={`/request-access/${deviceId}`}
+              target="_blank"
+              className="px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-cyan-500/40 transition-all flex items-center gap-1.5"
+              title="Open public guest request portal"
+            >
+              <QrCode className="w-3.5 h-3.5 text-cyan-400" />
+              Guest Link
+            </Link>
           </div>
         </div>
       </div>
+
 
       {/* Radial Telemetry Overview Gauges (Requirement 1: entry-seq-3) */}
       <div className="entry-seq-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -664,6 +728,37 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
         onClose={() => setIsUnlockOpen(false)}
         onSuccess={handleUnlockSuccess}
       />
+
+      <PowerControlsModal
+        isOpen={isPowerOpen}
+        onClose={() => setIsPowerOpen(false)}
+        deviceId={deviceId}
+        deviceName={device.deviceName || 'Windows Workstation'}
+        onSuccess={(msg) => showNotification('Power Command Dispatched', msg, 'info')}
+      />
+
+      <ScreenPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        deviceId={deviceId}
+        deviceName={device.deviceName || 'Windows Workstation'}
+      />
+
+      <QuickMessageModal
+        isOpen={isMessageOpen}
+        onClose={() => setIsMessageOpen(false)}
+        deviceId={deviceId}
+        deviceName={device.deviceName || 'Windows Workstation'}
+        onSuccess={(msg) => showNotification('Companion Action Dispatched', msg, 'success')}
+      />
+
+      <EmergencyTotpModal
+        isOpen={isTotpOpen}
+        onClose={() => setIsTotpOpen(false)}
+        deviceId={deviceId}
+        deviceName={device.deviceName || 'Windows Workstation'}
+      />
     </div>
   );
 }
+

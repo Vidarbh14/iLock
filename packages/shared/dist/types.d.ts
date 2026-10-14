@@ -1,6 +1,16 @@
 export type DeviceStatus = 'online' | 'offline' | 'connecting' | 'auth_failed' | 'outdated' | 'revoked';
 export type SessionStatus = 'PENDING' | 'AUTHORIZED' | 'ACTIVE' | 'EXPIRING' | 'EXPIRED' | 'REVOKED' | 'FAILED';
-export type CommandType = 'DEVICE_PING' | 'GET_DEVICE_STATUS' | 'CREATE_ACCESS_SESSION' | 'REVOKE_ACCESS_SESSION' | 'GET_ACTIVE_SESSIONS' | 'LOCK_REQUEST' | 'UNLOCK_REQUEST' | 'HEARTBEAT';
+export type CommandType = 'DEVICE_PING' | 'GET_DEVICE_STATUS' | 'CREATE_ACCESS_SESSION' | 'REVOKE_ACCESS_SESSION' | 'GET_ACTIVE_SESSIONS' | 'LOCK_REQUEST' | 'UNLOCK_REQUEST' | 'HEARTBEAT' | 'POWER_SLEEP' | 'POWER_RESTART' | 'DISPLAY_OFF' | 'SCREENSHOT' | 'SEND_TOAST' | 'SET_CLIPBOARD' | 'CAPTURE_CAMERA';
+export interface GuestAccessRequest {
+    id: string;
+    deviceId: string;
+    guestName: string;
+    requestedMinutes: number;
+    reason?: string | null;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    createdAt: string;
+    approvedAt?: string | null;
+}
 export interface Profile {
     id: string;
     email: string;

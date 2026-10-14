@@ -39,6 +39,7 @@ import { ConnectionVisualizer } from '@/components/ConnectionVisualizer';
 import { CornerOrb } from '@/components/CornerOrb';
 import { TelemetryGauge } from '@/components/TelemetryGauge';
 import { parseDeviceTelemetry } from '@/lib/telemetry-helper';
+import { GuestRequestBanner } from '@/components/GuestRequestBanner';
 
 type DeviceWithStatus = Device & { device_status?: any[] };
 
@@ -236,6 +237,9 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {/* Guest Access Requests Alerts */}
+      <GuestRequestBanner onSessionCreated={loadData} />
 
       {/* Network Cryptographic Pipeline Visualizer */}
       {primaryDevice && (

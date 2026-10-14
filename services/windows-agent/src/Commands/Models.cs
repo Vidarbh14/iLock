@@ -137,5 +137,9 @@ namespace ILock.WindowsAgent.Commands
 
         [JsonPropertyName("signature")]
         public string Signature { get; set; } = string.Empty;
+
+        [JsonPropertyName("data")]
+        public string? Data { get; set; }
     }
 }
+

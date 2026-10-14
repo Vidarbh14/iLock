@@ -136,8 +136,9 @@ export declare const CommandResultSchema: z.ZodObject<{
     nonce: z.ZodString;
     timestamp: z.ZodNumber;
     signature: z.ZodString;
+    data: z.ZodNullable<z.ZodOptional<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
-    status: "FAILED" | "SUCCESS" | "REJECTED";
+    status: "FAILED" | "REJECTED" | "SUCCESS";
     timestamp: number;
     nonce: string;
     signature: string;
@@ -145,8 +146,9 @@ export declare const CommandResultSchema: z.ZodObject<{
     sessionId?: string | null | undefined;
     resultStatus?: string | undefined;
     error?: string | null | undefined;
+    data?: string | null | undefined;
 }, {
-    status: "FAILED" | "SUCCESS" | "REJECTED";
+    status: "FAILED" | "REJECTED" | "SUCCESS";
     timestamp: number;
     nonce: string;
     signature: string;
@@ -154,6 +156,51 @@ export declare const CommandResultSchema: z.ZodObject<{
     sessionId?: string | null | undefined;
     resultStatus?: string | undefined;
     error?: string | null | undefined;
+    data?: string | null | undefined;
 }>;
 export type CommandResultInput = z.infer<typeof CommandResultSchema>;
+export declare const PowerCommandSchema: z.ZodObject<{
+    action: z.ZodEnum<["sleep", "restart", "display_off"]>;
+}, "strip", z.ZodTypeAny, {
+    action: "sleep" | "restart" | "display_off";
+}, {
+    action: "sleep" | "restart" | "display_off";
+}>;
+export type PowerCommandInput = z.infer<typeof PowerCommandSchema>;
+export declare const ToastMessageSchema: z.ZodObject<{
+    message: z.ZodString;
+    title: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    message: string;
+    title?: string | undefined;
+}, {
+    message: string;
+    title?: string | undefined;
+}>;
+export type ToastMessageInput = z.infer<typeof ToastMessageSchema>;
+export declare const ClipboardPushSchema: z.ZodObject<{
+    text: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    text: string;
+}, {
+    text: string;
+}>;
+export type ClipboardPushInput = z.infer<typeof ClipboardPushSchema>;
+export declare const GuestRequestCreateSchema: z.ZodObject<{
+    deviceId: z.ZodString;
+    guestName: z.ZodString;
+    requestedMinutes: z.ZodNumber;
+    reason: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    deviceId: string;
+    guestName: string;
+    requestedMinutes: number;
+    reason?: string | undefined;
+}, {
+    deviceId: string;
+    guestName: string;
+    requestedMinutes: number;
+    reason?: string | undefined;
+}>;
+export type GuestRequestCreateInput = z.infer<typeof GuestRequestCreateSchema>;
 //# sourceMappingURL=schemas.d.ts.map

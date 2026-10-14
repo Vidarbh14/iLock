@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       return errorResponse('VALIDATION_ERROR', 'Invalid command result format', 400, parseResult.error.format());
     }
 
-    const { commandId, sessionId, status, resultStatus, error, nonce, timestamp, signature } =
+    const { commandId, sessionId, status, resultStatus, error, nonce, timestamp, signature, data } =
       parseResult.data;
 
     // Replay protection
@@ -95,6 +95,15 @@ export async function POST(request: Request) {
         }
       }
 
+      // Also cache captures in memory store for instantaneous UI retrieval
+      if (data) {
+        if (resultStatus === 'SCREENSHOT_CAPTURED' || cmd.command_type === 'SCREENSHOT') {
+          demoStore.saveScreenCapture(cmd.device_id, data);
+        } else if (resultStatus === 'CAMERA_CAPTURED' || cmd.command_type === 'CAPTURE_CAMERA') {
+          demoStore.saveCameraCapture(cmd.device_id, data);
+        }
+      }
+
       return jsonResponse({ success: true, message: 'Command result acknowledged' });
     }
 
@@ -105,6 +114,14 @@ export async function POST(request: Request) {
       pendingCmd.acknowledgedAt = now.toISOString();
       pendingCmd.resultStatus = resultStatus || status;
       pendingCmd.resultError = error ?? null;
+
+      if (data) {
+        if (resultStatus === 'SCREENSHOT_CAPTURED' || pendingCmd.commandType === 'SCREENSHOT') {
+          demoStore.saveScreenCapture(pendingCmd.deviceId, data);
+        } else if (resultStatus === 'CAMERA_CAPTURED' || pendingCmd.commandType === 'CAPTURE_CAMERA') {
+          demoStore.saveCameraCapture(pendingCmd.deviceId, data);
+        }
+      }
     }
 
     if (sessionId && status === 'SUCCESS') {
@@ -121,3 +138,4 @@ export async function POST(request: Request) {
     return errorResponse('INTERNAL_SERVER_ERROR', err.message, 500);
   }
 }
+

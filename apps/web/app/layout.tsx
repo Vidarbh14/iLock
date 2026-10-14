@@ -4,6 +4,7 @@ import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AmbientBackground } from '@/components/AmbientBackground';
 import { AppBootSplash } from '@/components/AppBootSplash';
+import { AudioNotificationProvider } from '@/components/AudioNotificationProvider';
 
 export const metadata: Metadata = {
   title: 'iLock — Zero-Knowledge Cybersecurity Command Center',
@@ -33,22 +34,25 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full dark">
       <body className="bg-[#08090d] text-[#f0f3f6] min-h-full flex flex-col font-sans antialiased selection:bg-[#00e5ff]/25 selection:text-[#00e5ff] relative overflow-x-hidden bg-cyber-grid">
-        {/* Subtle Ambient Background Motion (Requirement 3) */}
-        <AmbientBackground />
+        <AudioNotificationProvider>
+          {/* Subtle Ambient Background Motion (Requirement 3) */}
+          <AmbientBackground />
 
-        {/* 750ms Initial Boot Sequence (Requirement 2) */}
-        <AppBootSplash />
+          {/* 750ms Initial Boot Sequence (Requirement 2) */}
+          <AppBootSplash />
 
-        {/* Top Navbar with Entry Animation & Micro-Interactions */}
-        <div className="entry-seq-1">
-          <Navbar />
-        </div>
+          {/* Top Navbar with Entry Animation & Micro-Interactions */}
+          <div className="entry-seq-1">
+            <Navbar />
+          </div>
 
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 md:pb-14 z-10">
-          {children}
-        </main>
-        <BottomNav />
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 md:pb-14 z-10">
+            {children}
+          </main>
+          <BottomNav />
+        </AudioNotificationProvider>
       </body>
     </html>
   );
 }
+

@@ -4,7 +4,7 @@
 // Strict typing for API boundaries & Agent commands
 // ==============================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CommandResultSchema = exports.AgentChallengeRequestSchema = exports.AgentHeartbeatSchema = exports.UnlockDeviceSchema = exports.LockDeviceSchema = exports.RevokeAccessSessionSchema = exports.CreateAccessSessionSchema = exports.RegisterDeviceSchema = exports.CreatePairingRequestSchema = exports.PairingCodeRegex = void 0;
+exports.GuestRequestCreateSchema = exports.ClipboardPushSchema = exports.ToastMessageSchema = exports.PowerCommandSchema = exports.CommandResultSchema = exports.AgentChallengeRequestSchema = exports.AgentHeartbeatSchema = exports.UnlockDeviceSchema = exports.LockDeviceSchema = exports.RevokeAccessSessionSchema = exports.CreateAccessSessionSchema = exports.RegisterDeviceSchema = exports.CreatePairingRequestSchema = exports.PairingCodeRegex = void 0;
 const zod_1 = require("zod");
 exports.PairingCodeRegex = /^[A-Z0-9]{4}-[A-Z0-9]{4}$|^[A-Z0-9]{8}$/;
 // Device Pairing Initiation Schema (Web Client -> API)
@@ -87,10 +87,31 @@ exports.CommandResultSchema = zod_1.z.object({
     commandId: zod_1.z.string().uuid('Invalid command ID'),
     sessionId: zod_1.z.string().uuid('Invalid session ID').optional().nullable(),
     status: zod_1.z.enum(['SUCCESS', 'FAILED', 'REJECTED']),
-    resultStatus: zod_1.z.string().max(64).optional(),
+    resultStatus: zod_1.z.string().max(128).optional(),
     error: zod_1.z.string().max(512).optional().nullable(),
     nonce: zod_1.z.string().min(16).max(128),
     timestamp: zod_1.z.number().int().positive(),
     signature: zod_1.z.string().min(16),
+    data: zod_1.z.string().optional().nullable(),
+});
+// Power Management Schema
+exports.PowerCommandSchema = zod_1.z.object({
+    action: zod_1.z.enum(['sleep', 'restart', 'display_off']),
+});
+// Screen Toast Message Schema
+exports.ToastMessageSchema = zod_1.z.object({
+    message: zod_1.z.string().min(1, 'Message cannot be empty').max(256),
+    title: zod_1.z.string().max(64).optional(),
+});
+// Clipboard Text Push Schema
+exports.ClipboardPushSchema = zod_1.z.object({
+    text: zod_1.z.string().min(1, 'Text cannot be empty').max(4096),
+});
+// Guest Access Request Schema
+exports.GuestRequestCreateSchema = zod_1.z.object({
+    deviceId: zod_1.z.string(),
+    guestName: zod_1.z.string().min(1, 'Guest name is required').max(64),
+    requestedMinutes: zod_1.z.number().int().min(5).max(480),
+    reason: zod_1.z.string().max(256).optional(),
 });
 //# sourceMappingURL=schemas.js.map

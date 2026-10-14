@@ -27,7 +27,25 @@ export type CommandType =
   | 'GET_ACTIVE_SESSIONS'
   | 'LOCK_REQUEST'
   | 'UNLOCK_REQUEST'
-  | 'HEARTBEAT';
+  | 'HEARTBEAT'
+  | 'POWER_SLEEP'
+  | 'POWER_RESTART'
+  | 'DISPLAY_OFF'
+  | 'SCREENSHOT'
+  | 'SEND_TOAST'
+  | 'SET_CLIPBOARD'
+  | 'CAPTURE_CAMERA';
+
+export interface GuestAccessRequest {
+  id: string;
+  deviceId: string;
+  guestName: string;
+  requestedMinutes: number;
+  reason?: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  approvedAt?: string | null;
+}
 
 export interface Profile {
   id: string;

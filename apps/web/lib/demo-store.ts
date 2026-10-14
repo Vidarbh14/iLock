@@ -12,6 +12,7 @@ import type {
   DeviceTelemetry,
   PairingRequest,
   SecurityEvent,
+  GuestAccessRequest,
 } from '@ilock/shared';
 import {
   evaluateSessionTimeState,
@@ -83,6 +84,19 @@ class DemoStore {
   ]);
 
   public pairingRequests: PairingRequest[] = [];
+  public guestRequests: GuestAccessRequest[] = [
+    {
+      id: 'e0000000-0000-0000-0000-000000000001',
+      deviceId: DEMO_DEVICE_OMEN_ID,
+      guestName: 'Alex Rivera',
+      requestedMinutes: 30,
+      reason: 'Need to print lab syllabus and study notes',
+      status: 'PENDING',
+      createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
+    },
+  ];
+  public screenCaptures: Map<string, { imageBase64: string; capturedAt: string }> = new Map();
+  public cameraCaptures: Map<string, { imageBase64: string; capturedAt: string }> = new Map();
   public accessSessions: AccessSession[] = [
     {
       id: 'c0000000-0000-0000-0000-000000000001',
@@ -313,7 +327,134 @@ class DemoStore {
 
     return commands;
   }
+
+  public getGuestRequests(deviceId?: string): GuestAccessRequest[] {
+    if (deviceId) {
+      return this.guestRequests.filter((r) => r.deviceId === deviceId);
+    }
+    return this.guestRequests;
+  }
+
+  public createGuestRequest(input: Omit<GuestAccessRequest, 'id' | 'createdAt' | 'status'>): GuestAccessRequest {
+    const req: GuestAccessRequest = {
+      id: crypto.randomUUID(),
+      deviceId: input.deviceId,
+      guestName: input.guestName,
+      requestedMinutes: input.requestedMinutes,
+      reason: input.reason || null,
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+    };
+    this.guestRequests.unshift(req);
+    return req;
+  }
+
+  public approveGuestRequest(requestId: string, ownerId = DEMO_USER_ID): { request: GuestAccessRequest; session: AccessSession } | null {
+    const req = this.guestRequests.find((r) => r.id === requestId);
+    if (!req) return null;
+
+    req.status = 'APPROVED';
+    req.approvedAt = new Date().toISOString();
+
+    // Auto-create active temporary access session
+    const session: AccessSession = {
+      id: crypto.randomUUID(),
+      deviceId: req.deviceId,
+      ownerId,
+      sessionType: 'temporary_access',
+      status: 'ACTIVE',
+      durationMinutes: req.requestedMinutes,
+      createdAt: new Date().toISOString(),
+      authorizedAt: new Date().toISOString(),
+      activatedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + req.requestedMinutes * 60000).toISOString(),
+      revokedAt: null,
+      revokedBy: null,
+      createdBy: ownerId,
+      failureReason: null,
+      metadata: { guestName: req.guestName, reason: req.reason },
+      updatedAt: new Date().toISOString(),
+    };
+    this.createSession(session);
+
+    // Also queue UNLOCK command so the workstation unlocks for the guest!
+    const unlockCmd: AuthorizationCommand = {
+      id: crypto.randomUUID(),
+      deviceId: req.deviceId,
+      sessionId: session.id,
+      commandType: 'UNLOCK_REQUEST',
+      nonce: crypto.randomUUID(),
+      payload: { action: 'UNLOCK', isUnlock: true, guestName: req.guestName },
+      signature: null,
+      isDispatched: false,
+      dispatchedAt: null,
+      isAcknowledged: false,
+      acknowledgedAt: null,
+      resultStatus: null,
+      resultError: null,
+      expiresAt: new Date(Date.now() + 120000).toISOString(),
+      createdAt: new Date().toISOString(),
+    };
+    this.queueCommand(unlockCmd);
+
+    // Update telemetry to unlocked
+    const tele = this.telemetry.get(req.deviceId);
+    if (tele) {
+      tele.workstationLocked = false;
+      tele.updatedAt = new Date().toISOString();
+    }
+
+    this.addAuditLog({
+      userId: ownerId,
+      deviceId: req.deviceId,
+      eventType: 'GUEST_ACCESS_APPROVED',
+      success: true,
+      reason: `Guest '${req.guestName}' granted ${req.requestedMinutes}m temporary access`,
+      details: { requestId, guestName: req.guestName, durationMinutes: req.requestedMinutes },
+    });
+
+    return { request: req, session };
+  }
+
+  public rejectGuestRequest(requestId: string, ownerId = DEMO_USER_ID): GuestAccessRequest | null {
+    const req = this.guestRequests.find((r) => r.id === requestId);
+    if (!req) return null;
+
+    req.status = 'REJECTED';
+    this.addAuditLog({
+      userId: ownerId,
+      deviceId: req.deviceId,
+      eventType: 'GUEST_ACCESS_REJECTED',
+      success: true,
+      reason: `Guest request from '${req.guestName}' declined by owner`,
+      details: { requestId, guestName: req.guestName },
+    });
+    return req;
+  }
+
+  public saveScreenCapture(deviceId: string, imageBase64: string) {
+    this.screenCaptures.set(deviceId, {
+      imageBase64,
+      capturedAt: new Date().toISOString(),
+    });
+  }
+
+  public getScreenCapture(deviceId: string) {
+    return this.screenCaptures.get(deviceId);
+  }
+
+  public saveCameraCapture(deviceId: string, imageBase64: string) {
+    this.cameraCaptures.set(deviceId, {
+      imageBase64,
+      capturedAt: new Date().toISOString(),
+    });
+  }
+
+  public getCameraCapture(deviceId: string) {
+    return this.cameraCaptures.get(deviceId);
+  }
 }
+
 
 // Global demo store instance
 const globalForDemo = global as unknown as { demoStore?: DemoStore };

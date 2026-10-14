@@ -103,10 +103,40 @@ export const CommandResultSchema = z.object({
   commandId: z.string().uuid('Invalid command ID'),
   sessionId: z.string().uuid('Invalid session ID').optional().nullable(),
   status: z.enum(['SUCCESS', 'FAILED', 'REJECTED']),
-  resultStatus: z.string().max(64).optional(),
+  resultStatus: z.string().max(128).optional(),
   error: z.string().max(512).optional().nullable(),
   nonce: z.string().min(16).max(128),
   timestamp: z.number().int().positive(),
   signature: z.string().min(16),
+  data: z.string().optional().nullable(),
 });
 export type CommandResultInput = z.infer<typeof CommandResultSchema>;
+
+// Power Management Schema
+export const PowerCommandSchema = z.object({
+  action: z.enum(['sleep', 'restart', 'display_off']),
+});
+export type PowerCommandInput = z.infer<typeof PowerCommandSchema>;
+
+// Screen Toast Message Schema
+export const ToastMessageSchema = z.object({
+  message: z.string().min(1, 'Message cannot be empty').max(256),
+  title: z.string().max(64).optional(),
+});
+export type ToastMessageInput = z.infer<typeof ToastMessageSchema>;
+
+// Clipboard Text Push Schema
+export const ClipboardPushSchema = z.object({
+  text: z.string().min(1, 'Text cannot be empty').max(4096),
+});
+export type ClipboardPushInput = z.infer<typeof ClipboardPushSchema>;
+
+// Guest Access Request Schema
+export const GuestRequestCreateSchema = z.object({
+  deviceId: z.string(),
+  guestName: z.string().min(1, 'Guest name is required').max(64),
+  requestedMinutes: z.number().int().min(5).max(480),
+  reason: z.string().max(256).optional(),
+});
+export type GuestRequestCreateInput = z.infer<typeof GuestRequestCreateSchema>;
+

@@ -78,8 +78,15 @@ Rather than giving out your permanent Windows account password or PIN:
 - 🛡️ **Replay & Time Drift Defense**: Every command and heartbeat packet embeds a single-use UUIDv4 nonce and authoritative UTC epoch timestamp. Timestamps outside a $\pm 120$-second tolerance or duplicate nonces are rejected as replay attacks.
 - 🛡️ **Server-Authoritative Expiration**: Expiration is calculated and enforced on the cloud backend and reconciled on the agent during heartbeats. Manipulating the local PC clock cannot prolong access.
 - 🛡️ **Row-Level Security (RLS)**: PostgreSQL tables enforce `auth.uid() = owner_id` on all operations.
+- ⚡ **Remote Hardware & Power Management**: On-demand system Sleep, immediate Reboot, and Display Sleep without terminating background network processes.
+- 🖼️ **Live Screen & Webcam Visualizer**: On-demand primary monitor screenshots and security camera surveillance snapshots with client-side privacy blur.
+- 🔑 **RFC 6238 Offline Emergency Authenticator**: 6-digit rolling TOTP code allowing zero-internet workstation unlocking during network or Wi-Fi outages.
+- 🙋 **Interactive Guest Access Request Portal**: Visitors scan a QR code on the monitor or visit `/request-access/[id]` to request time-bounded access, triggering instant owner approval with biometric confirmation.
+- 💬 **Remote On-Screen Toast & Clipboard Ingestion**: Push popups or text/links directly to the Windows workstation screen and clipboard.
+- 🔔 **In-App Real-Time Web Audio Chime Alerts**: Harmonic alert chime synthesized on the fly via the Web Audio API without external media assets.
 
 ---
+
 
 ## 4. Repository Structure
 
