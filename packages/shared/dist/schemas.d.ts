@@ -160,11 +160,11 @@ export declare const CommandResultSchema: z.ZodObject<{
 }>;
 export type CommandResultInput = z.infer<typeof CommandResultSchema>;
 export declare const PowerCommandSchema: z.ZodObject<{
-    action: z.ZodEnum<["sleep", "restart", "display_off"]>;
+    action: z.ZodEnum<["sleep", "restart", "display_off", "stealth_lock", "alarm"]>;
 }, "strip", z.ZodTypeAny, {
-    action: "sleep" | "restart" | "display_off";
+    action: "sleep" | "restart" | "display_off" | "stealth_lock" | "alarm";
 }, {
-    action: "sleep" | "restart" | "display_off";
+    action: "sleep" | "restart" | "display_off" | "stealth_lock" | "alarm";
 }>;
 export type PowerCommandInput = z.infer<typeof PowerCommandSchema>;
 export declare const ToastMessageSchema: z.ZodObject<{

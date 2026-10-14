@@ -14,6 +14,28 @@ export async function GET(
     }
 
     const { id: deviceId } = params;
+
+    if (isSupabaseConfigured()) {
+      const supabase = createServiceClient();
+      const { data: latest } = await supabase
+        .from('authorization_requests')
+        .select('result_error, acknowledged_at, result_status')
+        .eq('device_id', deviceId)
+        .eq('is_acknowledged', true)
+        .in('result_status', ['CAMERA_CAPTURED', 'SUCCESS'])
+        .order('acknowledged_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latest && latest.result_error && latest.result_error.startsWith('data:image/')) {
+        return jsonResponse({
+          captured: true,
+          cameraSnapshot: latest.result_error,
+          capturedAt: latest.acknowledged_at,
+        });
+      }
+    }
+
     const capture = demoStore.getCameraCapture(deviceId);
 
     return jsonResponse({

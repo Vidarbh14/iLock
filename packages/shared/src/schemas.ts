@@ -112,9 +112,9 @@ export const CommandResultSchema = z.object({
 });
 export type CommandResultInput = z.infer<typeof CommandResultSchema>;
 
-// Power Management Schema
+// Power & Protection Command Schema
 export const PowerCommandSchema = z.object({
-  action: z.enum(['sleep', 'restart', 'display_off']),
+  action: z.enum(['sleep', 'restart', 'display_off', 'stealth_lock', 'alarm']),
 });
 export type PowerCommandInput = z.infer<typeof PowerCommandSchema>;
 

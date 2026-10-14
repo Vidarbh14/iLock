@@ -48,27 +48,48 @@ namespace ILock.WindowsAgent.Commands
             var commandTime = DateTime.TryParse(command.ExpiresAt, out _) ? DateTime.UtcNow : DateTime.UtcNow;
             if (!_nonceValidator.Validate(command.Nonce, commandTime, out string? nonceError))
             {
-                _logger.LogWarning("Command {Id} failed replay check: {Error}", command.Id, nonceError);
-                await ReportResultAsync(command, config, "REJECTED", "REPLAY_DETECTED", nonceError, ct);
+                _logger.LogWarning("Command {Id} failed replay check ({Error}). Skipping duplicate execution.", command.Id, nonceError);
                 return;
             }
 
             // 3. Dispatch to Access Provider
             try
             {
-                switch (command.CommandType)
+                // Normalize effective command type by inspecting payload action
+                // (e.g. Postgres authorization_command_type enum wrapper "DEVICE_PING" or "CREATE_ACCESS_SESSION")
+                string effectiveType = command.CommandType;
+                if (command.Payload != null && command.Payload.TryGetValue("action", out var rawAct) && rawAct != null)
+                {
+                    string act = rawAct.ToString()?.Trim().ToUpperInvariant() ?? "";
+                    if (!string.IsNullOrEmpty(act))
+                    {
+                        if (act == "SLEEP") effectiveType = "POWER_SLEEP";
+                        else if (act == "RESTART") effectiveType = "POWER_RESTART";
+                        else if (act == "DISPLAY_OFF") effectiveType = "DISPLAY_OFF";
+                        else if (act == "SCREENSHOT") effectiveType = "SCREENSHOT";
+                        else if (act == "CAMERA" || act == "CAPTURE_CAMERA") effectiveType = "CAPTURE_CAMERA";
+                        else if (act == "SEND_TOAST" || act == "TOAST") effectiveType = "SEND_TOAST";
+                        else if (act == "SET_CLIPBOARD" || act == "CLIPBOARD") effectiveType = "SET_CLIPBOARD";
+                        else if (act == "VERIFY_TOTP" || act == "TOTP") effectiveType = "VERIFY_TOTP";
+                        else if (act == "ALARM" || act == "TRIGGER_ALARM" || act == "SECURITY_ALARM") effectiveType = "TRIGGER_ALARM";
+                        else if (act == "STEALTH_LOCK") effectiveType = "STEALTH_LOCK";
+                        else if (act == "UNLOCK") effectiveType = "UNLOCK_REQUEST";
+                        else if (act == "LOCK") effectiveType = "LOCK_REQUEST";
+                        else if (command.CommandType == "DEVICE_PING") effectiveType = act;
+                    }
+                }
+                if (command.Payload != null && command.Payload.TryGetValue("isUnlock", out var unl) &&
+                    (unl is JsonElement el && (el.ValueKind == JsonValueKind.True || el.ToString() == "true")))
+                {
+                    effectiveType = "UNLOCK_REQUEST";
+                }
+
+                _logger.LogInformation("Dispatching effective command: {EffectiveType} (Raw={RawType})", effectiveType, command.CommandType);
+
+                switch (effectiveType)
                 {
                     case "CREATE_ACCESS_SESSION":
-                        if (command.Payload != null && (
-                            (command.Payload.TryGetValue("action", out var act) && act?.ToString() == "UNLOCK") ||
-                            (command.Payload.TryGetValue("isUnlock", out var unl) && (unl is JsonElement el && (el.ValueKind == JsonValueKind.True || el.ToString() == "true")))))
-                        {
-                            await HandleUnlockRequestAsync(command, config, ct);
-                        }
-                        else
-                        {
-                            await HandleCreateAccessSessionAsync(command, config, ct);
-                        }
+                        await HandleCreateAccessSessionAsync(command, config, ct);
                         break;
 
                     case "REVOKE_ACCESS_SESSION":
@@ -159,29 +180,23 @@ namespace ILock.WindowsAgent.Commands
                         }
                         break;
 
-                    case "DEVICE_PING":
-                        if (command.Payload != null && command.Payload.TryGetValue("action", out var pingAct) && pingAct != null)
+                    case "TRIGGER_ALARM":
+                        int alarmSec = 10;
+                        if (command.Payload != null && command.Payload.TryGetValue("duration", out var alSec) && alSec != null)
                         {
-                            string subAction = pingAct.ToString()?.ToLowerInvariant() ?? "";
-                            if (subAction == "screenshot")
-                            {
-                                var scr = SystemUtilities.CaptureScreenBase64(_logger);
-                                await ReportResultAsync(command, config, !string.IsNullOrEmpty(scr) ? "SUCCESS" : "FAILED", "SCREENSHOT_CAPTURED", "Screen captured", ct, scr);
-                                break;
-                            }
-                            if (subAction == "camera")
-                            {
-                                var cam = SystemUtilities.GenerateCameraSnapshotBase64(config.DeviceName, config.Hostname, _logger);
-                                await ReportResultAsync(command, config, "SUCCESS", "CAMERA_CAPTURED", "Camera captured", ct, cam);
-                                break;
-                            }
-                            if (subAction == "sleep" || subAction == "restart" || subAction == "display_off")
-                            {
-                                var (pOk, pMsg) = SystemUtilities.ExecutePowerCommand(subAction, _logger);
-                                await ReportResultAsync(command, config, pOk ? "SUCCESS" : "FAILED", "POWER_STATE_CHANGED", pMsg, ct);
-                                break;
-                            }
+                            int.TryParse(alSec.ToString(), out alarmSec);
                         }
+                        bool alarmStarted = SystemUtilities.PlaySecurityAlarm(alarmSec > 0 ? alarmSec : 10, _logger);
+                        await ReportResultAsync(command, config, alarmStarted ? "SUCCESS" : "FAILED", "ALARM_TRIGGERED", "Audio deterrent alarm sounding on workstation", ct);
+                        break;
+
+                    case "STEALTH_LOCK":
+                        await _accessProvider.LockAsync(ct);
+                        SystemUtilities.ExecutePowerCommand("display_off", _logger);
+                        await ReportResultAsync(command, config, "SUCCESS", "STEALTH_LOCKED", "Workstation locked and display powered down.", ct);
+                        break;
+
+                    case "DEVICE_PING":
                         await ReportResultAsync(command, config, "SUCCESS", "PONG", "Device active and reachable.", ct);
                         break;
 
@@ -300,7 +315,7 @@ namespace ILock.WindowsAgent.Commands
                 SessionId = command.SessionId,
                 Status = status,
                 ResultStatus = resultStatus,
-                Error = status == "SUCCESS" ? null : errorOrMsg,
+                Error = status == "SUCCESS" ? null : (errorOrMsg != null && errorOrMsg.Length > 500 ? errorOrMsg.Substring(0, 500) : errorOrMsg),
                 Nonce = nonce,
                 Timestamp = timestamp,
                 Signature = signature,

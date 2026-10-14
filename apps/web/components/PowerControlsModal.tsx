@@ -27,7 +27,7 @@ export function PowerControlsModal({
   deviceName,
   onSuccess,
 }: PowerControlsModalProps) {
-  const [selectedAction, setSelectedAction] = useState<'sleep' | 'restart' | 'display_off' | null>(null);
+  const [selectedAction, setSelectedAction] = useState<'sleep' | 'restart' | 'display_off' | 'stealth_lock' | 'alarm' | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,17 +62,29 @@ export function PowerControlsModal({
   };
 
   const actionDetails = {
-    sleep: {
-      title: 'Sleep Workstation',
-      desc: 'Puts the PC into low-power sleep state. Background downloads pause until woken.',
-      icon: Moon,
-      color: 'text-indigo-600 bg-indigo-50 border-indigo-100',
-    },
     display_off: {
       title: 'Turn Off Display (Screen Sleep)',
       desc: 'Powers off all monitors immediately while keeping the CPU, background tasks, and network running.',
       icon: MonitorOff,
       color: 'text-blue-600 bg-blue-50 border-blue-100',
+    },
+    stealth_lock: {
+      title: 'Stealth Lock (1-Click Protection)',
+      desc: 'Instantly locks the Windows workstation and powers down monitors to protect your screen from onlookers.',
+      icon: ShieldAlert,
+      color: 'text-purple-600 bg-purple-50 border-purple-100',
+    },
+    alarm: {
+      title: 'Deterrent Security Siren',
+      desc: 'Sounds an acoustic hardware alarm siren on the PC speakers for 10 seconds to deter unauthorized intruders.',
+      icon: AlertTriangle,
+      color: 'text-red-600 bg-red-50 border-red-100',
+    },
+    sleep: {
+      title: 'Sleep Workstation',
+      desc: 'Puts the PC into low-power sleep state. Background downloads pause until woken.',
+      icon: Moon,
+      color: 'text-indigo-600 bg-indigo-50 border-indigo-100',
     },
     restart: {
       title: 'Restart Computer',
@@ -112,8 +124,8 @@ export function PowerControlsModal({
         )}
 
         {/* Action Grid */}
-        <div className="space-y-2.5 mb-6">
-          {(['display_off', 'sleep', 'restart'] as const).map((action) => {
+        <div className="space-y-2 mb-5 max-h-[380px] overflow-y-auto pr-1">
+          {(['display_off', 'stealth_lock', 'alarm', 'sleep', 'restart'] as const).map((action) => {
             const item = actionDetails[action];
             const Icon = item.icon;
             const isSelected = selectedAction === action;

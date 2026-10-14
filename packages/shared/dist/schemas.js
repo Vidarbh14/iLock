@@ -94,9 +94,9 @@ exports.CommandResultSchema = zod_1.z.object({
     signature: zod_1.z.string().min(16),
     data: zod_1.z.string().optional().nullable(),
 });
-// Power Management Schema
+// Power & Protection Command Schema
 exports.PowerCommandSchema = zod_1.z.object({
-    action: zod_1.z.enum(['sleep', 'restart', 'display_off']),
+    action: zod_1.z.enum(['sleep', 'restart', 'display_off', 'stealth_lock', 'alarm']),
 });
 // Screen Toast Message Schema
 exports.ToastMessageSchema = zod_1.z.object({

@@ -523,7 +523,7 @@ namespace ILock.WindowsAgent.Access
             return false;
         }
 
-        private static bool TryLaunchInSession(
+        public static bool TryLaunchInSession(
             string argument,
             string desktop,
             ILogger logger,

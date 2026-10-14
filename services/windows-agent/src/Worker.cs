@@ -34,6 +34,7 @@ namespace ILock.WindowsAgent
         private AgentConfig _config;
 
         private readonly SemaphoreSlim _wakeSignal = new(0, 1);
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _activeCommandIds = new();
         private int _consecutiveFailures = 0;
 
         public Worker(
@@ -187,7 +188,20 @@ namespace ILock.WindowsAgent
                             _logger.LogInformation("Received {Count} pending cloud command(s).", response.PendingCommands.Count);
                             foreach (var command in response.PendingCommands)
                             {
-                                await _commandDispatcher.ProcessCommandAsync(command, _config, stoppingToken);
+                                if (!_activeCommandIds.TryAdd(command.Id, true))
+                                {
+                                    _logger.LogDebug("Command {Id} is already in-flight. Skipping duplicate execution.", command.Id);
+                                    continue;
+                                }
+
+                                try
+                                {
+                                    await _commandDispatcher.ProcessCommandAsync(command, _config, stoppingToken);
+                                }
+                                finally
+                                {
+                                    _activeCommandIds.TryRemove(command.Id, out _);
+                                }
                             }
                         }
                     }

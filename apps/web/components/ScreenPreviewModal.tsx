@@ -79,12 +79,16 @@ export function ScreenPreviewModal({
         throw new Error(data?.error?.message || 'Capture command failed');
       }
 
-      // Poll after 1.2s and 2.5s for agent response
-      setTimeout(fetchPreviews, 1200);
-      setTimeout(fetchPreviews, 2500);
+      // Sequential polling for workstation agent response
+      setTimeout(fetchPreviews, 1500);
+      setTimeout(fetchPreviews, 3200);
+      setTimeout(fetchPreviews, 5500);
+      setTimeout(() => {
+        fetchPreviews();
+        setIsCapturing(false);
+      }, 7500);
     } catch (err: any) {
       setError(err.message || 'Capture failed');
-    } finally {
       setIsCapturing(false);
     }
   };

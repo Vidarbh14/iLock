@@ -61,7 +61,7 @@ export async function POST(request: Request) {
           is_acknowledged: true,
           acknowledged_at: now.toISOString(),
           result_status: resultStatus || status,
-          result_error: error,
+          result_error: data || error || null,
         })
         .eq('id', commandId);
 

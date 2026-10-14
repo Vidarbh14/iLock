@@ -2,6 +2,7 @@ import { getAuthenticatedUserId, errorResponse, jsonResponse } from '@/lib/api-h
 import { isSupabaseConfigured, createServiceClient } from '@/lib/supabase-server';
 import { demoStore } from '@/lib/demo-store';
 import { GuestRequestCreateSchema } from '@ilock/shared';
+import crypto from 'node:crypto';
 
 // GET /api/access/requests: lists pending guest requests
 export async function GET(request: Request) {
@@ -14,7 +15,39 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const deviceId = searchParams.get('deviceId') || undefined;
 
-    // Demo store returns immediate mock/stored requests
+    if (isSupabaseConfigured()) {
+      const supabase = createServiceClient();
+      let query = supabase
+        .from('access_sessions')
+        .select('*')
+        .eq('status', 'PENDING')
+        .order('created_at', { ascending: false });
+
+      if (deviceId) {
+        query = query.eq('device_id', deviceId);
+      }
+
+      const { data: dbSessions } = await query;
+      if (Array.isArray(dbSessions) && dbSessions.length > 0) {
+        const requests = dbSessions
+          .filter((s: any) => s.metadata && s.metadata.isGuestRequest)
+          .map((s: any) => ({
+            id: s.id,
+            deviceId: s.device_id,
+            guestName: s.metadata.guestName || 'Guest User',
+            requestedMinutes: s.duration_minutes || 30,
+            reason: s.metadata.reason || null,
+            status: s.status,
+            createdAt: s.created_at,
+          }));
+
+        if (requests.length > 0) {
+          return jsonResponse({ requests });
+        }
+      }
+    }
+
+    // Demo store fallback
     const requests = demoStore.getGuestRequests(deviceId);
     return jsonResponse({ requests });
   } catch (err: any) {
@@ -33,26 +66,75 @@ export async function POST(request: Request) {
 
     const { deviceId, guestName, requestedMinutes, reason } = parseResult.data;
 
-    // Check device existence
+    // Check device existence & persist to Supabase if configured
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient();
+      let targetDevice: any = null;
+
       const { data: device } = await supabase
         .from('devices')
-        .select('id, device_name')
+        .select('id, device_name, owner_id')
         .eq('id', deviceId)
-        .single();
+        .maybeSingle();
 
-      if (!device) {
-        // Also check by device_uuid
+      if (device) {
+        targetDevice = device;
+      } else {
         const { data: devByUuid } = await supabase
           .from('devices')
-          .select('id, device_name')
+          .select('id, device_name, owner_id')
           .eq('device_uuid', deviceId)
-          .single();
+          .maybeSingle();
+        targetDevice = devByUuid;
+      }
 
-        if (!devByUuid) {
-          return errorResponse('DEVICE_NOT_FOUND', 'Target device not found', 404);
-        }
+      if (!targetDevice) {
+        return errorResponse('DEVICE_NOT_FOUND', 'Target device not found', 404);
+      }
+
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const { data: newSession, error: sessErr } = await supabase
+        .from('access_sessions')
+        .insert({
+          device_id: targetDevice.id,
+          owner_id: targetDevice.owner_id,
+          session_type: 'temporary_access',
+          status: 'PENDING',
+          duration_minutes: requestedMinutes,
+          created_by: targetDevice.owner_id,
+          expires_at: expiresAt,
+          metadata: {
+            guestName,
+            reason: reason || null,
+            isGuestRequest: true,
+          },
+        })
+        .select()
+        .single();
+
+      if (!sessErr && newSession) {
+        const guestReq = {
+          id: newSession.id,
+          deviceId: targetDevice.id,
+          guestName,
+          requestedMinutes,
+          reason,
+          status: 'PENDING',
+          createdAt: newSession.created_at,
+        };
+
+        demoStore.createGuestRequest({
+          deviceId: targetDevice.id,
+          guestName,
+          requestedMinutes,
+          reason,
+        });
+
+        return jsonResponse({
+          success: true,
+          message: 'Access request submitted. Waiting for owner approval.',
+          request: guestReq,
+        });
       }
     }
 

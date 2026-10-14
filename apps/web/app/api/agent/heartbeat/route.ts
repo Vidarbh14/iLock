@@ -88,6 +88,7 @@ export async function POST(request: Request) {
         .select('*')
         .eq('device_id', device.id)
         .eq('is_acknowledged', false)
+        .eq('is_dispatched', false)
         .gt('expires_at', now.toISOString())
         .order('created_at', { ascending: true });
 

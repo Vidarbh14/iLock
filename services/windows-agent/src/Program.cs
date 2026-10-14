@@ -22,6 +22,38 @@ namespace ILock.WindowsAgent
             Console.WriteLine("       iLock Windows Security Agent v1.0.0       ");
             Console.WriteLine("=================================================");
 
+            // Immediate CLI helper handlers (fast path, zero DI overhead)
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] == "--capture-screen" && i + 1 < args.Length)
+                {
+                    string targetFile = args[i + 1].Trim('\"');
+                    bool ok = SystemUtilities.CaptureScreenToFile(targetFile);
+                    Environment.Exit(ok ? 0 : 1);
+                    return;
+                }
+                if (args[i] == "--show-toast" && i + 2 < args.Length)
+                {
+                    string title = args[i + 1].Trim('\"');
+                    string message = args[i + 2].Trim('\"');
+                    SystemUtilities.ShowInteractiveToast(title, message);
+                    Environment.Exit(0);
+                    return;
+                }
+                if (args[i] == "--set-clipboard-file" && i + 1 < args.Length)
+                {
+                    string filePath = args[i + 1].Trim('\"');
+                    if (File.Exists(filePath))
+                    {
+                        string content = File.ReadAllText(filePath);
+                        SystemUtilities.SetClipboardDirect(content);
+                        try { File.Delete(filePath); } catch { }
+                    }
+                    Environment.Exit(0);
+                    return;
+                }
+            }
+
             WindowsAccessProvider.RestoreDefaultLockScreenPolicy();
 
             var builder = Host.CreateApplicationBuilder(args);
@@ -264,6 +296,7 @@ namespace ILock.WindowsAgent
                     return;
                 }
             }
+
 
             // Register Background Worker Service
             builder.Services.AddHostedService<Worker>();
