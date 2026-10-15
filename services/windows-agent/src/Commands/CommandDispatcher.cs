@@ -75,6 +75,9 @@ namespace ILock.WindowsAgent.Commands
                         else if (act == "STEALTH_LOCK") effectiveType = "STEALTH_LOCK";
                         else if (act == "UNLOCK") effectiveType = "UNLOCK_REQUEST";
                         else if (act == "LOCK") effectiveType = "LOCK_REQUEST";
+                        else if (act == "START_SCREEN_STREAM" || act == "START_STREAM") effectiveType = "START_SCREEN_STREAM";
+                        else if (act == "STOP_SCREEN_STREAM" || act == "STOP_STREAM") effectiveType = "STOP_SCREEN_STREAM";
+                        else if (act == "STREAM_PING" || act == "PING_STREAM") effectiveType = "STREAM_PING";
                         else if (command.CommandType == "DEVICE_PING") effectiveType = act;
                     }
                 }
@@ -194,6 +197,48 @@ namespace ILock.WindowsAgent.Commands
                         await _accessProvider.LockAsync(ct);
                         SystemUtilities.ExecutePowerCommand("display_off", _logger);
                         await ReportResultAsync(command, config, "SUCCESS", "STEALTH_LOCKED", "Workstation locked and display powered down.", ct);
+                        break;
+
+                    case "START_SCREEN_STREAM":
+                        string streamSessionId = Guid.NewGuid().ToString();
+                        string quality = "balanced";
+                        int targetFps = 4;
+
+                        if (command.Payload != null)
+                        {
+                            if (command.Payload.TryGetValue("streamSessionId", out var sessObj) && sessObj != null)
+                                streamSessionId = sessObj.ToString() ?? streamSessionId;
+                            if (command.Payload.TryGetValue("quality", out var qObj) && qObj != null)
+                                quality = qObj.ToString() ?? quality;
+                            if (command.Payload.TryGetValue("targetFps", out var fpsObj) && fpsObj != null)
+                            {
+                                if (fpsObj is JsonElement fpsElem && fpsElem.TryGetInt32(out int parsedFps))
+                                    targetFps = parsedFps;
+                                else
+                                    int.TryParse(fpsObj.ToString(), out targetFps);
+                            }
+                        }
+
+                        LiveScreenStreamer.Instance.Start(
+                            config.DeviceUuid,
+                            config.BackendUrl,
+                            config.AuthToken,
+                            streamSessionId,
+                            targetFps,
+                            quality,
+                            _logger);
+
+                        await ReportResultAsync(command, config, "SUCCESS", "STREAM_STARTED", $"Live screen streaming active ({quality}, {targetFps} FPS)", ct);
+                        break;
+
+                    case "STOP_SCREEN_STREAM":
+                        LiveScreenStreamer.Instance.Stop(_logger);
+                        await ReportResultAsync(command, config, "SUCCESS", "STREAM_STOPPED", "Live screen streaming terminated. Battery saver active.", ct);
+                        break;
+
+                    case "STREAM_PING":
+                        LiveScreenStreamer.Instance.KeepAlive();
+                        await ReportResultAsync(command, config, "SUCCESS", "PONG", "Stream keep-alive ping received", ct);
                         break;
 
                     case "DEVICE_PING":

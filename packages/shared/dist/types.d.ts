@@ -116,6 +116,24 @@ export interface SecurityEvent {
     details: Record<string, unknown>;
     timestamp: string;
 }
+export interface ScreenStreamFrame {
+    frameBase64: string;
+    timestamp: number;
+    fps: number;
+    activeWindow?: string | null;
+    mouseX?: number;
+    mouseY?: number;
+    streamSessionId?: string | null;
+}
+export interface StreamStatus {
+    isStreaming: boolean;
+    streamSessionId: string | null;
+    startedAt: string | null;
+    lastPingAt: string | null;
+    fps: number;
+    quality: 'performance' | 'balanced' | 'high';
+    activeWindow: string | null;
+}
 export interface ApiErrorResponse {
     error: {
         code: string;

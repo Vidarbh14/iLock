@@ -10,7 +10,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/icons') ||
     pathname.startsWith('/api/agent') ||
     pathname.startsWith('/api/devices/register') ||
+    (pathname.startsWith('/api/devices/') && pathname.includes('/stream/frame')) ||
     pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/request-access') ||
+    (pathname === '/api/access/requests' && request.method === 'POST') ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||
     pathname.startsWith('/forgot-password') ||

@@ -203,4 +203,18 @@ export declare const GuestRequestCreateSchema: z.ZodObject<{
     reason?: string | undefined;
 }>;
 export type GuestRequestCreateInput = z.infer<typeof GuestRequestCreateSchema>;
+export declare const StartScreenStreamSchema: z.ZodObject<{
+    quality: z.ZodDefault<z.ZodEnum<["performance", "balanced", "high"]>>;
+    targetFps: z.ZodDefault<z.ZodNumber>;
+    streamSessionId: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    quality: "performance" | "balanced" | "high";
+    targetFps: number;
+    streamSessionId?: string | undefined;
+}, {
+    quality?: "performance" | "balanced" | "high" | undefined;
+    targetFps?: number | undefined;
+    streamSessionId?: string | undefined;
+}>;
+export type StartScreenStreamInput = z.infer<typeof StartScreenStreamSchema>;
 //# sourceMappingURL=schemas.d.ts.map

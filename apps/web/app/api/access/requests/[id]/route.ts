@@ -27,6 +27,9 @@ export async function PATCH(
           .maybeSingle();
 
         if (session) {
+          if (session.owner_id !== userId) {
+            return errorResponse('FORBIDDEN', 'You do not have permission to approve access for this workstation', 403);
+          }
           const now = new Date();
           const expiresAt = new Date(now.getTime() + (session.duration_minutes || 30) * 60 * 1000);
 
@@ -89,6 +92,9 @@ export async function PATCH(
           .maybeSingle();
 
         if (session) {
+          if (session.owner_id !== userId) {
+            return errorResponse('FORBIDDEN', 'You do not have permission to decline access for this workstation', 403);
+          }
           const now = new Date();
           await supabase
             .from('access_sessions')

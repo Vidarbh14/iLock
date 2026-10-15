@@ -453,6 +453,99 @@ class DemoStore {
   public getCameraCapture(deviceId: string) {
     return this.cameraCaptures.get(deviceId);
   }
+
+  public activeStreams: Map<string, {
+    isStreaming: boolean;
+    streamSessionId: string | null;
+    startedAt: string | null;
+    lastPingAt: string | null;
+    fps: number;
+    quality: 'performance' | 'balanced' | 'high';
+    activeWindow: string | null;
+  }> = new Map();
+
+  public latestStreamFrames: Map<string, {
+    frameBase64: string;
+    timestamp: number;
+    fps: number;
+    activeWindow?: string | null;
+    mouseX?: number;
+    mouseY?: number;
+    streamSessionId?: string | null;
+  }> = new Map();
+
+  public startStream(deviceId: string, quality: 'performance' | 'balanced' | 'high' = 'balanced', fps = 4, streamSessionId?: string) {
+    const sId = streamSessionId || crypto.randomUUID();
+    const status = {
+      isStreaming: true,
+      streamSessionId: sId,
+      startedAt: new Date().toISOString(),
+      lastPingAt: new Date().toISOString(),
+      fps,
+      quality,
+      activeWindow: 'Desktop Active',
+    };
+    this.activeStreams.set(deviceId, status);
+    return status;
+  }
+
+  public stopStream(deviceId: string) {
+    const stream = this.activeStreams.get(deviceId);
+    if (stream) {
+      stream.isStreaming = false;
+      this.activeStreams.set(deviceId, { ...stream, isStreaming: false });
+    }
+  }
+
+  public pingStream(deviceId: string) {
+    const stream = this.activeStreams.get(deviceId);
+    if (stream) {
+      stream.lastPingAt = new Date().toISOString();
+      return true;
+    }
+    return false;
+  }
+
+  public saveStreamFrame(deviceId: string, frame: {
+    frameBase64: string;
+    timestamp: number;
+    fps: number;
+    activeWindow?: string | null;
+    mouseX?: number;
+    mouseY?: number;
+    streamSessionId?: string | null;
+  }) {
+    this.latestStreamFrames.set(deviceId, frame);
+    const stream = this.activeStreams.get(deviceId);
+    if (stream) {
+      stream.activeWindow = frame.activeWindow || stream.activeWindow;
+      stream.fps = frame.fps || stream.fps;
+    }
+  }
+
+  public getLatestStreamFrame(deviceId: string) {
+    return this.latestStreamFrames.get(deviceId);
+  }
+
+  public getStreamStatus(deviceId: string) {
+    const stream = this.activeStreams.get(deviceId);
+    if (!stream) {
+      return {
+        isStreaming: false,
+        streamSessionId: null,
+        startedAt: null,
+        lastPingAt: null,
+        fps: 0,
+        quality: 'balanced' as const,
+        activeWindow: null,
+      };
+    }
+    // Watchdog check: if no ping within 25s, mark inactive
+    if (stream.lastPingAt && (Date.now() - new Date(stream.lastPingAt).getTime()) > 25000) {
+      stream.isStreaming = false;
+    }
+    return stream;
+  }
 }
 
 

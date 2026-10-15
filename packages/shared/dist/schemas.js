@@ -4,7 +4,7 @@
 // Strict typing for API boundaries & Agent commands
 // ==============================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GuestRequestCreateSchema = exports.ClipboardPushSchema = exports.ToastMessageSchema = exports.PowerCommandSchema = exports.CommandResultSchema = exports.AgentChallengeRequestSchema = exports.AgentHeartbeatSchema = exports.UnlockDeviceSchema = exports.LockDeviceSchema = exports.RevokeAccessSessionSchema = exports.CreateAccessSessionSchema = exports.RegisterDeviceSchema = exports.CreatePairingRequestSchema = exports.PairingCodeRegex = void 0;
+exports.StartScreenStreamSchema = exports.GuestRequestCreateSchema = exports.ClipboardPushSchema = exports.ToastMessageSchema = exports.PowerCommandSchema = exports.CommandResultSchema = exports.AgentChallengeRequestSchema = exports.AgentHeartbeatSchema = exports.UnlockDeviceSchema = exports.LockDeviceSchema = exports.RevokeAccessSessionSchema = exports.CreateAccessSessionSchema = exports.RegisterDeviceSchema = exports.CreatePairingRequestSchema = exports.PairingCodeRegex = void 0;
 const zod_1 = require("zod");
 exports.PairingCodeRegex = /^[A-Z0-9]{4}-[A-Z0-9]{4}$|^[A-Z0-9]{8}$/;
 // Device Pairing Initiation Schema (Web Client -> API)
@@ -113,5 +113,11 @@ exports.GuestRequestCreateSchema = zod_1.z.object({
     guestName: zod_1.z.string().min(1, 'Guest name is required').max(64),
     requestedMinutes: zod_1.z.number().int().min(5).max(480),
     reason: zod_1.z.string().max(256).optional(),
+});
+// Screen Stream Control Schema
+exports.StartScreenStreamSchema = zod_1.z.object({
+    quality: zod_1.z.enum(['performance', 'balanced', 'high']).default('balanced'),
+    targetFps: zod_1.z.number().int().min(1).max(15).default(4),
+    streamSessionId: zod_1.z.string().optional(),
 });
 //# sourceMappingURL=schemas.js.map

@@ -52,6 +52,51 @@ namespace ILock.WindowsAgent
                     Environment.Exit(0);
                     return;
                 }
+                if (args[i] == "--stream-helper" && i + 4 < args.Length)
+                {
+                    string devUuid = args[i + 1].Trim('\"');
+                    string backend = args[i + 2].Trim('\"');
+                    string auth = args[i + 3].Trim('\"');
+                    string sessId = args[i + 4].Trim('\"');
+                    int fps = 4;
+                    string quality = "balanced";
+                    if (i + 5 < args.Length && int.TryParse(args[i + 5], out int parsedFps)) fps = parsedFps;
+                    if (i + 6 < args.Length) quality = args[i + 6].Trim('\"');
+
+                    LiveScreenStreamer.RunStreamLoop(devUuid, backend, auth, sessId, fps, quality);
+                    Environment.Exit(0);
+                    return;
+                }
+                if (args[i] == "--unlock-totp" && i + 1 < args.Length)
+                {
+                    string code = args[i + 1].Trim();
+                    using var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
+                    var configLogger = loggerFactory.CreateLogger<ConfigManager>();
+                    var configManager = new ConfigManager(configLogger);
+                    var cfg = configManager.LoadConfig();
+
+                    string secret = TotpValidator.DeriveTotpSecret(cfg.DeviceUuid);
+                    bool valid = TotpValidator.ValidateTotp(code, secret);
+                    if (valid)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("TOTP verified! Unlocking workstation...");
+                        Console.ResetColor();
+                        var provider = new WindowsAccessProvider(
+                            loggerFactory.CreateLogger<WindowsAccessProvider>(),
+                            new SecureCredentialVault(loggerFactory.CreateLogger<SecureCredentialVault>(), configManager.ConfigDirectory));
+                        bool unl = await provider.UnlockAsync(default);
+                        Environment.Exit(unl ? 0 : 1);
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Invalid or expired TOTP code.");
+                        Console.ResetColor();
+                        Environment.Exit(1);
+                    }
+                    return;
+                }
             }
 
             WindowsAccessProvider.RestoreDefaultLockScreenPolicy();

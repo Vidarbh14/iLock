@@ -22,7 +22,7 @@ export async function GET(
         .select('result_error, acknowledged_at, result_status')
         .eq('device_id', deviceId)
         .eq('is_acknowledged', true)
-        .in('result_status', ['SCREENSHOT_CAPTURED', 'SUCCESS'])
+        .eq('result_status', 'SCREENSHOT_CAPTURED')
         .order('acknowledged_at', { ascending: false })
         .limit(1)
         .maybeSingle();

@@ -140,3 +140,11 @@ export const GuestRequestCreateSchema = z.object({
 });
 export type GuestRequestCreateInput = z.infer<typeof GuestRequestCreateSchema>;
 
+// Screen Stream Control Schema
+export const StartScreenStreamSchema = z.object({
+  quality: z.enum(['performance', 'balanced', 'high']).default('balanced'),
+  targetFps: z.number().int().min(1).max(15).default(4),
+  streamSessionId: z.string().optional(),
+});
+export type StartScreenStreamInput = z.infer<typeof StartScreenStreamSchema>;
+
