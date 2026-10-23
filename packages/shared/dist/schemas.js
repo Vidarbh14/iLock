@@ -4,7 +4,7 @@
 // Strict typing for API boundaries & Agent commands
 // ==============================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StartScreenStreamSchema = exports.GuestRequestCreateSchema = exports.ClipboardPushSchema = exports.ToastMessageSchema = exports.PowerCommandSchema = exports.CommandResultSchema = exports.AgentChallengeRequestSchema = exports.AgentHeartbeatSchema = exports.UnlockDeviceSchema = exports.LockDeviceSchema = exports.RevokeAccessSessionSchema = exports.CreateAccessSessionSchema = exports.RegisterDeviceSchema = exports.CreatePairingRequestSchema = exports.PairingCodeRegex = void 0;
+exports.WebPushSubscriptionSchema = exports.BleProximitySchema = exports.FileConduitSchema = exports.SentryConfigSchema = exports.ProcessActionSchema = exports.SpeechBroadcastSchema = exports.RemoteInputSchema = exports.StartScreenStreamSchema = exports.GuestRequestCreateSchema = exports.ClipboardPushSchema = exports.ToastMessageSchema = exports.PowerCommandSchema = exports.CommandResultSchema = exports.AgentChallengeRequestSchema = exports.AgentHeartbeatSchema = exports.UnlockDeviceSchema = exports.LockDeviceSchema = exports.RevokeAccessSessionSchema = exports.CreateAccessSessionSchema = exports.RegisterDeviceSchema = exports.CreatePairingRequestSchema = exports.PairingCodeRegex = void 0;
 const zod_1 = require("zod");
 exports.PairingCodeRegex = /^[A-Z0-9]{4}-[A-Z0-9]{4}$|^[A-Z0-9]{8}$/;
 // Device Pairing Initiation Schema (Web Client -> API)
@@ -119,5 +119,59 @@ exports.StartScreenStreamSchema = zod_1.z.object({
     quality: zod_1.z.enum(['performance', 'balanced', 'high']).default('balanced'),
     targetFps: zod_1.z.number().int().min(1).max(15).default(4),
     streamSessionId: zod_1.z.string().optional(),
+});
+// Remote Input Schema (Clicks, Drag, Keystrokes, Macros)
+exports.RemoteInputSchema = zod_1.z.object({
+    action: zod_1.z.enum(['click', 'move', 'scroll', 'keystroke', 'keystrokes', 'macro']).optional(),
+    type: zod_1.z.enum(['click', 'move', 'scroll', 'keystroke', 'keystrokes', 'macro']).optional(),
+    button: zod_1.z.enum(['left', 'right', 'middle', 'double']).optional().default('left'),
+    x: zod_1.z.number().min(0).max(1).optional(),
+    y: zod_1.z.number().min(0).max(1).optional(),
+    deltaY: zod_1.z.number().optional().default(0),
+    key: zod_1.z.string().optional(),
+    text: zod_1.z.string().optional(),
+    macro: zod_1.z.enum(['ALT_F4', 'WIN_D', 'TASK_MGR', 'LOCK', 'ENTER', 'ESC']).optional(),
+}).refine((data) => data.action !== undefined || data.type !== undefined, {
+    message: "Either 'action' or 'type' must be specified",
+});
+// Text-to-Speech Voice Broadcast Schema
+exports.SpeechBroadcastSchema = zod_1.z.object({
+    text: zod_1.z.string().min(1, 'Speech text cannot be empty').max(500),
+    rate: zod_1.z.number().int().min(-10).max(10).optional().default(0),
+    volume: zod_1.z.number().int().min(0).max(100).optional().default(100),
+});
+// Process Management Schema
+exports.ProcessActionSchema = zod_1.z.object({
+    action: zod_1.z.enum(['list', 'kill']),
+    pid: zod_1.z.number().int().positive().optional(),
+});
+// Sentry & Intruder Surveillance Schema
+exports.SentryConfigSchema = zod_1.z.object({
+    enabled: zod_1.z.boolean(),
+    alarmOnTamper: zod_1.z.boolean().optional().default(false),
+    snapOnFailedLogon: zod_1.z.boolean().optional().default(true),
+    alertOnPowerDisconnect: zod_1.z.boolean().optional().default(true),
+});
+// Remote File Conduit Schema
+exports.FileConduitSchema = zod_1.z.object({
+    action: zod_1.z.enum(['list', 'read', 'write', 'delete']),
+    folder: zod_1.z.enum(['desktop', 'documents', 'downloads']).default('desktop'),
+    fileName: zod_1.z.string().max(255).optional(),
+    contentBase64: zod_1.z.string().optional(),
+});
+// BLE Proximity Auto-Lock Schema
+exports.BleProximitySchema = zod_1.z.object({
+    enabled: zod_1.z.boolean(),
+    deviceAddress: zod_1.z.string().optional(),
+    rssiThreshold: zod_1.z.number().int().min(-120).max(-20).default(-75),
+    timeoutSeconds: zod_1.z.number().int().min(2).max(60).default(5),
+});
+// WebPush Subscription Schema
+exports.WebPushSubscriptionSchema = zod_1.z.object({
+    endpoint: zod_1.z.string().url(),
+    keys: zod_1.z.object({
+        p256dh: zod_1.z.string(),
+        auth: zod_1.z.string(),
+    }),
 });
 //# sourceMappingURL=schemas.js.map

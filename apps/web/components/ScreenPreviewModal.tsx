@@ -20,6 +20,13 @@ import {
   Shield,
   Activity,
   Layers,
+  MousePointer,
+  Keyboard,
+  Volume2,
+  CornerDownLeft,
+  Sliders,
+  Send,
+  Lock,
 } from 'lucide-react';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase-client';
 
@@ -28,6 +35,12 @@ interface ScreenPreviewModalProps {
   onClose: () => void;
   deviceId: string;
   deviceName: string;
+}
+
+interface ClickRipple {
+  id: number;
+  x: number;
+  y: number;
 }
 
 export function ScreenPreviewModal({
@@ -58,12 +71,26 @@ export function ScreenPreviewModal({
   const [isLoadingSnapshots, setIsLoadingSnapshots] = useState(false);
   const [isCapturingSnapshot, setIsCapturingSnapshot] = useState(false);
 
-  // Visual filters
+  // Interactive Remote Control State (Feature 1)
+  const [isControlEnabled, setIsControlEnabled] = useState(false);
+  const [clickType, setClickType] = useState<'left' | 'right' | 'double'>('left');
+  const [clickRipples, setClickRipples] = useState<ClickRipple[]>([]);
+  const [keystrokesText, setKeystrokesText] = useState('');
+  const [isSendingInput, setIsSendingInput] = useState(false);
+
+  // TTS Voice Broadcaster State (Feature 4)
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const [voiceText, setVoiceText] = useState('');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Visual filters & feedback
   const [privacyBlur, setPrivacyBlur] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   // References
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const channelRef = useRef<any>(null);
@@ -120,7 +147,7 @@ export function ScreenPreviewModal({
       setIsStreaming(true);
       setIsStartingStream(false);
 
-      // 1. Subscribe to Supabase Realtime channel for ultra-low latency WebSocket push
+      // 1. Subscribe to Supabase Realtime channel
       if (isSupabaseConfigured()) {
         try {
           const supabase = createClient();
@@ -154,7 +181,7 @@ export function ScreenPreviewModal({
         }
       }
 
-      // 2. High-speed adaptive polling fallback (runs every 250ms to ensure continuous smooth rendering)
+      // 2. Adaptive polling fallback (runs every 250ms)
       pollIntervalRef.current = setInterval(async () => {
         try {
           const frameRes = await fetch(`/api/devices/${deviceId}/stream/latest`);
@@ -173,14 +200,10 @@ export function ScreenPreviewModal({
               setLastFrameTime(now);
             }
           }
-        } catch {
-          // Transient poll skip
-        }
+        } catch {}
       }, 250);
 
-      // 3. Keep-alive ping interval (every 10 seconds).
-      // If the phone locks, browser sleeps, or network disconnects,
-      // pings cease and the Windows agent automatically terminates screen capture after 25s!
+      // 3. Keep-alive ping interval (every 10 seconds)
       pingIntervalRef.current = setInterval(async () => {
         try {
           await fetch(`/api/devices/${deviceId}/stream/ping`, {
@@ -217,7 +240,6 @@ export function ScreenPreviewModal({
         setCameraCapturedAt(camData.capturedAt);
       }
     } catch {
-      // Ignored
     } finally {
       setIsLoadingSnapshots(false);
     }
@@ -247,17 +269,130 @@ export function ScreenPreviewModal({
     }
   };
 
-  // Lifecycle: When modal opens or deviceId changes
+  // ============================================================================
+  // Interactive Remote Control Handlers (Feature 1)
+  // ============================================================================
+  const handleScreenClick = async (e: React.MouseEvent<HTMLImageElement>) => {
+    if (!isControlEnabled) return;
+
+    const img = imageRef.current;
+    if (!img) return;
+
+    const rect = img.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    const normX = Math.max(0, Math.min(1, clickX / rect.width));
+    const normY = Math.max(0, Math.min(1, clickY / rect.height));
+
+    // Show visual ripple
+    const rippleId = Date.now();
+    setClickRipples((prev) => [...prev, { id: rippleId, x: normX, y: normY }]);
+    setTimeout(() => {
+      setClickRipples((prev) => prev.filter((r) => r.id !== rippleId));
+    }, 600);
+
+    try {
+      await fetch(`/api/devices/${deviceId}/input`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'click',
+          x: normX,
+          y: normY,
+          button: clickType,
+        }),
+      });
+    } catch (err) {
+      console.warn('Failed to inject mouse click:', err);
+    }
+  };
+
+  const handleSendMacro = async (macro: string) => {
+    setIsSendingInput(true);
+    try {
+      await fetch(`/api/devices/${deviceId}/input`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'macro',
+          macro,
+        }),
+      });
+      setActionSuccess(`Triggered ${macro}`);
+      setTimeout(() => setActionSuccess(null), 2000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to dispatch macro');
+    } finally {
+      setIsSendingInput(false);
+    }
+  };
+
+  const handleSendKeystrokes = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!keystrokesText.trim()) return;
+
+    setIsSendingInput(true);
+    try {
+      await fetch(`/api/devices/${deviceId}/input`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'keystrokes',
+          text: keystrokesText,
+        }),
+      });
+      setKeystrokesText('');
+      setActionSuccess('Text injected into active PC window');
+      setTimeout(() => setActionSuccess(null), 2000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to inject keystrokes');
+    } finally {
+      setIsSendingInput(false);
+    }
+  };
+
+  // ============================================================================
+  // TTS Voice Broadcaster Handlers (Feature 4)
+  // ============================================================================
+  const handleBroadcastSpeech = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!voiceText.trim()) return;
+
+    setIsSpeaking(true);
+    try {
+      const res = await fetch(`/api/devices/${deviceId}/speech`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: voiceText,
+          rate: 0,
+          volume: 100,
+        }),
+      });
+      if (res.ok) {
+        setVoiceText('');
+        setActionSuccess('Voice announcement broadcasted aloud on PC speakers');
+        setTimeout(() => setActionSuccess(null), 2500);
+      } else {
+        setError('Failed to broadcast voice announcement');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Speech request failed');
+    } finally {
+      setIsSpeaking(false);
+    }
+  };
+
+  // Lifecycle
   useEffect(() => {
     if (isOpen) {
       fetchSnapshots();
     } else {
-      // Automatically shut down live streaming when modal is closed
       stopLiveStream();
     }
   }, [isOpen, deviceId, stopLiveStream]);
 
-  // Clean up on component unmount
   useEffect(() => {
     return () => {
       stopLiveStream();
@@ -277,8 +412,8 @@ export function ScreenPreviewModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#12161f] border border-cyan-500/30 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] max-w-2xl w-full p-5 sm:p-6 text-slate-100 relative flex flex-col max-h-[92vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-[#12161f] border border-cyan-500/30 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] max-w-3xl w-full p-5 sm:p-6 text-slate-100 relative flex flex-col max-h-[94vh] overflow-y-auto custom-scrollbar">
         {/* Close Button */}
         <button
           onClick={() => {
@@ -292,7 +427,7 @@ export function ScreenPreviewModal({
         </button>
 
         {/* Modal Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pr-10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pr-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
               {activeTab === 'live' ? (
@@ -305,7 +440,7 @@ export function ScreenPreviewModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">Remote Screen Visualizer</h3>
+                <h3 className="text-base font-bold text-white">Remote Screen & Control</h3>
                 {isStreaming && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
                     ● LIVE
@@ -361,22 +496,29 @@ export function ScreenPreviewModal({
           </div>
         )}
 
+        {actionSuccess && (
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4 shrink-0 text-emerald-400" />
+            <span>{actionSuccess}</span>
+          </div>
+        )}
+
         {/* Video / Screen Display Container */}
         <div
           ref={videoContainerRef}
-          className="relative aspect-video rounded-2xl bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner mb-4 group"
+          className="relative aspect-video rounded-2xl bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner mb-3 group select-none"
         >
           {/* Active Window Title Pill */}
           {activeTab === 'live' && isStreaming && activeWindow && (
-            <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-white/10 text-[11px] font-mono text-cyan-300 flex items-center gap-1.5 max-w-[80%] truncate shadow-md">
+            <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-white/10 text-[11px] font-mono text-cyan-300 flex items-center gap-1.5 max-w-[80%] truncate shadow-md pointer-events-none">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
               <span className="truncate">{activeWindow}</span>
             </div>
           )}
 
-          {/* Telemetry HUD Pill (FPS, Latency, Bitrate) */}
+          {/* Telemetry HUD Pill */}
           {activeTab === 'live' && isStreaming && (
-            <div className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-mono text-slate-300 flex items-center gap-2 shadow-md">
+            <div className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-mono text-slate-300 flex items-center gap-2 shadow-md pointer-events-none">
               <span className="text-emerald-400 font-bold">{fps.toFixed(1)} FPS</span>
               <span className="text-slate-500">•</span>
               <span className="text-cyan-400">{latencyMs}ms</span>
@@ -385,16 +527,27 @@ export function ScreenPreviewModal({
             </div>
           )}
 
+          {/* Interactive Mouse Click Ripple Effects */}
+          {clickRipples.map((r) => (
+            <span
+              key={r.id}
+              style={{ left: `${r.x * 100}%`, top: `${r.y * 100}%` }}
+              className="absolute w-8 h-8 -ml-4 -mt-4 rounded-full border-2 border-cyan-400 bg-cyan-400/40 animate-ping pointer-events-none z-30"
+            />
+          ))}
+
           {/* Display Content: LIVE STREAM */}
           {activeTab === 'live' ? (
             isStreaming ? (
               liveFrame ? (
                 <img
+                  ref={imageRef}
                   src={liveFrame}
                   alt="Live Workstation Screen"
+                  onClick={handleScreenClick}
                   className={`w-full h-full object-contain transition-all duration-150 ${
                     privacyBlur ? 'blur-lg scale-105' : 'blur-0'
-                  }`}
+                  } ${isControlEnabled ? 'cursor-crosshair' : 'cursor-default'}`}
                 />
               ) : screenshot ? (
                 <div className="relative w-full h-full flex items-center justify-center">
@@ -447,7 +600,6 @@ export function ScreenPreviewModal({
               </div>
             )
           ) : activeTab === 'screen' ? (
-            /* STATIC SCREENSHOT */
             screenshot ? (
               <img
                 src={screenshot}
@@ -464,7 +616,6 @@ export function ScreenPreviewModal({
               </div>
             )
           ) : (
-            /* WEBCAM */
             cameraSnapshot ? (
               <img
                 src={cameraSnapshot}
@@ -492,6 +643,137 @@ export function ScreenPreviewModal({
           )}
         </div>
 
+        {/* Feature 1: Interactive Remote Control Toolbar (When streaming) */}
+        {activeTab === 'live' && isStreaming && (
+          <div className="p-3 mb-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsControlEnabled(!isControlEnabled)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    isControlEnabled
+                      ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(0,229,255,0.4)]'
+                      : 'bg-slate-800 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <MousePointer className="w-3.5 h-3.5" />
+                  <span>{isControlEnabled ? 'Touch Control Active' : 'Enable Touch / Click'}</span>
+                </button>
+
+                {isControlEnabled && (
+                  <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-800 border border-slate-700 text-[10px]">
+                    {(['left', 'right', 'double'] as const).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setClickType(t)}
+                        className={`px-2 py-0.5 rounded capitalize font-medium ${
+                          clickType === t ? 'bg-cyan-500/20 text-cyan-300 font-bold' : 'text-slate-400'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Macro Buttons */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  onClick={() => handleSendMacro('WIN_D')}
+                  disabled={isSendingInput}
+                  className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono transition-colors"
+                  title="Show Desktop"
+                >
+                  Win+D
+                </button>
+                <button
+                  onClick={() => handleSendMacro('ALT_F4')}
+                  disabled={isSendingInput}
+                  className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-rose-300 text-[11px] font-mono transition-colors"
+                  title="Close Window"
+                >
+                  Alt+F4
+                </button>
+                <button
+                  onClick={() => handleSendMacro('TASK_MGR')}
+                  disabled={isSendingInput}
+                  className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-mono transition-colors"
+                  title="Task Manager"
+                >
+                  TaskMgr
+                </button>
+                <button
+                  onClick={() => handleSendMacro('ENTER')}
+                  disabled={isSendingInput}
+                  className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono transition-colors"
+                >
+                  Enter ↵
+                </button>
+                <button
+                  onClick={() => handleSendMacro('ESC')}
+                  disabled={isSendingInput}
+                  className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono transition-colors"
+                >
+                  Esc
+                </button>
+              </div>
+            </div>
+
+            {/* Direct Keystrokes Input Field */}
+            <form onSubmit={handleSendKeystrokes} className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Keyboard className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Inject text typing into active window..."
+                  value={keystrokesText}
+                  onChange={(e) => setKeystrokesText(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 bg-slate-950/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!keystrokesText.trim() || isSendingInput}
+                className="px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all disabled:opacity-40"
+              >
+                <Send className="w-3 h-3" />
+                <span>Inject</span>
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Feature 4: Expandable Voice Intercom Panel */}
+        {isVoiceOpen && (
+          <div className="p-3 mb-3 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 space-y-2 animate-fade-in">
+            <div className="flex items-center justify-between text-xs text-indigo-300 font-semibold">
+              <span className="flex items-center gap-1.5">
+                <Volume2 className="w-4 h-4 text-indigo-400" />
+                Voice Broadcaster & Speaker Intercom
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">100% Volume • Standard Pitch</span>
+            </div>
+            <form onSubmit={handleBroadcastSpeech} className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Type message to speak aloud through PC speakers..."
+                value={voiceText}
+                onChange={(e) => setVoiceText(e.target.value)}
+                className="flex-1 px-3 py-1.5 bg-slate-950 border border-indigo-500/40 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
+              />
+              <button
+                type="submit"
+                disabled={!voiceText.trim() || isSpeaking}
+                className="px-4 py-1.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(99,102,241,0.3)] disabled:opacity-50"
+              >
+                <Volume2 className={`w-3.5 h-3.5 ${isSpeaking ? 'animate-bounce' : ''}`} />
+                <span>{isSpeaking ? 'Announcing...' : 'Speak to PC'}</span>
+              </button>
+            </form>
+          </div>
+        )}
+
         {/* Footer Controls & Battery Guard Notice */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           {/* Status Note */}
@@ -500,7 +782,7 @@ export function ScreenPreviewModal({
               isStreaming ? (
                 <div className="flex items-center gap-1.5 text-emerald-400">
                   <Zap className="w-3.5 h-3.5" />
-                  <span>Active Session • Auto-stops if idle</span>
+                  <span>Session Active • Auto-stops if idle</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 text-slate-400">
@@ -524,6 +806,19 @@ export function ScreenPreviewModal({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Voice Intercom Toggle */}
+            <button
+              onClick={() => setIsVoiceOpen(!isVoiceOpen)}
+              className={`p-2.5 rounded-xl border transition-colors ${
+                isVoiceOpen
+                  ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                  : 'bg-slate-900/80 border-slate-700 text-slate-400 hover:text-white'
+              }`}
+              title="Voice Broadcaster (TTS)"
+            >
+              <Volume2 className="w-4 h-4" />
+            </button>
+
             {/* Fullscreen Button */}
             <button
               onClick={toggleFullscreen}
@@ -555,7 +850,7 @@ export function ScreenPreviewModal({
                   className="py-2.5 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition-all flex items-center gap-2 active:scale-95"
                 >
                   <Square className="w-3.5 h-3.5 fill-rose-300" />
-                  <span>Stop Live Stream</span>
+                  <span>Stop Stream</span>
                 </button>
               ) : (
                 <button

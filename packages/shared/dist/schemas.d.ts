@@ -217,4 +217,158 @@ export declare const StartScreenStreamSchema: z.ZodObject<{
     streamSessionId?: string | undefined;
 }>;
 export type StartScreenStreamInput = z.infer<typeof StartScreenStreamSchema>;
+export declare const RemoteInputSchema: z.ZodEffects<z.ZodObject<{
+    action: z.ZodOptional<z.ZodEnum<["click", "move", "scroll", "keystroke", "keystrokes", "macro"]>>;
+    type: z.ZodOptional<z.ZodEnum<["click", "move", "scroll", "keystroke", "keystrokes", "macro"]>>;
+    button: z.ZodDefault<z.ZodOptional<z.ZodEnum<["left", "right", "middle", "double"]>>>;
+    x: z.ZodOptional<z.ZodNumber>;
+    y: z.ZodOptional<z.ZodNumber>;
+    deltaY: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+    key: z.ZodOptional<z.ZodString>;
+    text: z.ZodOptional<z.ZodString>;
+    macro: z.ZodOptional<z.ZodEnum<["ALT_F4", "WIN_D", "TASK_MGR", "LOCK", "ENTER", "ESC"]>>;
+}, "strip", z.ZodTypeAny, {
+    button: "left" | "right" | "middle" | "double";
+    deltaY: number;
+    type?: "click" | "move" | "scroll" | "keystroke" | "keystrokes" | "macro" | undefined;
+    action?: "click" | "move" | "scroll" | "keystroke" | "keystrokes" | "macro" | undefined;
+    text?: string | undefined;
+    macro?: "ALT_F4" | "WIN_D" | "TASK_MGR" | "LOCK" | "ENTER" | "ESC" | undefined;
+    x?: number | undefined;
+    y?: number | undefined;
+    key?: string | undefined;
+}, {
+    type?: "click" | "move" | "scroll" | "keystroke" | "keystrokes" | "macro" | undefined;
+    action?: "click" | "move" | "scroll" | "keystroke" | "keystrokes" | "macro" | undefined;
+    text?: string | undefined;
+    macro?: "ALT_F4" | "WIN_D" | "TASK_MGR" | "LOCK" | "ENTER" | "ESC" | undefined;
+    button?: "left" | "right" | "middle" | "double" | undefined;
+    x?: number | undefined;
+    y?: number | undefined;
+    deltaY?: number | undefined;
+    key?: string | undefined;
+}>, {
+    button: "left" | "right" | "middle" | "double";
+    deltaY: number;
+    type?: "click" | "move" | "scroll" | "keystroke" | "keystrokes" | "macro" | undefined;
+    action?: "click" | "move" | "scroll" | "keystroke" | "keystrokes" | "macro" | undefined;
+    text?: string | undefined;
+    macro?: "ALT_F4" | "WIN_D" | "TASK_MGR" | "LOCK" | "ENTER" | "ESC" | undefined;
+    x?: number | undefined;
+    y?: number | undefined;
+    key?: string | undefined;
+}, {
+    type?: "click" | "move" | "scroll" | "keystroke" | "keystrokes" | "macro" | undefined;
+    action?: "click" | "move" | "scroll" | "keystroke" | "keystrokes" | "macro" | undefined;
+    text?: string | undefined;
+    macro?: "ALT_F4" | "WIN_D" | "TASK_MGR" | "LOCK" | "ENTER" | "ESC" | undefined;
+    button?: "left" | "right" | "middle" | "double" | undefined;
+    x?: number | undefined;
+    y?: number | undefined;
+    deltaY?: number | undefined;
+    key?: string | undefined;
+}>;
+export type RemoteInputPayload = z.infer<typeof RemoteInputSchema>;
+export declare const SpeechBroadcastSchema: z.ZodObject<{
+    text: z.ZodString;
+    rate: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+    volume: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+}, "strip", z.ZodTypeAny, {
+    text: string;
+    rate: number;
+    volume: number;
+}, {
+    text: string;
+    rate?: number | undefined;
+    volume?: number | undefined;
+}>;
+export type SpeechBroadcastInput = z.infer<typeof SpeechBroadcastSchema>;
+export declare const ProcessActionSchema: z.ZodObject<{
+    action: z.ZodEnum<["list", "kill"]>;
+    pid: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    action: "list" | "kill";
+    pid?: number | undefined;
+}, {
+    action: "list" | "kill";
+    pid?: number | undefined;
+}>;
+export type ProcessActionInput = z.infer<typeof ProcessActionSchema>;
+export declare const SentryConfigSchema: z.ZodObject<{
+    enabled: z.ZodBoolean;
+    alarmOnTamper: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    snapOnFailedLogon: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    alertOnPowerDisconnect: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+}, "strip", z.ZodTypeAny, {
+    enabled: boolean;
+    alarmOnTamper: boolean;
+    snapOnFailedLogon: boolean;
+    alertOnPowerDisconnect: boolean;
+}, {
+    enabled: boolean;
+    alarmOnTamper?: boolean | undefined;
+    snapOnFailedLogon?: boolean | undefined;
+    alertOnPowerDisconnect?: boolean | undefined;
+}>;
+export type SentryConfigInput = z.infer<typeof SentryConfigSchema>;
+export declare const FileConduitSchema: z.ZodObject<{
+    action: z.ZodEnum<["list", "read", "write", "delete"]>;
+    folder: z.ZodDefault<z.ZodEnum<["desktop", "documents", "downloads"]>>;
+    fileName: z.ZodOptional<z.ZodString>;
+    contentBase64: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    action: "list" | "read" | "write" | "delete";
+    folder: "desktop" | "documents" | "downloads";
+    fileName?: string | undefined;
+    contentBase64?: string | undefined;
+}, {
+    action: "list" | "read" | "write" | "delete";
+    folder?: "desktop" | "documents" | "downloads" | undefined;
+    fileName?: string | undefined;
+    contentBase64?: string | undefined;
+}>;
+export type FileConduitInput = z.infer<typeof FileConduitSchema>;
+export declare const BleProximitySchema: z.ZodObject<{
+    enabled: z.ZodBoolean;
+    deviceAddress: z.ZodOptional<z.ZodString>;
+    rssiThreshold: z.ZodDefault<z.ZodNumber>;
+    timeoutSeconds: z.ZodDefault<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    enabled: boolean;
+    rssiThreshold: number;
+    timeoutSeconds: number;
+    deviceAddress?: string | undefined;
+}, {
+    enabled: boolean;
+    deviceAddress?: string | undefined;
+    rssiThreshold?: number | undefined;
+    timeoutSeconds?: number | undefined;
+}>;
+export type BleProximityInput = z.infer<typeof BleProximitySchema>;
+export declare const WebPushSubscriptionSchema: z.ZodObject<{
+    endpoint: z.ZodString;
+    keys: z.ZodObject<{
+        p256dh: z.ZodString;
+        auth: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        p256dh: string;
+        auth: string;
+    }, {
+        p256dh: string;
+        auth: string;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    keys: {
+        p256dh: string;
+        auth: string;
+    };
+    endpoint: string;
+}, {
+    keys: {
+        p256dh: string;
+        auth: string;
+    };
+    endpoint: string;
+}>;
+export type WebPushSubscriptionInput = z.infer<typeof WebPushSubscriptionSchema>;
 //# sourceMappingURL=schemas.d.ts.map

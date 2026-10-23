@@ -52,6 +52,33 @@ namespace ILock.WindowsAgent
                     Environment.Exit(0);
                     return;
                 }
+                if (args[i] == "--input-helper" && i + 1 < args.Length)
+                {
+                    string inputJson = args[i + 1].Trim('\"');
+                    if (inputJson.StartsWith("BASE64:"))
+                    {
+                        try
+                        {
+                            byte[] b = Convert.FromBase64String(inputJson.Substring(7));
+                            inputJson = System.Text.Encoding.UTF8.GetString(b);
+                        }
+                        catch { }
+                    }
+                    bool ok = InputSimulator.ExecuteFromJson(inputJson);
+                    Environment.Exit(ok ? 0 : 1);
+                    return;
+                }
+                if (args[i] == "--speak" && i + 1 < args.Length)
+                {
+                    string speakText = args[i + 1].Trim('\"');
+                    int rate = 0;
+                    int volume = 100;
+                    if (i + 2 < args.Length && int.TryParse(args[i + 2], out int r)) rate = r;
+                    if (i + 3 < args.Length && int.TryParse(args[i + 3], out int v)) volume = v;
+                    bool ok = VoiceBroadcaster.Speak(speakText, rate, volume);
+                    Environment.Exit(ok ? 0 : 1);
+                    return;
+                }
                 if (args[i] == "--stream-helper" && i + 4 < args.Length)
                 {
                     string devUuid = args[i + 1].Trim('\"');

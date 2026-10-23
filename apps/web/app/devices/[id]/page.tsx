@@ -34,6 +34,9 @@ import {
   Power,
   QrCode,
   WifiOff,
+  Bluetooth,
+  Folder,
+  ShieldAlert,
 } from 'lucide-react';
 import type { Device, AccessSession } from '@ilock/shared';
 import { DeviceStatusBadge } from '@/components/DeviceStatusBadge';
@@ -44,6 +47,10 @@ import { PowerControlsModal } from '@/components/PowerControlsModal';
 import { ScreenPreviewModal } from '@/components/ScreenPreviewModal';
 import { QuickMessageModal } from '@/components/QuickMessageModal';
 import { EmergencyTotpModal } from '@/components/EmergencyTotpModal';
+import { ProcessManagerModal } from '@/components/ProcessManagerModal';
+import { SentryModal } from '@/components/SentryModal';
+import { FileConduitModal } from '@/components/FileConduitModal';
+import { BleProximityModal } from '@/components/BleProximityModal';
 import { GuestRequestBanner } from '@/components/GuestRequestBanner';
 import { useAudioNotification } from '@/components/AudioNotificationProvider';
 import { CornerOrb } from '@/components/CornerOrb';
@@ -70,6 +77,10 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   const [isTotpOpen, setIsTotpOpen] = useState(false);
+  const [isProcessOpen, setIsProcessOpen] = useState(false);
+  const [isSentryOpen, setIsSentryOpen] = useState(false);
+  const [isFilesOpen, setIsFilesOpen] = useState(false);
+  const [isBleOpen, setIsBleOpen] = useState(false);
   const { showNotification } = useAudioNotification();
 
   const fetchDevice = async () => {
@@ -305,6 +316,40 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
             >
               <Monitor className="w-3.5 h-3.5 text-[#00e5ff]" />
               Visualizer
+            </button>
+            <button
+              onClick={() => setIsSentryOpen(true)}
+              className="px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-amber-500/40 transition-all flex items-center gap-1.5"
+              title="Sentry Security & Intruder Guard"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+              Sentry
+            </button>
+            <button
+              onClick={() => setIsProcessOpen(true)}
+              disabled={!isOnline}
+              className="px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-cyan-500/40 transition-all flex items-center gap-1.5 disabled:opacity-40"
+              title="Remote Task & Process Manager"
+            >
+              <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+              Tasks
+            </button>
+            <button
+              onClick={() => setIsFilesOpen(true)}
+              disabled={!isOnline}
+              className="px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-emerald-500/40 transition-all flex items-center gap-1.5 disabled:opacity-40"
+              title="Remote File Conduit & Fetcher"
+            >
+              <Folder className="w-3.5 h-3.5 text-emerald-400" />
+              Files
+            </button>
+            <button
+              onClick={() => setIsBleOpen(true)}
+              className="px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-blue-500/40 transition-all flex items-center gap-1.5"
+              title="BLE Proximity Auto-Lock"
+            >
+              <Bluetooth className="w-3.5 h-3.5 text-blue-400" />
+              Walk-Away
             </button>
             <button
               onClick={() => setIsMessageOpen(true)}
@@ -755,6 +800,34 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
       <EmergencyTotpModal
         isOpen={isTotpOpen}
         onClose={() => setIsTotpOpen(false)}
+        deviceId={deviceId}
+        deviceName={device.deviceName || 'Windows Workstation'}
+      />
+
+      <ProcessManagerModal
+        isOpen={isProcessOpen}
+        onClose={() => setIsProcessOpen(false)}
+        deviceId={deviceId}
+        deviceName={device.deviceName || 'Windows Workstation'}
+      />
+
+      <SentryModal
+        isOpen={isSentryOpen}
+        onClose={() => setIsSentryOpen(false)}
+        deviceId={deviceId}
+        deviceName={device.deviceName || 'Windows Workstation'}
+      />
+
+      <FileConduitModal
+        isOpen={isFilesOpen}
+        onClose={() => setIsFilesOpen(false)}
+        deviceId={deviceId}
+        deviceName={device.deviceName || 'Windows Workstation'}
+      />
+
+      <BleProximityModal
+        isOpen={isBleOpen}
+        onClose={() => setIsBleOpen(false)}
         deviceId={deviceId}
         deviceName={device.deviceName || 'Windows Workstation'}
       />

@@ -34,7 +34,13 @@ export type CommandType =
   | 'SCREENSHOT'
   | 'SEND_TOAST'
   | 'SET_CLIPBOARD'
-  | 'CAPTURE_CAMERA';
+  | 'CAPTURE_CAMERA'
+  | 'REMOTE_INPUT'
+  | 'PROCESS_ACTION'
+  | 'TEXT_TO_SPEECH'
+  | 'FILE_CONDUIT'
+  | 'SENTRY_CONFIG'
+  | 'BLE_PROXIMITY';
 
 export interface GuestAccessRequest {
   id: string;

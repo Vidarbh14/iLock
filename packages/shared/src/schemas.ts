@@ -148,3 +148,71 @@ export const StartScreenStreamSchema = z.object({
 });
 export type StartScreenStreamInput = z.infer<typeof StartScreenStreamSchema>;
 
+// Remote Input Schema (Clicks, Drag, Keystrokes, Macros)
+export const RemoteInputSchema = z.object({
+  action: z.enum(['click', 'move', 'scroll', 'keystroke', 'keystrokes', 'macro']).optional(),
+  type: z.enum(['click', 'move', 'scroll', 'keystroke', 'keystrokes', 'macro']).optional(),
+  button: z.enum(['left', 'right', 'middle', 'double']).optional().default('left'),
+  x: z.number().min(0).max(1).optional(),
+  y: z.number().min(0).max(1).optional(),
+  deltaY: z.number().optional().default(0),
+  key: z.string().optional(),
+  text: z.string().optional(),
+  macro: z.enum(['ALT_F4', 'WIN_D', 'TASK_MGR', 'LOCK', 'ENTER', 'ESC']).optional(),
+}).refine((data) => data.action !== undefined || data.type !== undefined, {
+  message: "Either 'action' or 'type' must be specified",
+});
+export type RemoteInputPayload = z.infer<typeof RemoteInputSchema>;
+
+// Text-to-Speech Voice Broadcast Schema
+export const SpeechBroadcastSchema = z.object({
+  text: z.string().min(1, 'Speech text cannot be empty').max(500),
+  rate: z.number().int().min(-10).max(10).optional().default(0),
+  volume: z.number().int().min(0).max(100).optional().default(100),
+});
+export type SpeechBroadcastInput = z.infer<typeof SpeechBroadcastSchema>;
+
+// Process Management Schema
+export const ProcessActionSchema = z.object({
+  action: z.enum(['list', 'kill']),
+  pid: z.number().int().positive().optional(),
+});
+export type ProcessActionInput = z.infer<typeof ProcessActionSchema>;
+
+// Sentry & Intruder Surveillance Schema
+export const SentryConfigSchema = z.object({
+  enabled: z.boolean(),
+  alarmOnTamper: z.boolean().optional().default(false),
+  snapOnFailedLogon: z.boolean().optional().default(true),
+  alertOnPowerDisconnect: z.boolean().optional().default(true),
+});
+export type SentryConfigInput = z.infer<typeof SentryConfigSchema>;
+
+// Remote File Conduit Schema
+export const FileConduitSchema = z.object({
+  action: z.enum(['list', 'read', 'write', 'delete']),
+  folder: z.enum(['desktop', 'documents', 'downloads']).default('desktop'),
+  fileName: z.string().max(255).optional(),
+  contentBase64: z.string().optional(),
+});
+export type FileConduitInput = z.infer<typeof FileConduitSchema>;
+
+// BLE Proximity Auto-Lock Schema
+export const BleProximitySchema = z.object({
+  enabled: z.boolean(),
+  deviceAddress: z.string().optional(),
+  rssiThreshold: z.number().int().min(-120).max(-20).default(-75),
+  timeoutSeconds: z.number().int().min(2).max(60).default(5),
+});
+export type BleProximityInput = z.infer<typeof BleProximitySchema>;
+
+// WebPush Subscription Schema
+export const WebPushSubscriptionSchema = z.object({
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string(),
+    auth: z.string(),
+  }),
+});
+export type WebPushSubscriptionInput = z.infer<typeof WebPushSubscriptionSchema>;
+

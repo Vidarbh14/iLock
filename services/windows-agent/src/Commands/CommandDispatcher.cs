@@ -1,3 +1,4 @@
+using System.Text;
 using System;
 using System.Text.Json;
 using System.Threading;
@@ -78,6 +79,12 @@ namespace ILock.WindowsAgent.Commands
                         else if (act == "START_SCREEN_STREAM" || act == "START_STREAM") effectiveType = "START_SCREEN_STREAM";
                         else if (act == "STOP_SCREEN_STREAM" || act == "STOP_STREAM") effectiveType = "STOP_SCREEN_STREAM";
                         else if (act == "STREAM_PING" || act == "PING_STREAM") effectiveType = "STREAM_PING";
+                        else if (act == "REMOTE_INPUT" || act == "INPUT") effectiveType = "REMOTE_INPUT";
+                        else if (act == "TEXT_TO_SPEECH" || act == "SPEAK") effectiveType = "TEXT_TO_SPEECH";
+                        else if (act == "PROCESS_ACTION" || act == "PROCESSES") effectiveType = "PROCESS_ACTION";
+                        else if (act == "FILE_CONDUIT" || act == "FILES") effectiveType = "FILE_CONDUIT";
+                        else if (act == "SENTRY_CONFIG" || act == "SENTRY") effectiveType = "SENTRY_CONFIG";
+                        else if (act == "BLE_PROXIMITY" || act == "PROXIMITY") effectiveType = "BLE_PROXIMITY";
                         else if (command.CommandType == "DEVICE_PING") effectiveType = act;
                     }
                 }
@@ -249,6 +256,111 @@ namespace ILock.WindowsAgent.Commands
                         var (isLocked, activeUser) = await _accessProvider.GetStatusAsync(ct);
                         var statusDetails = $"Locked={isLocked}, User={activeUser}, State={_accessProvider.GetAccessState()}";
                         await ReportResultAsync(command, config, "SUCCESS", "STATUS_REPORT", statusDetails, ct);
+                        break;
+
+                    
+                    case "REMOTE_INPUT":
+                        string inputJson = command.Payload != null ? JsonSerializer.Serialize(command.Payload) : "{}";
+                        byte[] inputBytes = Encoding.UTF8.GetBytes(inputJson);
+                        string inputBase64 = Convert.ToBase64String(inputBytes);
+                        bool inputOk = WindowsAccessProvider.TryLaunchInSession($"--input-helper \"BASE64:{inputBase64}\"", @"Winsta0\Default", _logger, 2000, out _);
+                        await ReportResultAsync(command, config, inputOk ? "SUCCESS" : "FAILED", "INPUT_EXECUTED", "Input event processed", ct);
+                        break;
+
+                    case "TEXT_TO_SPEECH":
+                        string spText = "Alert from iLock";
+                        int spRate = 0;
+                        int spVol = 100;
+                        if (command.Payload != null)
+                        {
+                            if (command.Payload.TryGetValue("text", out var tObj) && tObj != null) spText = tObj.ToString() ?? spText;
+                            if (command.Payload.TryGetValue("rate", out var rObj) && rObj != null) int.TryParse(rObj.ToString(), out spRate);
+                            if (command.Payload.TryGetValue("volume", out var vObj) && vObj != null) int.TryParse(vObj.ToString(), out spVol);
+                        }
+                        bool spOk = WindowsAccessProvider.TryLaunchInSession($"--speak \"{spText}\" {spRate} {spVol}", @"Winsta0\Default", _logger, 10000, out _);
+                        await ReportResultAsync(command, config, spOk ? "SUCCESS" : "FAILED", "SPEECH_COMPLETED", $"Announced '{spText}'", ct);
+                        break;
+
+                    case "PROCESS_ACTION":
+                        string pAction = "list";
+                        int killPid = 0;
+                        if (command.Payload != null)
+                        {
+                            if (command.Payload.TryGetValue("action", out var paObj) && paObj != null) pAction = paObj.ToString()?.ToLowerInvariant() ?? "list";
+                            if (command.Payload.TryGetValue("pid", out var pidObj) && pidObj != null) int.TryParse(pidObj.ToString(), out killPid);
+                        }
+                        if (pAction == "kill" && killPid > 0)
+                        {
+                            var (kOk, kMsg) = Diagnostics.ProcessManager.KillProcess(killPid, _logger);
+                            await ReportResultAsync(command, config, kOk ? "SUCCESS" : "FAILED", "PROCESS_KILLED", kMsg, ct);
+                        }
+                        else
+                        {
+                            string procJson = Diagnostics.ProcessManager.GetTopProcessesJson(15, _logger);
+                            await ReportResultAsync(command, config, "SUCCESS", "PROCESS_LIST", procJson, ct, procJson);
+                        }
+                        break;
+
+                    case "FILE_CONDUIT":
+                        string fAction = "list";
+                        string fFolder = "desktop";
+                        string fName = "";
+                        string fData = "";
+                        if (command.Payload != null)
+                        {
+                            if (command.Payload.TryGetValue("fileAction", out var fActObj) && fActObj != null)
+                                fAction = fActObj.ToString()?.ToLowerInvariant() ?? "list";
+                            else if (command.Payload.TryGetValue("action", out var faObj) && faObj != null && faObj.ToString()?.ToUpperInvariant() != "FILE_CONDUIT")
+                                fAction = faObj.ToString()?.ToLowerInvariant() ?? "list";
+                            if (command.Payload.TryGetValue("folder", out var foObj) && foObj != null) fFolder = foObj.ToString()?.ToLowerInvariant() ?? "desktop";
+                            if (command.Payload.TryGetValue("fileName", out var fnObj) && fnObj != null) fName = fnObj.ToString() ?? "";
+                            if (command.Payload.TryGetValue("contentBase64", out var fdObj) && fdObj != null) fData = fdObj.ToString() ?? "";
+                        }
+                        if (fAction == "read" && !string.IsNullOrEmpty(fName))
+                        {
+                            var (rOk, rB64, rMsg) = FileConduit.ReadFileBase64(fFolder, fName, _logger);
+                            await ReportResultAsync(command, config, rOk ? "SUCCESS" : "FAILED", "FILE_READ", rMsg, ct, rB64);
+                        }
+                        else if (fAction == "write" && !string.IsNullOrEmpty(fName))
+                        {
+                            var (wOk, wMsg) = FileConduit.WriteFileBase64(fFolder, fName, fData, _logger);
+                            await ReportResultAsync(command, config, wOk ? "SUCCESS" : "FAILED", "FILE_WRITTEN", wMsg, ct);
+                        }
+                        else
+                        {
+                            string fileListJson = FileConduit.ListFilesJson(fFolder, _logger);
+                            await ReportResultAsync(command, config, "SUCCESS", "FILE_LIST", fileListJson, ct, fileListJson);
+                        }
+                        break;
+
+                    case "SENTRY_CONFIG":
+                        bool sArmed = false;
+                        bool sAlarm = false;
+                        bool sSnap = true;
+                        bool sPower = true;
+                        if (command.Payload != null)
+                        {
+                            if (command.Payload.TryGetValue("enabled", out var enObj) && enObj != null) bool.TryParse(enObj.ToString(), out sArmed);
+                            if (command.Payload.TryGetValue("alarmOnTamper", out var alObj) && alObj != null) bool.TryParse(alObj.ToString(), out sAlarm);
+                            if (command.Payload.TryGetValue("snapOnFailedLogon", out var snObj) && snObj != null) bool.TryParse(snObj.ToString(), out sSnap);
+                            if (command.Payload.TryGetValue("alertOnPowerDisconnect", out var pwObj) && pwObj != null) bool.TryParse(pwObj.ToString(), out sPower);
+                        }
+                        Security.SentryGuard.Instance.Configure(sArmed, sAlarm, sSnap, sPower, _logger);
+                        await ReportResultAsync(command, config, "SUCCESS", "SENTRY_CONFIGURED", $"Sentry Armed={sArmed}", ct);
+                        break;
+
+                    case "BLE_PROXIMITY":
+                        bool bleEn = false;
+                        int bleRssi = -75;
+                        int bleTimeout = 5;
+                        if (command.Payload != null)
+                        {
+                            if (command.Payload.TryGetValue("enabled", out var beObj) && beObj != null) bool.TryParse(beObj.ToString(), out bleEn);
+                            if (command.Payload.TryGetValue("rssiThreshold", out var brObj) && brObj != null) int.TryParse(brObj.ToString(), out bleRssi);
+                            if (command.Payload.TryGetValue("timeoutSeconds", out var btObj) && btObj != null) int.TryParse(btObj.ToString(), out bleTimeout);
+                        }
+                        Security.BleProximityWatcher.Instance.Configure(bleEn, bleRssi, bleTimeout, _logger);
+                        await ReportResultAsync(command, config, "SUCCESS", "BLE_CONFIGURED", $"BLE Walk-Away={bleEn}", ct);
                         break;
 
                     default:

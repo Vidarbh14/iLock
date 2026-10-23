@@ -166,6 +166,9 @@ namespace ILock.WindowsAgent
                     };
 
                     // 5. Send Heartbeat to Cloud
+                    // Sentry Guard Power Monitor
+                    await Security.SentryGuard.Instance.CheckPowerStatusAsync(teleData.IsCharging, _config, _cloudClient, _logger);
+
                     var response = await _cloudClient.SendHeartbeatAsync(
                         _config.BackendUrl,
                         heartbeat,
