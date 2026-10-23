@@ -40,27 +40,41 @@ export async function POST(
 
       // Broadcast immediately via Supabase Realtime Channel
       try {
+        const payloadData = {
+          frameBase64,
+          timestamp,
+          fps,
+          activeWindow,
+          mouseX,
+          mouseY,
+          streamSessionId,
+        };
+
         const channel = supabase.channel(`device-stream:${targetDeviceId}`);
         await channel.send({
           type: 'broadcast',
           event: 'frame',
-          payload: {
-            frameBase64,
-            timestamp,
-            fps,
-            activeWindow,
-            mouseX,
-            mouseY,
-            streamSessionId,
-          },
+          payload: payloadData,
         });
+        await supabase.removeChannel(channel);
+
+        // Also broadcast on raw UUID topic if different from targetDeviceId
+        if (deviceIdOrUuid !== targetDeviceId) {
+          const rawChannel = supabase.channel(`device-stream:${deviceIdOrUuid}`);
+          await rawChannel.send({
+            type: 'broadcast',
+            event: 'frame',
+            payload: payloadData,
+          });
+          await supabase.removeChannel(rawChannel);
+        }
       } catch (broadcastErr) {
         // Fallback to in-memory caching
       }
     }
 
     // Always cache the latest frame in memory for instantaneous pull retrieval
-    demoStore.saveStreamFrame(targetDeviceId, {
+    const frameObj = {
       frameBase64,
       timestamp,
       fps,
@@ -68,7 +82,11 @@ export async function POST(
       mouseX,
       mouseY,
       streamSessionId,
-    });
+    };
+    demoStore.saveStreamFrame(targetDeviceId, frameObj);
+    if (deviceIdOrUuid !== targetDeviceId) {
+      demoStore.saveStreamFrame(deviceIdOrUuid, frameObj);
+    }
 
     return jsonResponse({
       success: true,

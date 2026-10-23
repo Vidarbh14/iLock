@@ -125,22 +125,28 @@ export function ScreenPreviewModal({
         try {
           const supabase = createClient();
           const channel = supabase.channel(`device-stream:${deviceId}`);
-          channel
-            .on('broadcast', { event: 'frame' }, (payload: any) => {
-              if (payload?.payload?.frameBase64) {
-                const now = Date.now();
-                setLiveFrame(payload.payload.frameBase64);
-                if (payload.payload.activeWindow) setActiveWindow(payload.payload.activeWindow);
-                if (payload.payload.fps) setFps(payload.payload.fps);
-                if (payload.payload.timestamp) {
-                  setLatencyMs(Math.max(40, Math.min(600, now - payload.payload.timestamp)));
-                }
-                const bytes = payload.payload.frameBase64.length * 0.75;
-                setBandwidthKbs(Math.round((bytes * (payload.payload.fps || 4)) / 1024));
-                setLastFrameTime(now);
+          
+          const handleBroadcastPayload = (payload: any) => {
+            const frameData = payload?.payload || payload;
+            if (frameData?.frameBase64) {
+              const now = Date.now();
+              setLiveFrame(frameData.frameBase64);
+              if (frameData.activeWindow) setActiveWindow(frameData.activeWindow);
+              if (frameData.fps) setFps(frameData.fps);
+              if (frameData.timestamp) {
+                setLatencyMs(Math.max(40, Math.min(600, now - frameData.timestamp)));
               }
-            })
-            .subscribe();
+              const bytes = frameData.frameBase64.length * 0.75;
+              setBandwidthKbs(Math.round((bytes * (frameData.fps || 4)) / 1024));
+              setLastFrameTime(now);
+            }
+          };
+
+          channel
+            .on('broadcast', { event: 'frame' }, handleBroadcastPayload)
+            .subscribe((status: string) => {
+              console.log('[Live Stream] Realtime subscription status:', status);
+            });
 
           channelRef.current = channel;
         } catch (e) {
@@ -390,10 +396,23 @@ export function ScreenPreviewModal({
                     privacyBlur ? 'blur-lg scale-105' : 'blur-0'
                   }`}
                 />
+              ) : screenshot ? (
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <img
+                    src={screenshot}
+                    alt="Preview Screen"
+                    className="w-full h-full object-contain opacity-40 blur-[1px]"
+                  />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-xs gap-3 text-center p-6 text-slate-300">
+                    <span className="w-8 h-8 border-2 border-cyan-400/40 border-t-cyan-400 rounded-full animate-spin" />
+                    <p className="text-xs font-mono text-cyan-300 font-semibold">Synchronizing live video pipeline with PC...</p>
+                    <p className="text-[11px] text-slate-400 font-mono">Connecting via encrypted conduit (displaying recent preview)</p>
+                  </div>
+                </div>
               ) : (
                 <div className="flex flex-col items-center gap-3 text-center p-6 text-slate-400">
                   <span className="w-8 h-8 border-2 border-cyan-400/40 border-t-cyan-400 rounded-full animate-spin" />
-                  <p className="text-xs font-mono text-cyan-300">Synchronizing live video pipeline with PC...</p>
+                  <p className="text-xs font-mono text-cyan-300 font-semibold">Synchronizing live video pipeline with PC...</p>
                   <p className="text-[11px] text-slate-500">Connecting via encrypted outbound conduit</p>
                 </div>
               )

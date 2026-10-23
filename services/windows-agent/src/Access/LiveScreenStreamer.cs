@@ -89,15 +89,25 @@ namespace ILock.WindowsAgent.Access
                 {
                     // Running as SYSTEM Service in Session 0:
                     // Delegate capture loop to stream helper in the active user console session
-                    logger?.LogInformation("Launching live screen stream helper in active console session...");
+                    logger?.LogInformation("Launching live screen stream helper in active console session on Winsta0\\Default...");
                     Task.Run(() =>
                     {
-                        string exePath = Process.GetCurrentProcess().MainModule?.FileName ?? "ILock.WindowsAgent.exe";
-                        string args = $"--stream-helper \"{deviceUuid}\" \"{backendUrl}\" \"{authToken}\" \"{streamSessionId}\"";
-                        WindowsAccessProvider.TryLaunchInSession(args, "default", logger ?? LoggerFactory.Create(b => b.AddConsole()).CreateLogger("Stream"), 600000, out _);
-                        lock (_lock)
+                        try
                         {
-                            _isStreaming = false;
+                            string exePath = Process.GetCurrentProcess().MainModule?.FileName ?? "ILock.WindowsAgent.exe";
+                            string args = $"--stream-helper \"{deviceUuid}\" \"{backendUrl}\" \"{authToken}\" \"{streamSessionId}\" {targetFps} \"{quality}\"";
+                            WindowsAccessProvider.TryLaunchInSession(args, @"Winsta0\Default", logger ?? LoggerFactory.Create(b => b.AddConsole()).CreateLogger("Stream"), 600000, out _);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger?.LogError(ex, "Failed to launch live screen stream helper process");
+                        }
+                        finally
+                        {
+                            lock (_lock)
+                            {
+                                _isStreaming = false;
+                            }
                         }
                     });
                 }
@@ -168,13 +178,43 @@ namespace ILock.WindowsAgent.Access
             CancellationToken ct = default)
         {
             string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "iLock");
+            if (!Directory.Exists(appData)) Directory.CreateDirectory(appData);
+
             string flagPath = Path.Combine(appData, "stream_active.flag");
             string pingPath = Path.Combine(appData, "stream_ping.flag");
+            string logFile = Path.Combine(appData, "stream_helper.log");
+
+            void StreamLog(string msg)
+            {
+                try
+                {
+                    string entry = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] [STREAM-HELPER] {msg}{Environment.NewLine}";
+                    File.AppendAllText(logFile, entry);
+                    logger?.LogInformation("{Message}", msg);
+                }
+                catch { }
+            }
+
+            StreamLog($"StreamLoop started: Device={deviceUuid}, Session={streamSessionId}, Quality={quality}, TargetFps={targetFps}, PID={Environment.ProcessId}");
+
+            // Ensure active flag exists so the loop does not immediately terminate
+            try
+            {
+                if (!File.Exists(flagPath))
+                {
+                    File.WriteAllText(flagPath, $"{streamSessionId}|{DateTime.UtcNow:O}");
+                }
+            }
+            catch (Exception ex)
+            {
+                StreamLog($"Warning creating active flag: {ex.Message}");
+            }
 
             using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
             if (!string.IsNullOrEmpty(authToken))
             {
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                httpClient.DefaultRequestHeaders.TryAddWithoutValidation("X-Device-Token", authToken);
             }
 
             int targetWidth = 960;
@@ -199,15 +239,16 @@ namespace ILock.WindowsAgent.Access
             DateTime streamStartTimeUtc = DateTime.UtcNow;
             var maxDuration = TimeSpan.FromMinutes(10); // Absolute safety limit
             var stopwatch = new Stopwatch();
+            int totalFramesSent = 0;
 
-            logger?.LogInformation("RunStreamLoop running: Resolution={W}x{H}, TargetInterval={Ms}ms", targetWidth, targetHeight, intervalMs);
+            StreamLog($"RunStreamLoop running: Resolution={targetWidth}x{targetHeight}, TargetInterval={intervalMs}ms");
 
             while (!ct.IsCancellationRequested)
             {
                 // Check stop flag
                 if (!File.Exists(flagPath))
                 {
-                    logger?.LogInformation("Stream active flag removed. Stream loop exiting.");
+                    StreamLog("Stream active flag removed. Stream loop exiting.");
                     break;
                 }
 
@@ -229,7 +270,7 @@ namespace ILock.WindowsAgent.Access
                 // If 25 seconds elapse without a viewer ping from the phone, shut down automatically!
                 if (DateTime.UtcNow - lastPingReceivedUtc > TimeSpan.FromSeconds(25))
                 {
-                    logger?.LogWarning("[BATTERY-SAVER] No viewer ping received in 25s. Workstation stream auto-stopping to preserve battery.");
+                    StreamLog("[BATTERY-SAVER] No viewer ping received in 25s. Workstation stream auto-stopping to preserve battery.");
                     try { File.Delete(flagPath); } catch { }
                     break;
                 }
@@ -237,7 +278,7 @@ namespace ILock.WindowsAgent.Access
                 // Max duration safety guard
                 if (DateTime.UtcNow - streamStartTimeUtc > maxDuration)
                 {
-                    logger?.LogInformation("Max stream session duration reached. Auto-stopping.");
+                    StreamLog("Max stream session duration reached. Auto-stopping.");
                     try { File.Delete(flagPath); } catch { }
                     break;
                 }
@@ -326,10 +367,22 @@ namespace ILock.WindowsAgent.Access
 
                     string endpoint = $"{backendUrl.TrimEnd('/')}/api/devices/{deviceUuid}/stream/frame";
                     var response = httpClient.PostAsync(endpoint, content).GetAwaiter().GetResult();
+                    if (response.IsSuccessStatusCode)
+                    {
+                        totalFramesSent++;
+                        if (totalFramesSent == 1 || totalFramesSent % 30 == 0)
+                        {
+                            StreamLog($"Sent frame #{totalFramesSent} ({ms.Length / 1024} KB) to cloud. Window: '{activeWindow}'");
+                        }
+                    }
+                    else
+                    {
+                        StreamLog($"Frame post error: HTTP {(int)response.StatusCode} {response.ReasonPhrase}");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    logger?.LogDebug("Frame stream exception: {Message}", ex.Message);
+                    StreamLog($"Frame stream exception: {ex.Message}");
                 }
 
                 stopwatch.Stop();
@@ -344,7 +397,7 @@ namespace ILock.WindowsAgent.Access
                 if (File.Exists(pingPath)) File.Delete(pingPath);
             }
             catch { }
-            logger?.LogInformation("Live screen stream loop finished cleanly. Workstation idle.");
+            StreamLog($"Live screen stream loop finished cleanly. Total frames sent: {totalFramesSent}.");
         }
 
         private static ImageCodecInfo? GetEncoder(ImageFormat format)

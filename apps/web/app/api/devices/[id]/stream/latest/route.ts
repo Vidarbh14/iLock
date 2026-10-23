@@ -13,8 +13,30 @@ export async function GET(
     }
 
     const { id: deviceId } = params;
-    const status = demoStore.getStreamStatus(deviceId);
-    const frame = demoStore.getLatestStreamFrame(deviceId);
+    let status = demoStore.getStreamStatus(deviceId);
+    let frame = demoStore.getLatestStreamFrame(deviceId);
+
+    // If frame is null, attempt to resolve via alternate device ID / UUID key
+    if (!frame && isSupabaseConfigured()) {
+      try {
+        const supabase = createServiceClient();
+        const { data: dev } = await supabase
+          .from('devices')
+          .select('id, device_uuid')
+          .or(`id.eq.${deviceId},device_uuid.eq.${deviceId}`)
+          .maybeSingle();
+
+        if (dev) {
+          const alternateKey = dev.id === deviceId ? dev.device_uuid : dev.id;
+          if (alternateKey) {
+            frame = demoStore.getLatestStreamFrame(alternateKey) || frame;
+            if (!status.isStreaming) {
+              status = demoStore.getStreamStatus(alternateKey);
+            }
+          }
+        }
+      } catch {}
+    }
 
     return jsonResponse({
       isStreaming: status.isStreaming,
