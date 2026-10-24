@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 import { ShieldAlert, X, AlertTriangle, Lock, Loader2 } from 'lucide-react';
 import type { AccessSession } from '@ilock/shared';
 import { CornerOrb } from './CornerOrb';
@@ -15,6 +16,8 @@ interface Props {
 export function ConfirmRevokeModal({ session, isOpen, onClose, onSuccess }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useBodyScrollLock(isOpen);
 
   if (!isOpen || !session) return null;
 
@@ -44,8 +47,8 @@ export function ConfirmRevokeModal({ session, isOpen, onClose, onSuccess }: Prop
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl animate-fade-in">
-      <div className="w-full max-w-md glass-modal p-6 shadow-2xl space-y-5 relative overflow-hidden border border-white/[0.1]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xl animate-fade-in overflow-y-auto overscroll-contain">
+      <div className="w-full max-w-md glass-modal p-6 shadow-2xl space-y-5 relative overflow-hidden border border-white/[0.1] my-auto overscroll-contain max-h-[90vh] overflow-y-auto">
         <CornerOrb position="top-right" variant="rose" size="sm" active />
         <CornerOrb position="bottom-left" variant="amber" size="sm" active />
 

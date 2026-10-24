@@ -83,15 +83,20 @@ export function BleProximityModal({
 
   useEffect(() => {
     if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       fetchProximity();
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
     }
   }, [isOpen, deviceId]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-lg bg-cyber-card border border-cyber-border rounded-3xl p-6 shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto overscroll-contain">
+      <div className="relative w-full max-w-lg bg-cyber-card border border-cyber-border rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col my-auto max-h-[90vh] overflow-y-auto overscroll-contain">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-cyber-border">
           <div className="flex items-center gap-3">

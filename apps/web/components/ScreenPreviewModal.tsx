@@ -7,6 +7,7 @@ import {
   Eye,
   EyeOff,
   Maximize2,
+  Minimize2,
   X,
   AlertTriangle,
   Clock,
@@ -29,6 +30,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase-client';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 
 interface ScreenPreviewModalProps {
   isOpen: boolean;
@@ -85,10 +87,12 @@ export function ScreenPreviewModal({
 
   // Visual filters & feedback
   const [privacyBlur, setPrivacyBlur] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   // References
+  const modalContainerRef = useRef<HTMLDivElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -384,6 +388,32 @@ export function ScreenPreviewModal({
     }
   };
 
+  // Lock background scroll when modal is open
+  useBodyScrollLock(isOpen);
+
+  // Sync fullscreen change if user exits using browser controls or ESC key
+  useEffect(() => {
+    const onFsChange = () => {
+      const isDocFs = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      if (!isDocFs && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    document.addEventListener('mozfullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+      document.removeEventListener('mozfullscreenchange', onFsChange);
+    };
+  }, [isFullscreen]);
+
   // Lifecycle
   useEffect(() => {
     if (isOpen) {
@@ -400,20 +430,55 @@ export function ScreenPreviewModal({
   }, [stopLiveStream]);
 
   // Toggle fullscreen
-  const toggleFullscreen = () => {
-    if (!videoContainerRef.current) return;
-    if (!document.fullscreenElement) {
-      videoContainerRef.current.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
+  const toggleFullscreen = async () => {
+    const nextState = !isFullscreen;
+    setIsFullscreen(nextState);
+
+    try {
+      const isDocFs = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+
+      if (nextState) {
+        const target = modalContainerRef.current || videoContainerRef.current || document.documentElement;
+        if (target && !isDocFs) {
+          const req =
+            target.requestFullscreen ||
+            (target as any).webkitRequestFullscreen ||
+            (target as any).mozRequestFullScreen ||
+            (target as any).msRequestFullscreen;
+          if (req) {
+            await req.call(target);
+          }
+        }
+      } else {
+        if (isDocFs) {
+          const exit =
+            document.exitFullscreen ||
+            (document as any).webkitExitFullscreen ||
+            (document as any).mozCancelFullScreen ||
+            (document as any).msExitFullscreen;
+          if (exit) {
+            await exit.call(document);
+          }
+        }
+      }
+    } catch (e) {
+      // In-app viewport fallback guarantees true fullscreen even on restricted mobile/iOS browsers
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#12161f] border border-cyan-500/30 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] max-w-3xl w-full p-5 sm:p-6 text-slate-100 relative flex flex-col max-h-[94vh] overflow-y-auto custom-scrollbar">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center ${isFullscreen ? 'p-0 bg-black' : 'p-3 sm:p-4 bg-black/80'} backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto overscroll-contain`}>
+      <div
+        ref={modalContainerRef}
+        className={`${isFullscreen ? 'fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none border-none p-3 sm:p-5' : 'max-w-3xl w-full rounded-3xl border border-cyan-500/30 p-5 sm:p-6 max-h-[94vh] my-auto'} bg-[#12161f] shadow-[0_10px_40px_rgba(0,0,0,0.8)] text-slate-100 relative flex flex-col overflow-y-auto custom-scrollbar overscroll-contain`}
+      >
         {/* Close Button */}
         <button
           onClick={() => {
@@ -506,7 +571,7 @@ export function ScreenPreviewModal({
         {/* Video / Screen Display Container */}
         <div
           ref={videoContainerRef}
-          className="relative aspect-video rounded-2xl bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner mb-3 group select-none"
+          className={`relative ${isFullscreen ? 'flex-1 w-full min-h-[55vh]' : 'aspect-video mb-3'} rounded-2xl bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner group select-none`}
         >
           {/* Active Window Title Pill */}
           {activeTab === 'live' && isStreaming && activeWindow && (
@@ -822,10 +887,14 @@ export function ScreenPreviewModal({
             {/* Fullscreen Button */}
             <button
               onClick={toggleFullscreen}
-              className="p-2.5 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
-              title="Fullscreen View"
+              className={`p-2.5 rounded-xl border transition-colors ${
+                isFullscreen
+                  ? 'border-cyan-500/50 bg-cyan-500/20 text-cyan-300 shadow-[0_0_12px_rgba(0,229,255,0.3)]'
+                  : 'border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white'
+              }`}
+              title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen View'}
             >
-              <Maximize2 className="w-4 h-4" />
+              {isFullscreen ? <Minimize2 className="w-4 h-4 text-cyan-400" /> : <Maximize2 className="w-4 h-4" />}
             </button>
 
             {/* Privacy Shield Button */}

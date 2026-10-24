@@ -199,16 +199,21 @@ export function FileConduitModal({
 
   useEffect(() => {
     if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       fetchFiles(folder);
       requestFolderScan(folder);
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
     }
   }, [isOpen, folder, deviceId]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-cyber-card border border-cyber-border rounded-3xl p-6 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto overscroll-contain">
+      <div className="relative w-full max-w-2xl bg-cyber-card border border-cyber-border rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col max-h-[88vh] overflow-hidden my-auto overscroll-contain">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-cyber-border">
           <div className="flex items-center gap-3">
@@ -298,7 +303,7 @@ export function FileConduitModal({
         </div>
 
         {/* File List */}
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar overscroll-contain touch-pan-y min-h-[160px]">
           {files.length === 0 ? (
             <div className="text-center py-10 text-slate-500 text-xs font-mono">
               Folder is empty or awaiting scan.

@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       }
 
       const { data: dbSessions } = await query;
-      if (Array.isArray(dbSessions) && dbSessions.length > 0) {
+      if (Array.isArray(dbSessions)) {
         const requests = dbSessions
           .filter((s: any) => s.metadata && s.metadata.isGuestRequest)
           .map((s: any) => ({
@@ -41,13 +41,12 @@ export async function GET(request: Request) {
             createdAt: s.created_at,
           }));
 
-        if (requests.length > 0) {
-          return jsonResponse({ requests });
-        }
+        return jsonResponse({ requests });
       }
+      return jsonResponse({ requests: [] });
     }
 
-    // Demo store fallback
+    // Demo store fallback (only when Supabase is not configured)
     const requests = demoStore.getGuestRequests(deviceId);
     return jsonResponse({ requests });
   } catch (err: any) {

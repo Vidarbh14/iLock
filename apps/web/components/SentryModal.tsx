@@ -96,15 +96,20 @@ export function SentryModal({
 
   useEffect(() => {
     if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       fetchAlerts();
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
     }
   }, [isOpen, deviceId]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-cyber-card border border-cyber-border rounded-3xl p-6 shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto overscroll-contain">
+      <div className="relative w-full max-w-2xl bg-cyber-card border border-cyber-border rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto overscroll-contain my-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-cyber-border">
           <div className="flex items-center gap-3">
@@ -275,7 +280,7 @@ export function SentryModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar overscroll-contain touch-pan-y min-h-[140px]">
           {alerts.length === 0 ? (
             <div className="text-center py-8 rounded-xl bg-slate-900/40 border border-slate-800/80 text-slate-500 text-xs font-mono">
               <ShieldCheck className="w-8 h-8 mx-auto mb-2 text-slate-600" />

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 import {
   ShieldAlert,
   Copy,
@@ -60,6 +61,8 @@ export function EmergencyTotpModal({
     return () => clearInterval(interval);
   }, [isOpen, deviceId]);
 
+  useBodyScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   const handleCopy = () => {
@@ -69,8 +72,8 @@ export function EmergencyTotpModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white/95 backdrop-blur-2xl border border-black/[0.08] rounded-3xl shadow-2xl max-w-md w-full p-6 text-[#1d1d1f] relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto overscroll-contain">
+      <div className="bg-white/95 backdrop-blur-2xl border border-black/[0.08] rounded-3xl shadow-2xl max-w-md w-full p-6 text-[#1d1d1f] relative my-auto max-h-[90vh] overflow-y-auto overscroll-contain">
         <button
           onClick={onClose}
           className="absolute right-5 top-5 p-2 text-[#86868b] hover:text-[#1d1d1f] rounded-full hover:bg-black/[0.04] transition-colors"

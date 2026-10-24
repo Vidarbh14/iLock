@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 import { KeyRound, Clock, AlertTriangle, X, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
 import type { Device } from '@ilock/shared';
 import { CornerOrb } from './CornerOrb';
@@ -26,6 +27,8 @@ export function GrantAccessModal({ device, isOpen, onClose, onSuccess }: Props) 
   const [purpose, setPurpose] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  useBodyScrollLock(isOpen);
 
   if (!isOpen || !device) return null;
 
@@ -70,8 +73,8 @@ export function GrantAccessModal({ device, isOpen, onClose, onSuccess }: Props) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl animate-fade-in">
-      <div className="w-full max-w-lg glass-modal p-6 shadow-2xl space-y-5 relative overflow-hidden border border-white/[0.1]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xl animate-fade-in overflow-y-auto overscroll-contain">
+      <div className="w-full max-w-lg glass-modal p-6 shadow-2xl space-y-5 relative overflow-hidden border border-white/[0.1] my-auto overscroll-contain max-h-[90vh] overflow-y-auto">
         <CornerOrb position="top-right" variant="cyan" size="sm" active />
         <CornerOrb position="bottom-left" variant="purple" size="sm" active />
 

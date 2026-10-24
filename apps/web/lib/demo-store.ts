@@ -84,17 +84,7 @@ class DemoStore {
   ]);
 
   public pairingRequests: PairingRequest[] = [];
-  public guestRequests: GuestAccessRequest[] = [
-    {
-      id: 'e0000000-0000-0000-0000-000000000001',
-      deviceId: DEMO_DEVICE_OMEN_ID,
-      guestName: 'Alex Rivera',
-      requestedMinutes: 30,
-      reason: 'Need to print lab syllabus and study notes',
-      status: 'PENDING',
-      createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-    },
-  ];
+  public guestRequests: GuestAccessRequest[] = [];
   public screenCaptures: Map<string, { imageBase64: string; capturedAt: string }> = new Map();
   public cameraCaptures: Map<string, { imageBase64: string; capturedAt: string }> = new Map();
   public accessSessions: AccessSession[] = [

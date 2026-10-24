@@ -105,8 +105,13 @@ export function ProcessManagerModal({
 
   useEffect(() => {
     if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       fetchProcesses();
       requestFreshProcessList();
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
     }
   }, [isOpen, deviceId]);
 
@@ -122,8 +127,8 @@ export function ProcessManagerModal({
   const totalRamMb = processes.reduce((acc, p) => acc + (p.MemoryMb || 0), 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-cyber-card border border-cyber-border rounded-3xl p-6 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto overscroll-contain">
+      <div className="relative w-full max-w-2xl bg-cyber-card border border-cyber-border rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col max-h-[88vh] overflow-hidden my-auto overscroll-contain">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-cyber-border">
           <div className="flex items-center gap-3">
@@ -191,7 +196,7 @@ export function ProcessManagerModal({
         </div>
 
         {/* Process List Table */}
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar overscroll-contain touch-pan-y min-h-[180px]">
           {filtered.length === 0 ? (
             <div className="text-center py-10 text-slate-500 text-xs font-mono">
               No matching processes found.

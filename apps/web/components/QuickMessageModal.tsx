@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 import {
   MessageSquare,
   Clipboard,
@@ -32,6 +33,8 @@ export function QuickMessageModal({
   const [clipboardText, setClipboardText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -74,8 +77,8 @@ export function QuickMessageModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white/95 backdrop-blur-2xl border border-black/[0.08] rounded-3xl shadow-2xl max-w-md w-full p-6 text-[#1d1d1f] relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto overscroll-contain">
+      <div className="bg-white/95 backdrop-blur-2xl border border-black/[0.08] rounded-3xl shadow-2xl max-w-md w-full p-6 text-[#1d1d1f] relative my-auto max-h-[90vh] overflow-y-auto overscroll-contain">
         {/* Close Button */}
         <button
           onClick={onClose}

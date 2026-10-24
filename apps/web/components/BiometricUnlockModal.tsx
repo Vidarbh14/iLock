@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useBodyScrollLock } from '@/lib/use-body-scroll-lock';
 import {
   Fingerprint,
   ShieldCheck,
@@ -125,9 +126,11 @@ export function BiometricUnlockModal({ device, isOpen, onClose, onSuccess }: Pro
   const isWorking = stage === 'AUTHORIZING' || stage === 'VERIFIED' || stage === 'UNLOCKING';
   const isDone = stage === 'UNLOCKED';
 
+  useBodyScrollLock(isOpen);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
-      <div className="w-full max-w-md glass-modal p-6 shadow-2xl space-y-6 relative overflow-hidden border border-white/[0.1]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xl animate-fade-in overflow-y-auto overscroll-contain">
+      <div className="w-full max-w-md glass-modal p-6 shadow-2xl space-y-6 relative overflow-hidden border border-white/[0.1] my-auto overscroll-contain">
         {/* Corner Orbs */}
         <CornerOrb position="top-right" variant="emerald" size="sm" active />
         <CornerOrb position="bottom-left" variant="cyan" size="sm" active />
