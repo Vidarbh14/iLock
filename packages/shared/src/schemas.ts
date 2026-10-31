@@ -89,8 +89,20 @@ export const AgentHeartbeatSchema = z.object({
   isCharging: z.boolean().optional(),
   activeUser: z.string().max(2048).optional(),
   workstationLocked: z.boolean().default(true),
+  // Windows Location fix (omitted when Location Services is off or unavailable)
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
+  locationAccuracyM: z.number().min(0).max(1_000_000).optional().nullable(),
+  locationFixedAt: z.number().int().positive().optional().nullable(),
 });
 export type AgentHeartbeatInput = z.infer<typeof AgentHeartbeatSchema>;
+
+// Live Location Tracking Schema (Web Client -> API)
+export const LocationLiveSchema = z.object({
+  enabled: z.boolean(),
+  durationSeconds: z.number().int().min(30).max(600).default(120),
+});
+export type LocationLiveInput = z.infer<typeof LocationLiveSchema>;
 
 // Agent Challenge Request Schema (Windows Agent -> API)
 export const AgentChallengeRequestSchema = z.object({

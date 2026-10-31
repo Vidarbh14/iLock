@@ -37,6 +37,7 @@ import {
   Bluetooth,
   Folder,
   ShieldAlert,
+  MapPin,
 } from 'lucide-react';
 import type { Device, AccessSession } from '@ilock/shared';
 import { DeviceStatusBadge } from '@/components/DeviceStatusBadge';
@@ -51,6 +52,7 @@ import { ProcessManagerModal } from '@/components/ProcessManagerModal';
 import { SentryModal } from '@/components/SentryModal';
 import { FileConduitModal } from '@/components/FileConduitModal';
 import { BleProximityModal } from '@/components/BleProximityModal';
+import { LocationModal } from '@/components/LocationModal';
 import { GuestRequestBanner } from '@/components/GuestRequestBanner';
 import { useAudioNotification } from '@/components/AudioNotificationProvider';
 import { CornerOrb } from '@/components/CornerOrb';
@@ -81,6 +83,7 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
   const [isSentryOpen, setIsSentryOpen] = useState(false);
   const [isFilesOpen, setIsFilesOpen] = useState(false);
   const [isBleOpen, setIsBleOpen] = useState(false);
+  const [isLocationOpen, setIsLocationOpen] = useState(false);
   const { showNotification } = useAudioNotification();
 
   const fetchDevice = async () => {
@@ -324,6 +327,14 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
             >
               <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
               Sentry
+            </button>
+            <button
+              onClick={() => setIsLocationOpen(true)}
+              className="px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-200 bg-cyber-card hover:bg-slate-800 border border-cyber-border hover:border-cyan-500/40 transition-all flex items-center gap-1.5"
+              title="Live & last known laptop location"
+            >
+              <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+              Locate
             </button>
             <button
               onClick={() => setIsProcessOpen(true)}
@@ -830,6 +841,14 @@ export default function DeviceDetailPage({ params }: { params: { id: string } })
         onClose={() => setIsBleOpen(false)}
         deviceId={deviceId}
         deviceName={device.deviceName || 'Windows Workstation'}
+      />
+
+      <LocationModal
+        isOpen={isLocationOpen}
+        onClose={() => setIsLocationOpen(false)}
+        deviceId={deviceId}
+        deviceName={device.deviceName || 'Windows Workstation'}
+        isOnline={isOnline}
       />
     </div>
   );

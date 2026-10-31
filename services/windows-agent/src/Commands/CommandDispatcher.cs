@@ -80,6 +80,8 @@ namespace ILock.WindowsAgent.Commands
                         else if (act == "STOP_SCREEN_STREAM" || act == "STOP_STREAM") effectiveType = "STOP_SCREEN_STREAM";
                         else if (act == "STREAM_PING" || act == "PING_STREAM") effectiveType = "STREAM_PING";
                         else if (act == "REMOTE_INPUT" || act == "INPUT") effectiveType = "REMOTE_INPUT";
+                        // Raw input kinds (older servers spread the client's action over 'REMOTE_INPUT')
+                        else if (act is "CLICK" or "MOVE" or "SCROLL" or "KEYSTROKE" or "KEYSTROKES" or "MACRO") effectiveType = "REMOTE_INPUT";
                         else if (act == "TEXT_TO_SPEECH" || act == "SPEAK") effectiveType = "TEXT_TO_SPEECH";
                         else if (act == "PROCESS_ACTION" || act == "PROCESSES") effectiveType = "PROCESS_ACTION";
                         else if (act == "FILE_CONDUIT" || act == "FILES") effectiveType = "FILE_CONDUIT";
@@ -286,7 +288,9 @@ namespace ILock.WindowsAgent.Commands
                         int killPid = 0;
                         if (command.Payload != null)
                         {
-                            if (command.Payload.TryGetValue("action", out var paObj) && paObj != null) pAction = paObj.ToString()?.ToLowerInvariant() ?? "list";
+                            // Sub-action travels in actionType; payload.action is the routing key "PROCESS_ACTION"
+                            if (command.Payload.TryGetValue("actionType", out var patObj) && patObj != null) pAction = patObj.ToString()?.ToLowerInvariant() ?? "list";
+                            else if (command.Payload.TryGetValue("action", out var paObj) && paObj != null) pAction = paObj.ToString()?.ToLowerInvariant() ?? "list";
                             if (command.Payload.TryGetValue("pid", out var pidObj) && pidObj != null) int.TryParse(pidObj.ToString(), out killPid);
                         }
                         if (pAction == "kill" && killPid > 0)
@@ -361,6 +365,19 @@ namespace ILock.WindowsAgent.Commands
                         }
                         Security.BleProximityWatcher.Instance.Configure(bleEn, bleRssi, bleTimeout, _logger);
                         await ReportResultAsync(command, config, "SUCCESS", "BLE_CONFIGURED", $"BLE Walk-Away={bleEn}", ct);
+                        break;
+
+                    case "LOCATION_LIVE":
+                        bool locLive = true;
+                        int locDuration = 120;
+                        if (command.Payload != null)
+                        {
+                            if (command.Payload.TryGetValue("enabled", out var llObj) && llObj != null) bool.TryParse(llObj.ToString(), out locLive);
+                            if (command.Payload.TryGetValue("durationSeconds", out var ldObj) && ldObj != null) int.TryParse(ldObj.ToString(), out locDuration);
+                        }
+                        Diagnostics.LocationProvider.SetLiveMode(locLive, locDuration, _logger);
+                        Diagnostics.LocationProvider.RefreshIfDue(_logger);
+                        await ReportResultAsync(command, config, "SUCCESS", "LOCATION_LIVE_CONFIGURED", $"Live location={locLive}", ct);
                         break;
 
                     default:

@@ -95,6 +95,10 @@ export declare const AgentHeartbeatSchema: z.ZodObject<{
     isCharging: z.ZodOptional<z.ZodBoolean>;
     activeUser: z.ZodOptional<z.ZodString>;
     workstationLocked: z.ZodDefault<z.ZodBoolean>;
+    latitude: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
+    longitude: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
+    locationAccuracyM: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
+    locationFixedAt: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
 }, "strip", z.ZodTypeAny, {
     deviceUuid: string;
     timestamp: number;
@@ -106,6 +110,10 @@ export declare const AgentHeartbeatSchema: z.ZodObject<{
     batteryPct?: number | undefined;
     isCharging?: boolean | undefined;
     activeUser?: string | undefined;
+    latitude?: number | null | undefined;
+    longitude?: number | null | undefined;
+    locationAccuracyM?: number | null | undefined;
+    locationFixedAt?: number | null | undefined;
 }, {
     deviceUuid: string;
     timestamp: number;
@@ -117,8 +125,23 @@ export declare const AgentHeartbeatSchema: z.ZodObject<{
     isCharging?: boolean | undefined;
     activeUser?: string | undefined;
     workstationLocked?: boolean | undefined;
+    latitude?: number | null | undefined;
+    longitude?: number | null | undefined;
+    locationAccuracyM?: number | null | undefined;
+    locationFixedAt?: number | null | undefined;
 }>;
 export type AgentHeartbeatInput = z.infer<typeof AgentHeartbeatSchema>;
+export declare const LocationLiveSchema: z.ZodObject<{
+    enabled: z.ZodBoolean;
+    durationSeconds: z.ZodDefault<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    enabled: boolean;
+    durationSeconds: number;
+}, {
+    enabled: boolean;
+    durationSeconds?: number | undefined;
+}>;
+export type LocationLiveInput = z.infer<typeof LocationLiveSchema>;
 export declare const AgentChallengeRequestSchema: z.ZodObject<{
     deviceUuid: z.ZodString;
 }, "strip", z.ZodTypeAny, {

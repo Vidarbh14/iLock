@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using ILock.WindowsAgent.Access;
 using ILock.WindowsAgent.Commands;
 using ILock.WindowsAgent.Config;
+using ILock.WindowsAgent.Diagnostics;
 using ILock.WindowsAgent.Network;
 using ILock.WindowsAgent.Security;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,6 +78,13 @@ namespace ILock.WindowsAgent
                     if (i + 3 < args.Length && int.TryParse(args[i + 3], out int v)) volume = v;
                     bool ok = VoiceBroadcaster.Speak(speakText, rate, volume);
                     Environment.Exit(ok ? 0 : 1);
+                    return;
+                }
+                if (args[i] == "--locate")
+                {
+                    string? outFile = i + 1 < args.Length ? args[i + 1].Trim('\"') : null;
+                    int code = await LocationProvider.RunHelperAsync(outFile);
+                    Environment.Exit(code);
                     return;
                 }
                 if (args[i] == "--stream-helper" && i + 4 < args.Length)

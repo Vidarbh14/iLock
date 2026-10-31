@@ -4,7 +4,7 @@
 // Strict typing for API boundaries & Agent commands
 // ==============================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WebPushSubscriptionSchema = exports.BleProximitySchema = exports.FileConduitSchema = exports.SentryConfigSchema = exports.ProcessActionSchema = exports.SpeechBroadcastSchema = exports.RemoteInputSchema = exports.StartScreenStreamSchema = exports.GuestRequestCreateSchema = exports.ClipboardPushSchema = exports.ToastMessageSchema = exports.PowerCommandSchema = exports.CommandResultSchema = exports.AgentChallengeRequestSchema = exports.AgentHeartbeatSchema = exports.UnlockDeviceSchema = exports.LockDeviceSchema = exports.RevokeAccessSessionSchema = exports.CreateAccessSessionSchema = exports.RegisterDeviceSchema = exports.CreatePairingRequestSchema = exports.PairingCodeRegex = void 0;
+exports.WebPushSubscriptionSchema = exports.BleProximitySchema = exports.FileConduitSchema = exports.SentryConfigSchema = exports.ProcessActionSchema = exports.SpeechBroadcastSchema = exports.RemoteInputSchema = exports.StartScreenStreamSchema = exports.GuestRequestCreateSchema = exports.ClipboardPushSchema = exports.ToastMessageSchema = exports.PowerCommandSchema = exports.CommandResultSchema = exports.AgentChallengeRequestSchema = exports.LocationLiveSchema = exports.AgentHeartbeatSchema = exports.UnlockDeviceSchema = exports.LockDeviceSchema = exports.RevokeAccessSessionSchema = exports.CreateAccessSessionSchema = exports.RegisterDeviceSchema = exports.CreatePairingRequestSchema = exports.PairingCodeRegex = void 0;
 const zod_1 = require("zod");
 exports.PairingCodeRegex = /^[A-Z0-9]{4}-[A-Z0-9]{4}$|^[A-Z0-9]{8}$/;
 // Device Pairing Initiation Schema (Web Client -> API)
@@ -77,6 +77,16 @@ exports.AgentHeartbeatSchema = zod_1.z.object({
     isCharging: zod_1.z.boolean().optional(),
     activeUser: zod_1.z.string().max(2048).optional(),
     workstationLocked: zod_1.z.boolean().default(true),
+    // Windows Location fix (omitted when Location Services is off or unavailable)
+    latitude: zod_1.z.number().min(-90).max(90).optional().nullable(),
+    longitude: zod_1.z.number().min(-180).max(180).optional().nullable(),
+    locationAccuracyM: zod_1.z.number().min(0).max(1_000_000).optional().nullable(),
+    locationFixedAt: zod_1.z.number().int().positive().optional().nullable(),
+});
+// Live Location Tracking Schema (Web Client -> API)
+exports.LocationLiveSchema = zod_1.z.object({
+    enabled: zod_1.z.boolean(),
+    durationSeconds: zod_1.z.number().int().min(30).max(600).default(120),
 });
 // Agent Challenge Request Schema (Windows Agent -> API)
 exports.AgentChallengeRequestSchema = zod_1.z.object({

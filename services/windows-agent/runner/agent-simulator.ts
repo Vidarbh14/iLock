@@ -8,6 +8,7 @@ import {
   generateDeviceKeyPair,
   signPayload,
   verifyDeviceSignature,
+  buildHeartbeatSignaturePayload,
 } from '../../packages/security/src/crypto.js';
 import type {
   AgentHeartbeatInput,
@@ -97,7 +98,12 @@ export class AgentSimulator {
   public async cycleHeartbeat(): Promise<void> {
     const timestamp = Date.now();
     const nonce = crypto.randomUUID();
-    const payloadToSign = `${this.deviceUuid}:${timestamp}:${nonce}:${this.isLocked}`;
+    const payloadToSign = buildHeartbeatSignaturePayload({
+      deviceUuid: this.deviceUuid,
+      timestamp,
+      nonce,
+      workstationLocked: this.isLocked,
+    });
     const signature = signPayload(this.keyPair.privateKey, payloadToSign);
 
     const heartbeat: AgentHeartbeatInput = {

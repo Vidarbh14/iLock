@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace ILock.WindowsAgent.Commands
@@ -74,6 +75,37 @@ namespace ILock.WindowsAgent.Commands
 
         [JsonPropertyName("workstationLocked")]
         public bool WorkstationLocked { get; set; }
+
+        [JsonPropertyName("latitude")]
+        public double? Latitude { get; set; }
+
+        [JsonPropertyName("longitude")]
+        public double? Longitude { get; set; }
+
+        [JsonPropertyName("locationAccuracyM")]
+        public double? LocationAccuracyM { get; set; }
+
+        [JsonPropertyName("locationFixedAt")]
+        public long? LocationFixedAt { get; set; }
+
+        /// <summary>
+        /// Canonical v2 string signed for each heartbeat; must match buildHeartbeatSignaturePayload in
+        /// packages/security/src/crypto.ts byte-for-byte (invariant culture, fixed decimals, lowercase booleans).
+        /// </summary>
+        public string ToSignaturePayload()
+        {
+            var inv = CultureInfo.InvariantCulture;
+            return string.Join(":",
+                "v2",
+                DeviceUuid,
+                Timestamp.ToString(inv),
+                Nonce,
+                WorkstationLocked ? "true" : "false",
+                Latitude?.ToString("F6", inv) ?? "",
+                Longitude?.ToString("F6", inv) ?? "",
+                LocationAccuracyM?.ToString("F0", inv) ?? "",
+                LocationFixedAt?.ToString(inv) ?? "");
+        }
     }
 
     public class HeartbeatResponse

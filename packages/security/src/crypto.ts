@@ -94,6 +94,62 @@ export function verifyDeviceSignature(
   }
 }
 
+export interface HeartbeatSignatureFields {
+  deviceUuid: string;
+  timestamp: number;
+  nonce: string;
+  workstationLocked: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationAccuracyM?: number | null;
+  locationFixedAt?: number | null;
+}
+
+/**
+ * Canonical string an agent signs for every heartbeat (v2).
+ * Covers lock state and the location fix so neither can be forged or altered.
+ * Agents send coordinates pre-rounded to 6 decimals and accuracy to whole metres, and numbers
+ * are rendered with fixed decimals, so C# (InvariantCulture "F6") and JS (toFixed) agree byte-for-byte.
+ */
+export function buildHeartbeatSignaturePayload(hb: HeartbeatSignatureFields): string {
+  const fixed = (v: number | null | undefined, digits: number) => (typeof v === 'number' ? v.toFixed(digits) : '');
+  return [
+    'v2',
+    hb.deviceUuid,
+    hb.timestamp,
+    hb.nonce,
+    hb.workstationLocked ? 'true' : 'false',
+    fixed(hb.latitude, 6),
+    fixed(hb.longitude, 6),
+    fixed(hb.locationAccuracyM, 0),
+    hb.locationFixedAt ?? '',
+  ].join(':');
+}
+
+/**
+ * Verifies a heartbeat signature against the device's registered public key.
+ * Legacy v1 signatures (uuid:timestamp:nonce:locked) are accepted only when the heartbeat carries
+ * no location, so agents installed before the location feature keep working until they are updated.
+ */
+export function verifyHeartbeatSignature(publicKeyPem: string, hb: HeartbeatSignatureFields, signature: string): boolean {
+  if (verifyDeviceSignature(publicKeyPem, buildHeartbeatSignaturePayload(hb), signature)) {
+    return true;
+  }
+
+  const hasLocation = [hb.latitude, hb.longitude, hb.locationAccuracyM, hb.locationFixedAt].some(
+    (v) => v !== null && v !== undefined
+  );
+  if (hasLocation) {
+    return false;
+  }
+
+  // C# agent renders booleans as True/False; the JS simulator as true/false
+  const lockedVariants = hb.workstationLocked ? ['True', 'true'] : ['False', 'false'];
+  return lockedVariants.some((locked) =>
+    verifyDeviceSignature(publicKeyPem, `${hb.deviceUuid}:${hb.timestamp}:${hb.nonce}:${locked}`, signature)
+  );
+}
+
 /**
  * Signs a payload with an asymmetric private key (used by Agent or server tests).
  */

@@ -1,8 +1,17 @@
 import { AgentHeartbeatSchema } from '@ilock/shared';
-import { globalReplayDetector, heartbeatRateLimiter, hashIpAddress } from '@ilock/security';
+import { globalReplayDetector, heartbeatRateLimiter, hashIpAddress, verifyHeartbeatSignature } from '@ilock/security';
 import { errorResponse, jsonResponse } from '@/lib/api-helpers';
 import { isSupabaseConfigured, createServiceClient } from '@/lib/supabase-server';
 import { demoStore } from '@/lib/demo-store';
+import {
+  resolveLocationFix,
+  isNewFix,
+  haversineMeters,
+  LOCATION_HISTORY_MIN_DISTANCE_M,
+  LOCATION_HISTORY_MIN_INTERVAL_MS,
+  LOCATION_RETENTION_MS,
+  type StoredLocation,
+} from '@/lib/location-helper';
 
 export async function POST(request: Request) {
   try {
@@ -44,16 +53,24 @@ export async function POST(request: Request) {
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient();
 
-      // Retrieve device
+      // Retrieve device (with last known location for fix comparison)
       const { data: device, error: devError } = await supabase
         .from('devices')
-        .select('id, owner_id')
+        .select('id, owner_id, public_key, device_status (latitude, longitude, location_source, location_fixed_at)')
         .eq('device_uuid', deviceUuid)
         .single();
 
       if (devError || !device) {
         return errorResponse('DEVICE_NOT_FOUND', 'Device UUID not registered', 404);
       }
+
+      // Cryptographic signature verification with registered public key (covers lock state and location)
+      if (!device.public_key || !verifyHeartbeatSignature(device.public_key, parseResult.data, parseResult.data.signature)) {
+        return errorResponse('INVALID_SIGNATURE', 'Heartbeat signature mismatch. Heartbeat rejected.', 403);
+      }
+
+      const prevStatus = (Array.isArray(device.device_status) ? device.device_status[0] : device.device_status) as StoredLocation | undefined;
+      const fix = resolveLocationFix(parseResult.data, request.headers, prevStatus ?? null, now);
 
       // Update device last seen
       await supabase
@@ -78,9 +95,52 @@ export async function POST(request: Request) {
           workstation_locked: workstationLocked,
           last_heartbeat: now.toISOString(),
           consecutive_failed_heartbeats: 0,
+          // Only overwrite location when a fix exists, so the last known location survives
+          ...(fix && {
+            latitude: fix.latitude,
+            longitude: fix.longitude,
+            location_accuracy_m: fix.accuracyM,
+            location_source: fix.source,
+            location_city: fix.city,
+            location_fixed_at: fix.fixedAt,
+          }),
         },
         { onConflict: 'device_id' }
       );
+
+      // Append to the movement trail (throttled by distance / time)
+      if (fix && isNewFix(fix, prevStatus ?? null)) {
+        const { data: lastRows } = await supabase
+          .from('device_locations')
+          .select('latitude, longitude, recorded_at')
+          .eq('device_id', device.id)
+          .order('recorded_at', { ascending: false })
+          .limit(1);
+
+        const last = lastRows?.[0];
+        const shouldRecord = !last
+          || haversineMeters(last.latitude, last.longitude, fix.latitude, fix.longitude) >= LOCATION_HISTORY_MIN_DISTANCE_M
+          || new Date(fix.fixedAt).getTime() - new Date(last.recorded_at).getTime() >= LOCATION_HISTORY_MIN_INTERVAL_MS;
+
+        if (shouldRecord) {
+          await supabase.from('device_locations').insert({
+            device_id: device.id,
+            latitude: fix.latitude,
+            longitude: fix.longitude,
+            accuracy_m: fix.accuracyM,
+            source: fix.source,
+            city: fix.city,
+            recorded_at: fix.fixedAt,
+          });
+
+          // 7-day retention
+          await supabase
+            .from('device_locations')
+            .delete()
+            .eq('device_id', device.id)
+            .lt('recorded_at', new Date(now.getTime() - LOCATION_RETENTION_MS).toISOString());
+        }
+      }
 
       // Fetch pending unacknowledged commands
       const { data: commands } = await supabase
@@ -125,7 +185,19 @@ export async function POST(request: Request) {
     device.status = 'online';
     device.updatedAt = now.toISOString();
 
+    const prevTelemetry = demoStore.telemetry.get(device.id);
+    const prevLoc = prevTelemetry?.location;
+    const demoFix = resolveLocationFix(
+      parseResult.data,
+      request.headers,
+      prevLoc
+        ? { latitude: prevLoc.latitude, longitude: prevLoc.longitude, location_source: prevLoc.source, location_fixed_at: prevLoc.fixedAt }
+        : null,
+      now
+    );
+
     demoStore.telemetry.set(device.id, {
+      location: demoFix ?? prevLoc ?? null,
       deviceId: device.id,
       ipHash,
       cpuUsagePct: cpuUsagePct ?? 14.0,

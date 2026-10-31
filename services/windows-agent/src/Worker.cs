@@ -144,26 +144,32 @@ namespace ILock.WindowsAgent
                     var teleData = SystemTelemetryProvider.Collect();
                     string telemetryCompact = teleData.ToCompactString();
 
+                    // Location: read cached fix, refresh in background when due (never blocks the heartbeat)
+                    LocationProvider.RefreshIfDue(_logger);
+                    var locationFix = LocationProvider.GetLatest();
+
                     // 4. Prepare Cryptographically Signed Heartbeat Payload
                     long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                     string nonce = Guid.NewGuid().ToString("N");
-
-                    string payloadToSign = $"{_config.DeviceUuid}:{timestamp}:{nonce}:{isLocked}";
-                    string signature = _deviceIdentity.SignData(payloadToSign);
 
                     var heartbeat = new HeartbeatPayload
                     {
                         DeviceUuid = _config.DeviceUuid,
                         Timestamp = timestamp,
                         Nonce = nonce,
-                        Signature = signature,
                         WorkstationLocked = isLocked,
                         ActiveUser = telemetryCompact,
                         CpuUsagePct = teleData.CpuUsagePct,
                         MemoryUsagePct = teleData.RamUsagePct,
                         BatteryPct = teleData.BatteryPct,
-                        IsCharging = teleData.IsCharging
+                        IsCharging = teleData.IsCharging,
+                        Latitude = locationFix?.Latitude,
+                        Longitude = locationFix?.Longitude,
+                        LocationAccuracyM = locationFix?.AccuracyM,
+                        LocationFixedAt = locationFix?.FixedAtMs
                     };
+                    // Signature covers lock state and location (see HeartbeatPayload.ToSignaturePayload)
+                    heartbeat.Signature = _deviceIdentity.SignData(heartbeat.ToSignaturePayload());
 
                     // 5. Send Heartbeat to Cloud
                     // Sentry Guard Power Monitor

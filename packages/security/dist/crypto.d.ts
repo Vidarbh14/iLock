@@ -33,6 +33,29 @@ export declare function normalizePem(pem: string): string;
  * Signature is expected in Base64 or Hex.
  */
 export declare function verifyDeviceSignature(publicKeyPem: string, payloadData: string | Buffer, signature: string, algorithm?: 'RSA-SHA256' | 'SHA256'): boolean;
+export interface HeartbeatSignatureFields {
+    deviceUuid: string;
+    timestamp: number;
+    nonce: string;
+    workstationLocked: boolean;
+    latitude?: number | null;
+    longitude?: number | null;
+    locationAccuracyM?: number | null;
+    locationFixedAt?: number | null;
+}
+/**
+ * Canonical string an agent signs for every heartbeat (v2).
+ * Covers lock state and the location fix so neither can be forged or altered.
+ * Agents send coordinates pre-rounded to 6 decimals and accuracy to whole metres, and numbers
+ * are rendered with fixed decimals, so C# (InvariantCulture "F6") and JS (toFixed) agree byte-for-byte.
+ */
+export declare function buildHeartbeatSignaturePayload(hb: HeartbeatSignatureFields): string;
+/**
+ * Verifies a heartbeat signature against the device's registered public key.
+ * Legacy v1 signatures (uuid:timestamp:nonce:locked) are accepted only when the heartbeat carries
+ * no location, so agents installed before the location feature keep working until they are updated.
+ */
+export declare function verifyHeartbeatSignature(publicKeyPem: string, hb: HeartbeatSignatureFields, signature: string): boolean;
 /**
  * Signs a payload with an asymmetric private key (used by Agent or server tests).
  */

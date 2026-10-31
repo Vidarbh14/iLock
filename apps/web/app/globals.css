@@ -364,3 +364,12 @@ body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
+
+/* Dark-themed OpenStreetMap tiles for the location map */
+.ilock-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}
+
+.ilock-map.leaflet-container {
+  background: #020617;
+}

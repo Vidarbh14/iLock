@@ -49,6 +49,15 @@ export interface DeviceTelemetry {
     lastHeartbeat: string;
     consecutiveFailedHeartbeats: number;
     updatedAt: string;
+    location?: DeviceLocationFix | null;
+}
+export interface DeviceLocationFix {
+    latitude: number;
+    longitude: number;
+    accuracyM: number | null;
+    source: 'windows' | 'ip';
+    city: string | null;
+    fixedAt: string;
 }
 export interface AccessSession {
     id: string;
