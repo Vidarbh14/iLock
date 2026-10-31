@@ -18,6 +18,17 @@ export async function GET(
 
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient();
+      const { data: device } = await supabase
+        .from('devices')
+        .select('id')
+        .eq('id', deviceId)
+        .eq('owner_id', userId)
+        .single();
+
+      if (!device) {
+        return errorResponse('FORBIDDEN', 'Access denied to this workstation', 403);
+      }
+
       // Fetch latest intruder alert from audit_logs
       const { data: alerts } = await supabase
         .from('audit_logs')

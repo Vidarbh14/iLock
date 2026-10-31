@@ -123,6 +123,7 @@ namespace ILock.WindowsAgent.Access
                         return ScrollMouse(deltaY);
 
                     case "keystroke":
+                    case "keystrokes":
                         if (!string.IsNullOrEmpty(text))
                         {
                             return SendUnicodeString(text);

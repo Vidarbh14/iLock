@@ -2,6 +2,7 @@ import { getAuthenticatedUserId, errorResponse, jsonResponse } from '@/lib/api-h
 import { isSupabaseConfigured, createServiceClient } from '@/lib/supabase-server';
 import { demoStore } from '@/lib/demo-store';
 import { RemoteInputSchema } from '@ilock/shared';
+import { buildRemoteInputCommandPayload } from '@/lib/remote-input';
 import crypto from 'node:crypto';
 
 export async function POST(
@@ -21,7 +22,7 @@ export async function POST(
       return errorResponse('VALIDATION_ERROR', 'Invalid remote input payload', 400, parseResult.error.format());
     }
 
-    const inputData = parseResult.data;
+    const commandPayload = buildRemoteInputCommandPayload(parseResult.data);
     const nonce = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 30 * 1000).toISOString();
 
@@ -43,8 +44,7 @@ export async function POST(
         command_type: 'DEVICE_PING',
         nonce,
         payload: {
-          action: 'REMOTE_INPUT',
-          ...inputData,
+          ...commandPayload,
           requestedBy: userId,
         },
         expires_at: expiresAt,
@@ -56,7 +56,7 @@ export async function POST(
         await channel.send({
           type: 'broadcast',
           event: 'input',
-          payload: inputData,
+          payload: commandPayload,
         });
         await supabase.removeChannel(channel);
       } catch {}
@@ -70,7 +70,7 @@ export async function POST(
       sessionId: null,
       commandType: 'DEVICE_PING',
       nonce,
-      payload: { action: 'REMOTE_INPUT', ...inputData },
+      payload: commandPayload,
       signature: null,
       isDispatched: false,
       dispatchedAt: null,

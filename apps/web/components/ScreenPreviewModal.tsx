@@ -315,7 +315,7 @@ export function ScreenPreviewModal({
   const handleSendMacro = async (macro: string) => {
     setIsSendingInput(true);
     try {
-      await fetch(`/api/devices/${deviceId}/input`, {
+      const res = await fetch(`/api/devices/${deviceId}/input`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -323,7 +323,11 @@ export function ScreenPreviewModal({
           macro,
         }),
       });
-      setActionSuccess(`Triggered ${macro}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error?.message || 'Failed to dispatch macro');
+      }
+      setActionSuccess(`Sent ${macro} to PC`);
       setTimeout(() => setActionSuccess(null), 2000);
     } catch (err: any) {
       setError(err.message || 'Failed to dispatch macro');
@@ -338,7 +342,7 @@ export function ScreenPreviewModal({
 
     setIsSendingInput(true);
     try {
-      await fetch(`/api/devices/${deviceId}/input`, {
+      const res = await fetch(`/api/devices/${deviceId}/input`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -346,8 +350,12 @@ export function ScreenPreviewModal({
           text: keystrokesText,
         }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error?.message || 'Failed to inject keystrokes');
+      }
       setKeystrokesText('');
-      setActionSuccess('Text injected into active PC window');
+      setActionSuccess('Text sent to active PC window');
       setTimeout(() => setActionSuccess(null), 2000);
     } catch (err: any) {
       setError(err.message || 'Failed to inject keystrokes');
