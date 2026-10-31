@@ -54,11 +54,22 @@ export async function POST(request: Request) {
       const supabase = createServiceClient();
 
       // Retrieve device (with last known location for fix comparison)
-      const { data: device, error: devError } = await supabase
+      let locationSchemaReady = true;
+      let { data: device, error: devError } = await supabase
         .from('devices')
         .select('id, owner_id, public_key, device_status (latitude, longitude, location_source, location_fixed_at)')
         .eq('device_uuid', deviceUuid)
         .single();
+
+      // Location migration not applied yet (undefined column): keep heartbeats working without location
+      if (devError?.code === '42703') {
+        locationSchemaReady = false;
+        ({ data: device, error: devError } = await supabase
+          .from('devices')
+          .select('id, owner_id, public_key')
+          .eq('device_uuid', deviceUuid)
+          .single());
+      }
 
       if (devError || !device) {
         return errorResponse('DEVICE_NOT_FOUND', 'Device UUID not registered', 404);
@@ -69,8 +80,11 @@ export async function POST(request: Request) {
         return errorResponse('INVALID_SIGNATURE', 'Heartbeat signature mismatch. Heartbeat rejected.', 403);
       }
 
-      const prevStatus = (Array.isArray(device.device_status) ? device.device_status[0] : device.device_status) as StoredLocation | undefined;
-      const fix = resolveLocationFix(parseResult.data, request.headers, prevStatus ?? null, now);
+      const deviceStatus = 'device_status' in device ? device.device_status : undefined;
+      const prevStatus = (Array.isArray(deviceStatus) ? deviceStatus[0] : deviceStatus) as StoredLocation | undefined;
+      const fix = locationSchemaReady
+        ? resolveLocationFix(parseResult.data, request.headers, prevStatus ?? null, now)
+        : null;
 
       // Update device last seen
       await supabase

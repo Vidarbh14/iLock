@@ -76,6 +76,8 @@ export function LocationModal({
       if (res.ok) {
         setLatest(data.latest);
         setHistory(data.history || []);
+      } else if (data.error?.code === 'LOCATION_NOT_READY') {
+        setStatusMessage({ type: 'error', text: data.error.message });
       }
     } catch {
     } finally {

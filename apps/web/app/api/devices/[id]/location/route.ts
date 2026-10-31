@@ -20,12 +20,16 @@ export async function GET(
 
     if (isSupabaseConfigured()) {
       const supabase = createServiceClient();
-      const { data: device } = await supabase
+      const { data: device, error: devError } = await supabase
         .from('devices')
         .select('id, last_seen, device_status (latitude, longitude, location_accuracy_m, location_source, location_city, location_fixed_at)')
         .eq('id', deviceId)
         .eq('owner_id', userId)
         .single();
+
+      if (devError?.code === '42703') {
+        return errorResponse('LOCATION_NOT_READY', 'Location storage is not set up yet (database migration pending)', 503);
+      }
 
       if (!device) {
         return errorResponse('DEVICE_NOT_FOUND', 'Device not found or not owned by user', 404);
